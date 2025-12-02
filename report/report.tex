@@ -1,0 +1,126 @@
+% adapted by WS from SSR's Word document and from the 5-part series at
+% https://www.overleaf.com/learn/latex/How_to_Write_a_Thesis_in_LaTeX_(Part_1):_Basic_Structure
+% reviewed by MAM
+
+\documentclass[12pt,twosided]{report}
+
+\usepackage[titletoc]{appendix} % for adding appendix to TOC
+\usepackage{biblatex}  % reference management
+\usepackage{geometry}  % better margins and margin control
+\usepackage{graphicx}  % to include figures
+\usepackage{hyperref}  % internal and external links
+\usepackage[utf8]{inputenc}  % support for non-ASCII characters
+\usepackage{listings}  % typset code
+\usepackage{outlines}  % easy nesting of lists
+\usepackage{tabularx}  % more control over table column width
+\usepackage{titlesec}  % customize chapter title 
+\usepackage{upquote}  % prevent mishandling of single quotes in listings
+\usepackage{float}
+\renewcommand{\arraystretch}{1.5}  % adds vertical spacing
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+% TikZ packages
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, shadows}
+
+% TODO: Customize the appearance of hyperref links using \hypersetup
+% See https://en.wikibooks.org/wiki/LaTeX/Hyperlinks#Customization
+
+% Custom format of chapter title.
+\titleformat{\chapter}[hang]{\bf\huge}{\thechapter.}{2pc}{}
+
+% Separate folder for images named 'images'.
+\graphicspath{ {images/} }
+
+% Separate file for references
+\addbibresource{references.bib}
+
+% Replace with your title
+\title{EthnoVerse: A Digital Framework for Cultural Archiving}
+
+% Allow recalling document title
+% from https://tex.stackexchange.com/a/15806/44301
+\makeatletter\let\Title\@title\makeatother  
+
+\begin{document}
+
+\include{titlepage}  % title page.
+\include{approval}  % approval page.
+
+\chapter*{Dedication}
+For ammi, abbu, and pappu.
+
+\chapter*{Acknowledgements}
+We want to thank the CS faculty and ...
+
+\chapter*{Abstract}
+In an age where technology enables the preservation and spread of knowledge, many cultural practices—especially those of marginalized communities—remain undocumented or inaccessible. Our idea for this project grew out of a Tehqiq 2025 ethnographic study on tattoo traditions among Sindh’s Indigenous Hindu Tribes, where we found that living practices were largely absent from public and scholarly archives. This absence reflects a broader gap: there is no centralized, accessible system to document Pakistan’s Indigenous communities as part of its living cultural landscape. EthnoVerse: A Digital Framework for Cultural Archiving addresses this gap by creating a web-based repository for multimedia documentation—texts, images, oral histories, and videos—organized through searchable metadata. Beyond static records, the project introduces an experimental 3D module that reconstructs community environments using Neural Radiance Fields (NeRF), allowing users to experience immersive virtual tours. Technically, EthnoVerse integrates database systems, web development, and computer vision into a scalable, ethically grounded platform. Socially, it reimagines archiving as a dynamic and participatory process—one that situates Indigenous communities not in the past, but within Pakistan’s evolving cultural present.
+
+
+
+% The following are automatically populated by LaTeX \chapter, \section and related, \figure, and \table.
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter{Introduction}
+\label{chap:intro}
+\input{chapters/introduction}
+
+\chapter{Literature Review}
+\label{chap:lit}
+\input{chapters/review}
+
+\chapter{Software Requirement Specification (SRS)}
+\label{chap:srs}
+\input{chapters/srs}
+
+\chapter{Software Design Specification (SDS)}
+\label{chap:sds}
+\input{chapters/sds}
+
+\chapter{Methodology, Experiments and Results OR Testing and Analysis}
+\label{chap:results}
+\input{chapters/results}
+
+\chapter{Conclusion and Future Work}
+\label{chap:outro}
+\input{chapters/conclusion}
+
+\chapter{Reflection}
+\label{chap:Reflection}
+\input{chapters/reflection}
+
+\begin{appendices}
+
+\titleformat{\chapter}[hang]{\bf\huge}{Appendix \thechapter.}{2pc}{}
+  
+% This appendix is optional.
+\chapter{More Math}
+\input{chapters/appendix-math}
+
+% This appendix is required if the data set is not fully described in the main text.
+\chapter{Data}
+\input{chapters/appendix-data}
+
+% This appendix is required if the code is not fully described in the main text.
+\chapter{Code}
+\input{chapters/appendix-code}
+\end{appendices}
+
+% Print the bibliography with a ToC entry and titled, "References".
+\printbibliography[heading=bibintoc,title={References}]
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

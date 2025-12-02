@@ -1,0 +1,270 @@
+
+
+This chapter documents the system design for \textit{EthnoVerse}, describing the software architecture, UML-class-level design, 
+and technical algorithms.
+
+\section{Software Design}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{UML.png}
+    \caption{UML Class Diagram}
+\end{figure}
+
+
+\subsection{Class Description}
+
+\bigskip
+\textbf{Class: User}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{userId}: Unique identifier for the user.
+    \item \textbf{username}: Display name chosen by the user.
+    \item \textbf{email}: Contact email used for login and notifications.
+    \item \textbf{hashedPassword}: Encrypted password stored securely.
+    \item \textbf{role}: Access level of the user (\texttt{admin}, \texttt{editor}, \texttt{public}).
+    \item \textbf{createdAt}: Timestamp indicating when the account was created.
+    \item \textbf{profileMeta}: Optional metadata such as biography or affiliation.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{authenticate(email: string, password: string): boolean} -- Validates user credentials.
+    \item \textbf{authorize(action: string): boolean} -- Checks if the user has permissions for a given system action.
+    \item \textbf{updateProfile(profileMeta: dict): void} -- Updates the user’s metadata.
+    \item \textbf{logAction(actionType: string, targetId: string): void} -- Records an action in the audit log.
+\end{itemize}
+
+
+\bigskip
+\textbf{Class: Community}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{communityId}: Unique identifier for the community.
+    \item \textbf{name}: Name of the community.
+    \item \textbf{location}: Geographic or regional information.
+    \item \textbf{shortDescription}: Brief summary of the community.
+    \item \textbf{longDescription}: Detailed cultural, historical, or sociological description.
+    \item \textbf{language}: Primary language(s) spoken by the community.
+    \item \textbf{contactInfo}: Contact details for community representatives or researchers.
+    \item \textbf{createdAt}: Timestamp when the community record was created.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{addMedia(mediaId: string): void} -- Associates a new media item with the community.
+    \item \textbf{updateInfo(details: dict): void} -- Updates descriptive and organizational information.
+    \item \textbf{getSummary(): dict} -- Returns a short, structured summary of the community.
+\end{itemize}
+
+\bigskip
+\textbf{Class: MediaItem}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{mediaId}: Unique identifier for the media file.
+    \item \textbf{communityId}: Foreign key linking to the related community.
+    \item \textbf{uploaderId}: Identifier of the user who uploaded the item.
+    \item \textbf{mediaType}: Type of media (\texttt{image}, \texttt{audio}, \texttt{video}, \texttt{document}).
+    \item \textbf{storageUri}: File path or cloud URI where the media is stored.
+    \item \textbf{thumbnailUri}: Auto-generated thumbnail link.
+    \item \textbf{title}: Title of the media item.
+    \item \textbf{description}: Detailed contextual description.
+    \item \textbf{tags}: List of descriptive tags for indexing and search.
+    \item \textbf{dateCaptured}: Date when the media was originally recorded.
+    \item \textbf{consentDocUri}: URI to consent or permissions documentation.
+    \item \textbf{visible}: Boolean indicating whether the media is publicly visible.
+    \item \textbf{createdAt}: Upload timestamp.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{validateMetadata(): boolean} -- Ensures metadata completeness and correctness.
+    \item \textbf{transcode(): void} -- Converts media into standardized, web-optimized formats.
+    \item \textbf{generateThumbnail(): void} -- Produces a thumbnail for image/video previews.
+    \item \textbf{attachTranscript(transcriptId: string): void} -- Links a transcript to the media item.
+\end{itemize}
+
+
+\bigskip
+\textbf{Class: Transcript}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{transcriptId}: Unique identifier for the transcript.
+    \item \textbf{mediaId}: Foreign key linking to the corresponding media item.
+    \item \textbf{language}: Language of the transcript.
+    \item \textbf{text}: Full transcript text.
+    \item \textbf{timestamps}: Time-aligned text segments for audio/video.
+    \item \textbf{generatedBy}: Specifies whether the transcript was human-created or auto-generated.
+    \item \textbf{createdAt}: Timestamp for transcript creation.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{search(query: string): List<string>} -- Searches for a query inside the transcript.
+    \item \textbf{alignTimestamps(): void} -- Adjusts the timing alignment with the source media.
+    \item \textbf{export(format: string): file} -- Exports the transcript in text or subtitle formats.
+\end{itemize}
+
+
+\bigskip
+\textbf{Class: Scene3D}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{sceneId}: Unique identifier for the 3D scene.
+    \item \textbf{communityId}: Foreign key referencing the associated community.
+    \item \textbf{sourceMediaList}: Collection of media items used for reconstruction.
+    \item \textbf{modelUri}: Storage location of the generated 3D model.
+    \item \textbf{methodUsed}: Reconstruction method (\texttt{NeRF} or \texttt{GaussianSplatting}).
+    \item \textbf{status}: Current build status (\texttt{pending}, \texttt{processing}, \texttt{ready}, \texttt{failed}).
+    \item \textbf{metadata}: Camera pose summaries and build parameters.
+    \item \textbf{performanceStats}: Metrics such as model size or rendering speed.
+    \item \textbf{createdAt}: Timestamp when the reconstruction entry was created.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{startBuild(sourceMediaList: List<string>): void} -- Initiates the 3D reconstruction pipeline.
+    \item \textbf{getPreview(): uri/file} -- Returns a preview of the reconstructed scene.
+    \item \textbf{optimizeForWeb(): void} -- Compresses and encodes the model for browser rendering.
+\end{itemize}
+
+
+\bigskip
+\textbf{Class: AuditLog}\\
+\textbf{Attributes:}
+\begin{itemize}
+    \item \textbf{logId}: Unique identifier for the log entry.
+    \item \textbf{actorId}: Identifier of the user who performed the action.
+    \item \textbf{actionType}: Description of the action (upload, edit, delete, etc.).
+    \item \textbf{targetId}: Identifier of the affected resource.
+    \item \textbf{timestamp}: Time when the action occurred.
+    \item \textbf{details}: Additional metadata such as old/new values or IP address.
+\end{itemize}
+
+\textbf{Methods:}
+\begin{itemize}
+    \item \textbf{record(actorId: string, actionType: string, targetId: string, details: dict): void} -- Creates a new audit log entry.
+    \item \textbf{query(filters: dict): List<AuditLog>} -- Retrieves log entries that match specific criteria.
+\end{itemize}
+
+
+\section{Data Pipeline}
+This section describes how data flows from user upload to discovery and 3D reconstruction.
+
+\subsection{Overview (stages)}
+\begin{enumerate}
+  \item \textbf{Ingestion (Client)}: Admin uploads media via web form (file + metadata + consent docs). Basic client-side validation runs (file types, size).
+  \item \textbf{API Accept / Validation}: Backend validates metadata schema, consent presence, and user authorization.
+  \item \textbf{Storage}: Raw media stored in Object Store (S3). Backend persists metadata record in DB with `status=processing` for media.
+  \item \textbf{Asynchronous Workers}:
+    \begin{itemize}
+      \item \textbf{Transcoding/Thumbnailing}: create web-friendly derivatives (images: webp/jpeg smaller; audio: mp3/ogg; video: H.264 mp4).
+      \item \textbf{Transcript Generation}: send audio/video to Speech-to-Text worker (Whisper-like or cloud ASR); produce transcript and timestamps.
+      \item \textbf{Indexing}: push metadata + transcript to Search Index (ElasticSearch) for full-text search.
+      \item \textbf{3D Build (optional)}: enqueue scene build job (NeRF) if user requests a 3D reconstruction from a set of images.
+    \end{itemize}
+  \item \textbf{3D Reconstruction}: GPU worker pulls images from storage, computes camera poses (COLMAP or similar), trains NeRF/Instant-NGP or Gaussian Splatting, outputs optimized model and preview images, saves modelUri and metadata in DB.
+  \item \textbf{Delivery / Viewing}: Frontend fetches optimized assets and renders 3D scene (Three.js viewer) and media via CDN.
+  \item \textbf{Audit \& Monitoring}: All actions logged to AuditLogs; status updated throughout.
+\end{enumerate}
+
+\subsection{Resilience and observability}
+\begin{itemize}
+  \item Workers report progress and errors to the API and AuditLogs.
+  \item Retry semantics for transient failures (exponential backoff).
+  \item Storage versioning to preserve original files and derived artifacts.
+\end{itemize}
+
+\section{Technical Details and Algorithms}
+
+\subsection{NeRF 3D Reconstruction pipeline}
+
+\subsubsection{NeRF Algorithm}
+
+Neural Radiance Fields (NeRF), introduced by Mildenhall et al.\ \cite{mildenhall2020}, represent one of the most significant recent advancements in neural rendering and view synthesis. NeRF reconstructs a continuous 3D scene representation by optimizing a neural network to map spatial coordinates and viewing directions to volumetric density and emitted color. This enables photorealistic novel-view synthesis from sparse image sets—an essential capability for cultural heritage documentation, where controlled scanning conditions are rarely available. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{NeRF.png}
+    \caption{Overview of the NeRF pipeline following Mildenhall et al.\ (2020): 
+    (a) rays sampled from calibrated input images, 
+    (b) neural network prediction of color and density, 
+    (c) volumetric rendering along each ray, and 
+    (d) photometric reconstruction loss.}
+\end{figure}
+
+\subsubsection*{Input Representation}
+
+NeRF treats the 3D scene as a continuous volumetric function. The model receives as input a 5D vector:
+\[
+(x, y, z, \theta, \phi),
+\]
+where $(x, y, z)$ is a 3D spatial position and $(\theta, \phi)$ is the viewing direction encoded as a 3D unit vector. Input images must be accompanied by camera intrinsics and extrinsics, allowing NeRF to cast rays through each pixel into 3D space.
+
+To improve the network’s ability to model high-frequency details, NeRF applies \textit{positional encoding} to each input coordinate using a multi-scale Fourier mapping:
+\[
+\gamma(p) = \big(\sin(2^0\pi p), \cos(2^0\pi p), \ldots, \sin(2^L\pi p), \cos(2^L\pi p)\big),
+\]
+allowing the MLP to represent complex illumination and fine geometric structure.
+
+\subsubsection*{Network Architecture and Output}
+
+The NeRF architecture consists of a fully-connected multi-layer perceptron (MLP) with ReLU activations. The MLP predicts two outputs for each sampled 3D point:
+
+\begin{enumerate}
+    \item \textbf{Density} $\sigma$: a scalar indicating how much light is absorbed at the point (analogous to volumetric opacity).
+    \item \textbf{Color} $(R,G,B)$: the emitted radiance in the camera viewing direction.
+\end{enumerate}
+
+Formally, the network is parameterized as:
+\[
+F_{\Theta}(x, y, z, \theta, \phi) \rightarrow (R, G, B, \sigma).
+\]
+
+\subsubsection*{Ray Sampling and Volume Rendering}
+
+For each training image, NeRF sends a ray through every pixel. A ray is parameterized as:
+\[
+r(t) = o + td,
+\]
+where $o$ is the camera origin, $d$ is the ray direction, and $t$ is the distance along the ray. NeRF samples $N$ points along each ray and evaluates the MLP at each point.
+
+Using the predicted densities and colors, NeRF employs classical \textit{volume rendering} to approximate the expected color of that pixel:
+\[
+C(r) = \sum_{i=1}^{N} T_i \big(1 - e^{-\sigma_i \delta_i}\big) c_i,
+\]
+where:
+\[
+T_i = \exp\left(-\sum_{j=1}^{i-1} \sigma_j \delta_j\right)
+\]
+is the accumulated transmittance, $\sigma_i$ is the density, $c_i$ is the color, and $\delta_i$ is the spacing between adjacent samples.
+
+This formulation interpolates the contributions of all sampled 3D points to compute the pixel’s final color.
+
+\subsubsection*{Optimization and Loss Function}
+
+NeRF optimizes network parameters $\Theta$ by minimizing the photometric reconstruction error between rendered colors and ground-truth pixels:
+\[
+\mathcal{L} = \sum_{r \in \mathcal{R}} \| C(r) - C_{\mathrm{gt}}(r) \|_2^2,
+\]
+where $\mathcal{R}$ is the set of rays sampled across all training images.
+
+The network is trained using stochastic gradient descent (typically Adam) over tens to hundreds of thousands of iterations.
+
+
+\subsubsection{NeRF Pipeline}
+\textbf{Purpose:} reconstruct immersive 3D scenes from multi-angle field photos to create virtual tours.
+
+\textbf{Inputs:}
+\begin{itemize}
+  \item Image set for scene (ideally 20–200 images with overlapping views),
+  \item EXIF for camera intrinsics (when available),
+  \item Optional sparse camera poses (if photogrammetry was precomputed).
+\end{itemize}
+
+\textbf{Outputs:}
+\begin{itemize}
+  \item Optimized 3D model for web view (e.g., multi-resolution point cloud / Gaussian splats or baked textured mesh / cubemap),
+  \item Preview images and metadata (camera pose summary, reconstruction stats),
+  \item Status updates and logs.
+\end{itemize}

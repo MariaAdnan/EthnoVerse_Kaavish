@@ -1,0 +1,52 @@
+\contentsline {chapter}{\numberline {1}Introduction}{9}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Problem Statement}{9}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Proposed Solution}{9}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Intended Users}{9}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}User Characteristics}{10}{subsection.1.3.1}%
+\contentsline {section}{\numberline {1.4}Project Gantt chart and deliverables}{10}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Key Challenges and Mitigations}{11}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Technical complexity of 3D reconstruction}{11}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Data quality \& quantity}{11}{subsection.1.5.2}%
+\contentsline {subsection}{\numberline {1.5.3}Compute resources}{12}{subsection.1.5.3}%
+\contentsline {subsection}{\numberline {1.5.4}Scope creep \& time management}{12}{subsection.1.5.4}%
+\contentsline {chapter}{\numberline {2}Literature Review}{13}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Digital Archives}{13}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Community Archiving on the Global Scale}{13}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Existing Local Archival Work}{14}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Limitations, Gaps \& Competitor Analysis of Existing Archives}{14}{subsection.2.1.3}%
+\contentsline {section}{\numberline {2.2}3D Reconstruction for Cultural Heritage}{16}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Photogrammetry and Early 3D Techniques}{16}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Neural Radiance Fields (NeRF)}{16}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Novelty and Contribution of \textit {EthnoVerse}}{17}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Software Requirement Specification (SRS)}{18}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Functional Requirements}{18}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}EthnoVerse Web Platform}{18}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}3D Reconstruction and Virtual Tour}{20}{subsection.3.1.2}%
+\contentsline {section}{\numberline {3.2}Non-Functional Requirements}{21}{section.3.2}%
+\contentsline {section}{\numberline {3.3}External Interfaces}{23}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}User Interfaces}{23}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Application Program Interface (API)}{29}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Hardware and Communication Interfaces}{30}{subsection.3.3.3}%
+\contentsline {section}{\numberline {3.4}Use Cases}{30}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Use Case Diagram}{30}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Use Cases by Actor}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{Public User / Researcher Use Cases}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{Administrator Use Cases}{32}{table.3.3}%
+\contentsline {section}{\numberline {3.5}System Diagram}{33}{section.3.5}%
+\contentsline {chapter}{\numberline {4}Software Design Specification (SDS)}{36}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Software Design}{37}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Class Description}{37}{subsection.4.1.1}%
+\contentsline {section}{\numberline {4.2}Data Pipeline}{41}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Overview (stages)}{41}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Resilience and observability}{42}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Technical Details and Algorithms}{42}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}NeRF 3D Reconstruction pipeline}{42}{subsection.4.3.1}%
+\contentsline {subsubsection}{NeRF Algorithm}{42}{subsection.4.3.1}%
+\contentsline {subsubsection}{NeRF Pipeline}{44}{Item.9}%
+\contentsline {chapter}{\numberline {5}Methodology, Experiments and Results OR Testing and Analysis}{45}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Conclusion and Future Work}{46}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Reflection}{47}{chapter.7}%
+\contentsline {chapter}{Appendix \numberline {A}More Math}{48}{appendix.1.A}%
+\contentsline {chapter}{Appendix \numberline {B}Data}{49}{appendix.1.B}%
+\contentsline {chapter}{Appendix \numberline {C}Code}{50}{appendix.1.C}%
+\contentsline {chapter}{References}{51}{appendix*.7}%

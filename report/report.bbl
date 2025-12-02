@@ -1,0 +1,507 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global/global}
+    \entry{archivingpoliceviolence}{online}{}{}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{A People's Archive of Police Violence in Cleveland}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.archivingpoliceviolence.org/
+      \endverb
+      \verb{url}
+      \verb https://www.archivingpoliceviolence.org/
+      \endverb
+    \endentry
+    \entry{cap}{online}{}{}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Citizens Archive of Pakistan (CAP)}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://citizensarchive.org/
+      \endverb
+      \verb{url}
+      \verb https://citizensarchive.org/
+      \endverb
+    \endentry
+    \entry{cahg}{online}{}{}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Community Archives and Heritage Group (CAHG)}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.communityarchives.org.uk/
+      \endverb
+      \verb{url}
+      \verb https://www.communityarchives.org.uk/
+      \endverb
+    \endentry
+    \entry{densho}{online}{}{}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Densho: The Japanese American Legacy Project}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://densho.org/
+      \endverb
+      \verb{url}
+      \verb https://densho.org/
+      \endverb
+    \endentry
+    \entry{digilibraries}{online}{}{}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{DigiLibraries.com: Free eBooks}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://digilibraries.com/
+      \endverb
+      \verb{url}
+      \verb https://digilibraries.com/
+      \endverb
+    \endentry
+    \entry{ernst2013}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=27c55864417614bc919ac0a2920f5164}{%
+           family={Ernst},
+           familyi={E\bibinitperiod},
+           given={Wolfgang},
+           giveni={W\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Minneapolis, MN}%
+      }
+      \list{publisher}{1}{%
+        {University of Minnesota Press}%
+      }
+      \strng{namehash}{27c55864417614bc919ac0a2920f5164}
+      \strng{fullhash}{27c55864417614bc919ac0a2920f5164}
+      \strng{fullhashraw}{27c55864417614bc919ac0a2920f5164}
+      \strng{bibnamehash}{27c55864417614bc919ac0a2920f5164}
+      \strng{authorbibnamehash}{27c55864417614bc919ac0a2920f5164}
+      \strng{authornamehash}{27c55864417614bc919ac0a2920f5164}
+      \strng{authorfullhash}{27c55864417614bc919ac0a2920f5164}
+      \strng{authorfullhashraw}{27c55864417614bc919ac0a2920f5164}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Digital Memory and the Archive}
+      \field{year}{2013}
+    \endentry
+    \entry{flinn2011}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=c7618a6085d5798738ea756a6fb0f816}{%
+           family={Flinn},
+           familyi={F\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{fullhash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{fullhashraw}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{bibnamehash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{authorbibnamehash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{authornamehash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{authorfullhash}{c7618a6085d5798738ea756a6fb0f816}
+      \strng{authorfullhashraw}{c7618a6085d5798738ea756a6fb0f816}
+      \field{sortinit}{F}
+      \field{sortinithash}{2638baaa20439f1b5a8f80c6c08a13b4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Archival Science}
+      \field{number}{1}
+      \field{title}{Archival Activism: Independent and Community-Led Archives}
+      \field{volume}{11}
+      \field{year}{2011}
+      \field{pages}{1\bibrangedash 23}
+      \range{pages}{23}
+    \endentry
+    \entry{gilliland2014}{incollection}{}{}
+      \name{author}{1}{}{%
+        {{hash=261f0a4557550fccfde3dc7ceb5509ed}{%
+           family={Gilliland},
+           familyi={G\bibinitperiod},
+           given={Anne},
+           giveni={A\bibinitperiod}}}%
+      }
+      \name{editor}{2}{}{%
+        {{hash=aefe064650223a1ea0a52d602744374c}{%
+           family={Eastwood},
+           familyi={E\bibinitperiod},
+           given={Terry},
+           giveni={T\bibinitperiod}}}%
+        {{hash=cb2b813da7b332edd0457753dcf0e123}{%
+           family={MacNeil},
+           familyi={M\bibinitperiod},
+           given={Heather},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Santa Barbara, CA}%
+      }
+      \list{publisher}{1}{%
+        {Libraries Unlimited}%
+      }
+      \strng{namehash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{fullhash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{fullhashraw}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{bibnamehash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{authorbibnamehash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{authornamehash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{authorfullhash}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{authorfullhashraw}{261f0a4557550fccfde3dc7ceb5509ed}
+      \strng{editorbibnamehash}{44f9f5d5e9d340afae92f6cc5255eabf}
+      \strng{editornamehash}{44f9f5d5e9d340afae92f6cc5255eabf}
+      \strng{editorfullhash}{44f9f5d5e9d340afae92f6cc5255eabf}
+      \strng{editorfullhashraw}{44f9f5d5e9d340afae92f6cc5255eabf}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Currents of Archival Thinking}
+      \field{edition}{2}
+      \field{title}{Archival Pluralism}
+      \field{year}{2014}
+    \endentry
+    \entry{hecdigitallibrary}{online}{}{}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{HEC National Digital Library Program}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.digitallibrary.edu.pk/
+      \endverb
+      \verb{url}
+      \verb https://www.digitallibrary.edu.pk/
+      \endverb
+    \endentry
+    \entry{ketelaar2001}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=1d3940550ce756df7ccf09bf4d69ba1b}{%
+           family={Ketelaar},
+           familyi={K\bibinitperiod},
+           given={Eric},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{fullhash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{fullhashraw}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{bibnamehash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{authorbibnamehash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{authornamehash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{authorfullhash}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \strng{authorfullhashraw}{1d3940550ce756df7ccf09bf4d69ba1b}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Archival Science}
+      \field{number}{2}
+      \field{title}{Tacit Narratives: The Meanings of Archives}
+      \field{volume}{1}
+      \field{year}{2001}
+      \field{pages}{131\bibrangedash 141}
+      \range{pages}{11}
+      \verb{doi}
+      \verb 10.1007/BF02435644
+      \endverb
+    \endentry
+    \entry{livingrefugee}{online}{}{}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Living Refugee Archive}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://livingrefugeearchive.org/
+      \endverb
+      \verb{url}
+      \verb https://livingrefugeearchive.org/
+      \endverb
+    \endentry
+    \entry{losscapture}{online}{}{}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Loss/Capture Project}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://losscaptureproject.cargo.site/
+      \endverb
+      \verb{url}
+      \verb https://losscaptureproject.cargo.site/
+      \endverb
+    \endentry
+    \entry{gilliland2013}{incollection}{}{}
+      \name{author}{1}{}{%
+        {{hash=aabbebd434236560e8e0134901ceb23f}{%
+           family={Mcdonald},
+           familyi={M\bibinitperiod},
+           given={John\bibnamedelima D.},
+           giveni={J\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+      }
+      \name{editor}{1}{}{%
+        {{hash=127e5f49368d66725a02c13e65bd9ac2}{%
+           family={Drake},
+           familyi={D\bibinitperiod},
+           given={Miriam},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boca Raton, FL}%
+      }
+      \list{publisher}{1}{%
+        {CRC Press}%
+      }
+      \strng{namehash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{fullhash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{fullhashraw}{aabbebd434236560e8e0134901ceb23f}
+      \strng{bibnamehash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{authorbibnamehash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{authornamehash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{authorfullhash}{aabbebd434236560e8e0134901ceb23f}
+      \strng{authorfullhashraw}{aabbebd434236560e8e0134901ceb23f}
+      \strng{editorbibnamehash}{127e5f49368d66725a02c13e65bd9ac2}
+      \strng{editornamehash}{127e5f49368d66725a02c13e65bd9ac2}
+      \strng{editorfullhash}{127e5f49368d66725a02c13e65bd9ac2}
+      \strng{editorfullhashraw}{127e5f49368d66725a02c13e65bd9ac2}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Encyclopedia of Library and Information Sciences}
+      \field{edition}{3}
+      \field{title}{Community Archives}
+      \field{year}{2013}
+    \endentry
+    \entry{mildenhall2020}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=a3567364ab52973659adf74ee0c6e6f3}{%
+           family={Mildenhall},
+           familyi={M\bibinitperiod},
+           given={Ben},
+           giveni={B\bibinitperiod}}}%
+        {{hash=b503d22b8c86fb9dfd477d2f70a59650}{%
+           family={Srinivasan},
+           familyi={S\bibinitperiod},
+           given={Pratul\bibnamedelima P.},
+           giveni={P\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=9a18985a5c8b8be23d0ec9de0a3c87b9}{%
+           family={Tancik},
+           familyi={T\bibinitperiod},
+           given={Matthew},
+           giveni={M\bibinitperiod}}}%
+        {{hash=562f3254a241932db4a6d44a97473ec5}{%
+           family={Barron},
+           familyi={B\bibinitperiod},
+           given={Jonathan\bibnamedelima T.},
+           giveni={J\bibinitperiod\bibinitdelim T\bibinitperiod}}}%
+        {{hash=e7e274981ceb0dd123d44af35cc7bedf}{%
+           family={Ramamoorthi},
+           familyi={R\bibinitperiod},
+           given={Ravi},
+           giveni={R\bibinitperiod}}}%
+        {{hash=96e30bdc2cf905aa1109c46617b16252}{%
+           family={Ng},
+           familyi={N\bibinitperiod},
+           given={Ren},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{094342ecc1d4c7df1a909882dd0a89cd}
+      \strng{fullhash}{9bee638bba28fb3cd739399aa8dc9983}
+      \strng{fullhashraw}{9bee638bba28fb3cd739399aa8dc9983}
+      \strng{bibnamehash}{094342ecc1d4c7df1a909882dd0a89cd}
+      \strng{authorbibnamehash}{094342ecc1d4c7df1a909882dd0a89cd}
+      \strng{authornamehash}{094342ecc1d4c7df1a909882dd0a89cd}
+      \strng{authorfullhash}{9bee638bba28fb3cd739399aa8dc9983}
+      \strng{authorfullhashraw}{9bee638bba28fb3cd739399aa8dc9983}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{European Conference on Computer Vision (ECCV)}
+      \field{title}{NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis}
+      \field{year}{2020}
+      \field{pages}{405\bibrangedash 421}
+      \range{pages}{17}
+      \verb{doi}
+      \verb 10.48550/arXiv.2003.08934
+      \endverb
+    \endentry
+    \entry{punjablibrary}{online}{}{}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Punjab Digital Library}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://digitallibrary.punjab.gov.pk/
+      \endverb
+      \verb{url}
+      \verb https://digitallibrary.punjab.gov.pk/
+      \endverb
+    \endentry
+    \entry{remondino2014}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=4870d096bff30f35cd7f7f14485e000c}{%
+           family={Remondino},
+           familyi={R\bibinitperiod},
+           given={Fabio},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{fullhash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{fullhashraw}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{bibnamehash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{authorbibnamehash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{authornamehash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{authorfullhash}{4870d096bff30f35cd7f7f14485e000c}
+      \strng{authorfullhashraw}{4870d096bff30f35cd7f7f14485e000c}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Remote Sensing}
+      \field{number}{11}
+      \field{title}{Heritage Recording and 3D Modeling with Photogrammetry and 3D Scanning}
+      \field{volume}{6}
+      \field{year}{2014}
+      \field{pages}{11033\bibrangedash 11063}
+      \range{pages}{31}
+      \verb{doi}
+      \verb 10.3390/rs3061104
+      \endverb
+    \endentry
+    \entry{rosalesproject}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=a9016a1494f9da573cd4a232a95e0684}{%
+           family={Rosales},
+           familyi={R\bibinitperiod},
+           given={Guadalupe},
+           giveni={G\bibinitperiod}}}%
+      }
+      \strng{namehash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{fullhash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{fullhashraw}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{bibnamehash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{authorbibnamehash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{authornamehash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{authorfullhash}{a9016a1494f9da573cd4a232a95e0684}
+      \strng{authorfullhashraw}{a9016a1494f9da573cd4a232a95e0684}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{Veteranas and Rucas / Map Pointz}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.veteranasandrucas.com/projects-1
+      \endverb
+      \verb{url}
+      \verb https://www.veteranasandrucas.com/projects-1
+      \endverb
+    \endentry
+    \entry{schwartz2002}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=649a0a663ff45dc45deb082868bbf45b}{%
+           family={Schwartz},
+           familyi={S\bibinitperiod},
+           given={Joan\bibnamedelima M.},
+           giveni={J\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=031930479c2d3862c55dd6bec01f973d}{%
+           family={Cook},
+           familyi={C\bibinitperiod},
+           given={Terry},
+           giveni={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{fullhash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{fullhashraw}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{bibnamehash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{authorbibnamehash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{authornamehash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{authorfullhash}{52b3294d1697a6f9a30714b50c73556e}
+      \strng{authorfullhashraw}{52b3294d1697a6f9a30714b50c73556e}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Archival Science}
+      \field{number}{1-2}
+      \field{title}{Archives, Records, and Power: The Making of Modern Memory}
+      \field{volume}{2}
+      \field{year}{2002}
+      \field{pages}{1\bibrangedash 19}
+      \range{pages}{19}
+      \verb{doi}
+      \verb 10.1007/BF02435628
+      \endverb
+    \endentry
+    \entry{saada}{online}{}{}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{South Asian American Digital Archive (SAADA)}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.saada.org/
+      \endverb
+      \verb{url}
+      \verb https://www.saada.org/
+      \endverb
+    \endentry
+    \entry{partitionarchive}{online}{}{}
+      \field{sortinit}{T}
+      \field{sortinithash}{9af77f0292593c26bde9a56e688eaee9}
+      \field{labeltitlesource}{title}
+      \field{note}{Accessed: Jan. 2025}
+      \field{title}{The 1947 Partition Archive}
+      \field{year}{2025}
+      \verb{urlraw}
+      \verb https://www.1947partitionarchive.org/
+      \endverb
+      \verb{url}
+      \verb https://www.1947partitionarchive.org/
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
