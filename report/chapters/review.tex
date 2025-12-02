@@ -1,0 +1,136 @@
+
+
+Digital archiving has become an important research area at the intersection of 
+Computer Science, Digital Humanities, Human Computer Interaction (HCI) and Cultural \& Historical Studies. With increased 
+recognition of the need to document marginalized and Indigenous cultures, scholars 
+have developed digital platforms and computational tools to preserve oral histories, 
+visual records, and living practices. This chapter reviews existing work on local digital 
+archives (in the context of Pakistan), multimedia repositories, and 3D reconstruction methods, and identifies the 
+limitations that motivate the development of \textit{EthnoVerse}. It also highlights 
+the novelty of the platform in comparison with state-of-the-art systems.
+
+\section{Digital Archives}
+Digital archives represent a paradigmatic shift in the preservation and dissemination of cultural memory. Prior to digitization, archival continuity relied on oral transmission, manuscript circulation, and material reproduction across generations. Studies note that archival practice—understood broadly as the cultural act of transmitting memory—has long preceded institutionalized archives and remains deeply embedded in human social organization \cite{schwartz2002, ernst2013}. The emergence of digital repositories has expanded archival functionality through networked databases, distributed storage, and cloud infrastructures, enabling long-term preservation, metadata-driven access, and multimodal documentation.
+
+Scholars argue that digital archives democratize access but simultaneously reproduce questions of authority, authenticity, and representation, particularly when dealing with marginalized or non-textual knowledge systems \cite{ketelaar2001, gilliland2014}. Public digital libraries, including DigiLibraries.com \cite{digilibraries} and the Higher Education Commission Digital Library of Pakistan \cite{hecdigitallibrary}, demonstrate the global proliferation of digital archival infrastructures, yet these platforms largely reproduce textual epistemologies. Contemporary archival scholarship emphasizes the need for multimodal, community-centered, and ethically governed digital environments capable of accommodating audiovisual, spatial, and embodied cultural expressions.
+
+\subsection{Community Archiving on the Global Scale}
+Community archiving has gained substantial scholarly attention as a counter-archival practice that centers the self-representation of communities historically marginalized by institutional memory regimes. Flinn defines community archives as grassroots initiatives in which communities “take power into their own hands” to preserve their histories, identities, and cultural heritage independent of established archival institutions \cite{flinn2011}. Gilliland and Flinn further emphasize that community archives challenge dominant archival narratives by producing alternative forms of evidence, memory, and identity \cite{gilliland2013}.
+
+Internationally, numerous initiatives document community life, diasporic histories, and local memory. The Community Archives and Heritage Group (CAHG) \cite{cahg} consolidates archives produced by diverse organizations in the UK and Ireland, including the Archive of the Association of Ukrainian Women in Great Britain, the Living Refugee Archive \cite{livingrefugee}, and Windrush community archives. Social media platforms have also emerged as vernacular archives, particularly among youth cultures. Rosales’s projects \textit{Veteranas and Rucas} and \textit{Map Pointz} document visual histories of Latinx youth subcultures in Los Angeles, addressing erasure through participatory digital archiving \cite{rosalesproject}. Other significant community archives include \textit{A People’s Archive of Police Violence in Cleveland} \cite{archivingpoliceviolence}, \textit{Densho}—an archive documenting Japanese American incarceration during World War II \cite{densho}—and \textit{Loss/Capture}, a contemporary visual narrative archive \cite{losscapture}.
+
+These projects illustrate how digital tools enable communities to construct their own evidentiary and historical record, challenging institutional biases and expanding archival epistemologies toward participatory, polyvocal, and socially accountable memory work.
+
+\subsection{Existing Local Archival Work}
+Pakistan’s archival landscape remains limited in scope, accessibility, and inclusivity. While several institutions preserve literary works, governmental documents, and cultural heritage, these archives prioritize textual, bureaucratic, or elite historical narratives. Studies highlight that marginalized and indigenous communities remain significantly underrepresented within national heritage infrastructures. The lack of multimodal, community-centered digital archives in Pakistan contributes to the persistent misrepresentation of indigenous groups as peripheral or historically displaced.
+
+Notable Pakistani archival initiatives include the 1947 Partition Archive \cite{partitionarchive}, a major oral history repository documenting Partition survivors, and the Citizens Archive of Pakistan (CAP) \cite{cap}, a nonprofit institution preserving photographic, oral, and material histories of Pakistan’s postcolonial development. However, both initiatives primarily document macro-historical narratives or urban middle-class experiences.
+CAP also primarily houses colonial manuscripts, administrative records, and legal documents, with minimal representation of tribal or nomadic communities. The E-Library of Punjab \cite{punjablibrary} similarly centralizes academic and literary materials rather than ethnographic or community-generated sources.
+
+
+\subsection{Limitations, Gaps \& Competitor Analysis of Existing Archives}
+
+The structural absence mentioned above produces two interrelated gaps:
+\begin{itemize}
+    \item indigenous communities are excluded from dominant narratives of Pakistani cultural identity, and
+    \item researchers, policymakers, and the public lack accessible platforms for engaging with these communities' cultural practices, socio-historical contexts, and everyday lived realities.
+\end{itemize}
+
+Moreover, most archival institutions in Pakistan primarily preserve textual or 
+bureaucratic documents. These archives often lack:
+
+\begin{itemize}
+    \item public searchability and modern user interfaces,
+    \item community-centered metadata practices,
+    \item immersive or spatial representations of cultural environments.
+\end{itemize}
+
+
+\subsection*{The 1947 Partition Archive}
+The 1947 Partition Archive is one of the largest oral history collections in South Asia, documenting the experiences of Partition survivors through crowdsourced testimonies \cite{partitionarchive}. Its contributions to public history are significant; however, its thematic scope is narrowly restricted to the events, memories, and aftermath of Partition. As a result, it excludes the historical trajectories, cultural practices, and contemporary lifeworlds of indigenous tribal groups.  
+\\ \textbf{Gap:} \textit{The archive focuses exclusively on Partition-era migration narratives and does not include ethnographic, cultural, or spatial documentation of indigenous communities in Pakistan.}
+
+\subsection*{Citizens Archive of Pakistan (CAP)}
+This is the largest governmental archival body in the province, housing colonial records, judicial correspondence, land documents, and administrative manuscripts. Its collections remain largely inaccessible to the public and are oriented toward bureaucratic recordkeeping rather than cultural documentation.  
+\\ \textbf{Gap:} \textit{The repository contains virtually no material on indigenous tribes in Sindh, thereby structurally excluding marginalized communities from the state’s archival memory.}
+
+\subsection*{Punjab Digital Library (E-Library Punjab)}
+The Punjab Digital Library focuses primarily on digitized manuscripts, academic texts, and historical documents \cite{punjablibrary}. While expansive in scope, the platform is text-centric and does not support ethnographic or multimedia forms of documentation.  
+\\ \textbf{Gap:} \textit{Its emphasis on textual heritage excludes oral histories, cultural practices, community-generated knowledge, or spatial representations of indigenous groups.}
+
+\subsection*{South Asian American Digital Archive (SAADA)}
+SAADA is a prominent digital archive centered on the South Asian diaspora in North America \cite{saada}. Although methodologically relevant, it does not address communities situated within Pakistan.  
+\\ \textbf{Gap:} \textit{SAADA’s geographic and thematic scope precludes documentation of indigenous tribal populations within Pakistan, making it unsuitable as a local archival resource.}
+
+This absence of a centralized, multimedia, accessible system for Indigenous 
+communities highlights a critical infrastructural gap that \textit{EthnoVerse} aims 
+to address.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{3cm} p{8cm} p{2cm}}
+\hline
+\textbf{Archive Name} & \textbf{Gap Description} & \textbf{Type} \\
+\hline
+
+1947 Partition Archive & Focuses exclusively on Partition-era migration narratives; lacks ethnographic, cultural, or spatial documentation of indigenous communities within Pakistan. & Oral History \\
+
+Citizens Archive of Pakistan (CAP) & Contains colonial/state administrative records; virtually no material on indigenous tribes. Restricted public access prevents community engagement and visibility. & Government Records \\
+
+
+Punjab Digital Library & Text- and manuscript-centered repository; excludes oral traditions, cultural practices, audiovisual material, and community-generated knowledge. & Manuscripts, Books \\
+
+SAADA & Focused on the South Asian diaspora in North America; geographically and thematically irrelevant for documenting indigenous communities in Pakistan. & Diaspora Archive \\
+
+
+\hline
+\end{tabular}
+\caption{Comparison of Local Archives.}
+\end{table}
+
+\section{3D Reconstruction for Cultural Heritage}
+
+\subsection{Photogrammetry and Early 3D Techniques}
+
+Photogrammetry has historically been used to 
+digitally reconstruct archaeological or architectural sites \cite{remondino2014}. 
+However, these techniques rely heavily on controlled lighting, dense image capture, 
+and consistent camera conditions—constraints that are difficult to maintain.
+
+\subsection{Neural Radiance Fields (NeRF)}
+Neural Radiance Fields (NeRF), introduced by Mildenhall et al.\ \cite{mildenhall2020}, represent one of the most significant recent advancements in neural rendering and view synthesis. NeRF reconstructs a continuous 3D scene representation by optimizing a neural network to map spatial coordinates and viewing directions to volumetric density and emitted color. This enables photorealistic novel-view synthesis from sparse image sets—an essential capability for cultural heritage documentation, where controlled scanning conditions are rarely available. 
+In-depth working of the algorithm is discussed in the SDS chapter.
+
+
+\subsubsection*{Advantages for Cultural and Ethnographic Reconstruction}
+
+NeRF offers several critical advantages for documenting indigenous and cultural environments:
+
+\begin{itemize}
+    \item \textbf{High fidelity from sparse inputs:} Accurate reconstructions even with limited, imperfect, or unstructured image collections.
+    \item \textbf{Viewpoint continuity:} Produces smooth novel viewpoints, enabling immersive 3D virtual walkthroughs.
+    \item \textbf{Realistic lighting modeling:} Positional encodings allow NeRF to reproduce complex textures and structures found in cultural artifacts.
+    \item \textbf{Non-intrusive capture:} Requires only RGB images—ideal for sensitive cultural settings where scanning hardware (e.g., LiDAR) is impractical.
+\end{itemize}
+
+\section{Novelty and Contribution of \textit{EthnoVerse}}
+
+\textit{EthnoVerse} contributes to the state-of-the-art by:
+
+\begin{itemize}
+    \item creating Pakistan's first multimedia, searchable digital archive dedicated 
+    to Indigenous communities,
+    \item integrating state-of-the-art NeRF and Gaussian Splatting methods within a 
+    cultural archival workflow,
+    \item designing a scalable MERN-based platform capable of supporting multiple 
+    communities,
+    \item embedding ethical, consent-driven metadata aligned with Indigenous 
+    sovereignty frameworks,
+    \item merging ethnographic research methodologies with full-stack engineering and 
+    computer vision techniques.
+\end{itemize}
+
+Unlike prior archives, \textit{EthnoVerse} emphasizes the representation of 
+\textit{contemporary} community life and provides immersive virtual tours of cultural 
+spaces rather than static documentation.

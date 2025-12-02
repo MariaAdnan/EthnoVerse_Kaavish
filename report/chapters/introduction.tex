@@ -1,0 +1,83 @@
+\section{Problem Statement}
+
+Indigenous tribal communities in Pakistan are routinely under-represented in public archives and scholarly resources. While valuable, existing archival bodies in Pakistan primarily hold government, colonial, or language-specific records and do not provide accessible, multimedia documentation of contemporary tribal community life. As a result, cultural practices, oral histories, and built environments of these communities remain fragmented, inaccessible, or framed only as historical relics rather than as part of a continuing cultural present. This project addresses the absence of a centralized, searchable, multimedia archive that documents tribal communities in ways that are accessible to researchers, educators, and the public. Our motivation is both technical (to build a robust, extensible system demonstrating MERN-stack, and 3D reconstruction techniques) and social (to make community knowledge discoverable and ethically represented).
+
+\section{Proposed Solution}
+
+We propose \textbf{a web-based, extensible Digital Archival System (DAS)} to create a centralized platform to document and make accessible the cultural practices, oral histories, and artistic traditions of tribal communities in Pakistan. The system will allow authenticated administrators to upload multimedia content—text, images, audio, and video—along with metadata for categorization. Public users can browse and search this content through an intuitive, user-friendly interface. The platform aims to bridge the information gap by providing an open, structured, and searchable repository for cultural documentation that is typically fragmented across private archives. For proof of concept, the platform will include a dataset from ethnographic work with the Kolhi community in Tharparkar.
+
+\section{Intended Users}
+
+EthnoVerse will serve multiple types of users, each interacting with the system in different ways:
+
+\begin{itemize}
+    \item \textbf{General Public/Researchers, Students, and Scholars:} Individuals seeking to learn about Pakistan’s tribal communities in an accessible and engaging manner. They can browse collections, view images and videos, listen to oral histories, and experience immersive 3D tours that bring cultural practices to life. Moreover, academics, educators, and students interested in ethnography, anthropology, history, and cultural studies. They can search through tagged data, access detailed metadata for archival material, and utilize the system’s structured categorization for academic research or coursework.
+    \item \textbf{Administrators:} Authorized personnel responsible for managing the archive’s content and system operations. They handle user authentication, upload new media, edit or remove existing entries, and ensure the ethical and technical maintenance of the archive. Administrators are also responsible for ensuring data integrity, backups, and system updates.
+\end{itemize}
+
+\subsection{User Characteristics}
+
+\begin{itemize}
+    \item \textbf{General Public:} Basic computer literacy; likely to access the system via desktop or mobile browsers. Motivated by curiosity or cultural interest.  
+    \item \textbf{Researchers/Students:} Moderate to advanced digital literacy; familiar with academic research tools and metadata use. Will require precision search and possibly citation functionality.  
+    \item \textbf{Administrators:} Advanced technical skills; capable of using web-based admin panels, managing databases, and ensuring data consistency.  
+\end{itemize}
+
+\section{Project Gantt chart and deliverables}
+
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\textwidth]{EthnoVerse - Gantt Chart.png}
+    \caption{Project Gantt Chart for EthnoVerse}
+    \label{fig:ganttchart}
+\end{figure}
+
+
+
+\subsubsection*{Kaavish I Deliverables}
+
+\begin{itemize}
+    \item Software Requirement Specification (SRS)
+    \item Software Design Specification (SDS)
+    \item Functional Web Platform Prototype (MERN-based)
+    \item Preliminary Dataset Integration (Kolhi community)
+    \item Testing and Evaluation Report
+\end{itemize}
+
+\subsubsection*{Kaavish II Deliverables}
+
+\begin{itemize}
+    \item 3D Reconstruction Module (NeRF / Gaussian Splatting)
+    \item Integrated Virtual Tour Interface (Three.js-based)
+    \item Optimization and Final Integration of all modules
+    \item Final Report, Presentation, and Deployed System
+\end{itemize}
+
+
+
+\section{Key Challenges and Mitigations}
+
+\subsection{Technical complexity of 3D reconstruction}
+\begin{itemize}
+  \item \textbf{Risk:} Implementing NeRF/Gaussian Splatting from scratch is technically demanding and GPU-intensive.
+  \item \textbf{Mitigation:} Treat the neural reconstruction as an experimental PoC with a documented fallback (photo-based panoramic/stitched virtual tour). Use preexisting open-source implementations where licensing allows; limit model scope to a single site for the final deliverable if resources/time are constrained.
+\end{itemize}
+
+\subsection{Data quality \& quantity}
+\begin{itemize}
+  \item \textbf{Risk:} Insufficient or uneven photographic coverage can prevent accurate 3D reconstruction or reduce media utility.
+  \item \textbf{Mitigation:} Specify photo capture guidelines, and request additional images from field collaborators.
+\end{itemize}
+
+\subsection{Compute resources}
+\begin{itemize}
+  \item \textbf{Risk:} Training or running reconstruction models may require more GPU capacity than available on local machines.
+  \item \textbf{Mitigation:} Use lightweight model variants, perform experimental runs on cloud credits, or restrict training to smaller scene subsets. Document exact hardware used so results are reproducible.
+\end{itemize}
+
+\subsection{Scope creep \& time management}
+\begin{itemize}
+  \item \textbf{Risk:} Ambitious goals (multi-community coverage, advanced search, full 3D) could exceed Kaavish timelines.
+  \item \textbf{Mitigation:} Use the Kolhi dataset as a bounded PoC; prioritise core archival functionality (ingestion, metadata, search, admin) during Kaavish I and reserve advanced features for Kaavish II. Maintain weekly sprints and milestone checks.
+\end{itemize}
