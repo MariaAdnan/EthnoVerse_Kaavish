@@ -2,6 +2,7 @@
 import { motion } from "motion/react";
 import React, { useEffect, useState } from "react";
 import { getAllCommunities } from "../../services/communities";
+import { NavigationBar } from "./NavigationBar.tsx";
 
 interface HomepageProps {
   onNavigate: (view: string) => void;
@@ -34,6 +35,7 @@ const featured = communities.length > 0 ? communities[0] : null;
 
   return (
     <div className="min-h-screen">
+     <NavigationBar onNavigate={onNavigate} />
       {/* Hero Section - "The Title Wall" */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         {/* Background Image with Film Grain Overlay */}

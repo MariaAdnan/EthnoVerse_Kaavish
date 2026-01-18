@@ -1,5 +1,6 @@
-import React from "react";
+// src/app/components/AboutPage.tsx
 import { motion } from "motion/react";
+import { NavigationBar } from "./NavigationBar";
 
 interface AboutPageProps {
   onNavigate: (view: string) => void;
@@ -8,13 +9,15 @@ interface AboutPageProps {
 export function AboutPage({ onNavigate }: AboutPageProps) {
   return (
     <div className="min-h-screen">
+      {/* Navigation Bar */}
+      <NavigationBar onNavigate={onNavigate} />
+      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="border-b border-border p-12 text-center"
-      >
+        className="border-b border-border p-12 pt-32 text-center">
         <p 
           className="text-sm mb-3 opacity-60"
           style={{ fontFamily: "'Space Mono', monospace" }}
@@ -196,17 +199,6 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             </p>
           </div>
         </motion.div>
-      </div>
-
-      {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
-        <button
-          onClick={() => onNavigate('home')}
-          className="text-foreground hover:text-accent transition-colors"
-          style={{ fontFamily: "'Space Mono', monospace" }}
-        >
-          <span className="text-sm">← HOME</span>
-        </button>
       </div>
     </div>
   );

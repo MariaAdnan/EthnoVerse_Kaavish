@@ -13,6 +13,7 @@ import { AboutPage } from "./components/AboutPage";
 import { ImageDetail } from "./components/ImageDetail";
 import { VideoPlayer } from "./components/VideoPlayer";
 import { AddCommunity } from "./components/AddCommunity";
+import { ContactPage } from "./components/ContactPage";
 
 import React from "react";
 
@@ -27,6 +28,7 @@ type View =
   | 'media-upload'
   | 'add-community'
   | 'about'
+  | 'contact'
   | `image:${string}`
   | `video`
   | `community:${string}`;
@@ -67,6 +69,8 @@ export default function App() {
 )}
 
       {currentView === 'about' && <AboutPage onNavigate={handleNavigate} />}
+      {currentView === "contact" && <ContactPage onNavigate={handleNavigate} />}
+
       {currentView.startsWith('image:') && (
   <ImageDetail
     onNavigate={handleNavigate}
