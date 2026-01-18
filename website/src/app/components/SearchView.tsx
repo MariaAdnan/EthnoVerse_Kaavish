@@ -2,7 +2,6 @@ import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { useState } from "react";
 import React from "react";
-
 interface SearchViewProps {
   onNavigate: (view: string) => void;
 }
