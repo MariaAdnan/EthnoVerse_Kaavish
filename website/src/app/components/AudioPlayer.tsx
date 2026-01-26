@@ -1,212 +1,328 @@
 import { motion } from "motion/react";
-import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { getMediaById } from "../../services/media";
-import { getTranscriptByMediaId } from "../../services/transcripts";
+import { Play, Pause, Download, Share2, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { getInterviewById, getRecentInterviews } from "../../services/interviews";
 
 interface AudioPlayerProps {
-  onNavigate: (view: string) => void;
   view: string;
+  onNavigate: (view: string) => void;
 }
 
-export function AudioPlayer({ onNavigate, view }: AudioPlayerProps) {
-  const mediaId = view.split(":")[1];
+export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
+  const interviewId = view.split(":")[1];
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const progressRef = useRef<HTMLDivElement | null>(null);
-  const transcriptRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  const [media, setMedia] = useState<any>(null);
-  const [transcript, setTranscript] = useState<any>(null);
+  const [interview, setInterview] = useState<any>(null);
+  const [error, setError] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [waveData, setWaveData] = useState<number[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [showCollections, setShowCollections] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const activeIndex = transcript?.timestamps?.findIndex(
-    (seg: any) => currentTime >= seg.start && currentTime < seg.end
-  );
+const [duration, setDuration] = useState(0);
+const totalDuration = duration;
 
-  /* ---------- Fetch data ---------- */
+
+/* -------------------- DATA FETCH -------------------- */
+const [recentStoriesData, setRecentStoriesData] = useState<any[]>([]);
+
+  // Fetch recent stories from backend
   useEffect(() => {
-    getMediaById(mediaId).then(setMedia);
-    getTranscriptByMediaId(mediaId).then(setTranscript);
-  }, [mediaId]);
-
-  /* ---------- Audio + Analyser setup ---------- */
-  useEffect(() => {
-  const audio = audioRef.current;
-  if (!audio) return;
-
-  const ctx = new AudioContext();
-  const source = ctx.createMediaElementSource(audio);
-  const analyser = ctx.createAnalyser();
-
-  analyser.fftSize = 256;
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-
-  source.connect(analyser);
-  analyser.connect(ctx.destination);
-
-  analyserRef.current = analyser;
-  dataArrayRef.current = dataArray;
-
-  const onTime = () => setCurrentTime(audio.currentTime);
-  const onMeta = () => setDuration(audio.duration || 0);
-
-  audio.addEventListener("timeupdate", onTime);
-  audio.addEventListener("loadedmetadata", onMeta);
-
-  // ✅ CLEANUP MUST BE SYNC
-  return () => {
-    audio.removeEventListener("timeupdate", onTime);
-    audio.removeEventListener("loadedmetadata", onMeta);
-
-    if (ctx.state !== "closed") {
-      ctx.close().catch(() => {});
-    }
-  };
-}, []);
-
-
-  /* ---------- Waveform animation ---------- */
-  useEffect(() => {
-    if (!isPlaying || !analyserRef.current || !dataArrayRef.current) return;
-
-    const animate = () => {
-      analyserRef.current!.getByteFrequencyData(dataArrayRef.current!);
-      setWaveData([...dataArrayRef.current!.slice(0, 64)]);
-      animationRef.current = requestAnimationFrame(animate);
+    const fetchRecent = async () => {
+      const { data, error } = await getRecentInterviews();
+      if (!error && data) {
+        setRecentStoriesData(data);
+      }
     };
+    fetchRecent();
+  }, []);
+useEffect(() => {
+  if (!interviewId) return;
 
-    animationRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationRef.current!);
-  }, [isPlaying]);
-
-  /* ---------- Auto-scroll transcript ---------- */
-  useEffect(() => {
-    if (activeIndex == null) return;
-    transcriptRefs.current[activeIndex]?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-  }, [activeIndex]);
-
-  /* ---------- Controls ---------- */
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    isPlaying ? audioRef.current.pause() : audioRef.current.play();
-    setIsPlaying(!isPlaying);
+  const fetchInterview = async () => {
+    const { data, error } = await getInterviewById(interviewId);
+    if (error || !data) {
+      setError("Interview not found");
+      return;
+    }
+    setInterview(data);
   };
 
-  const seek = (clientX: number) => {
-    if (!audioRef.current || !progressRef.current) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const percent = (clientX - rect.left) / rect.width;
-    audioRef.current.currentTime = Math.max(0, Math.min(duration, percent * duration));
+  fetchInterview();
+}, [interviewId]);
+
+useEffect(() => {
+  if (!audioRef.current) return;
+
+  const audio = audioRef.current;
+
+  const onLoadedMetadata = () => {
+    setDuration(audio.duration);
   };
 
-  if (!media) return null;
+  const onTimeUpdate = () => {
+    setCurrentTime(audio.currentTime);
+  };
+
+  const onEnded = () => {
+    setIsPlaying(false);
+  };
+
+  audio.addEventListener("loadedmetadata", onLoadedMetadata);
+  audio.addEventListener("timeupdate", onTimeUpdate);
+  audio.addEventListener("ended", onEnded);
+
+  return () => {
+    audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+    audio.removeEventListener("timeupdate", onTimeUpdate);
+    audio.removeEventListener("ended", onEnded);
+  };
+}, [interview?.audio]);
+
+function togglePlay() {
+  if (!audioRef.current) return;
+  if (isPlaying) {
+    audioRef.current.pause();
+    setIsPlaying(false);
+  } else {
+    audioRef.current.play();
+    setIsPlaying(true);
+  }
+}
+
+/* -------------------- PLAY/PAUSE EFFECT -------------------- */
+useEffect(() => {
+  if (!audioRef.current) return;
+  if (isPlaying) {
+    audioRef.current.play();
+  } else {
+    audioRef.current.pause();
+  }
+}, [isPlaying]);
+
+
+/* -------------------- PROGRESS BAR CLICK -------------------- */
+function getSummaryText(summaryHtml: unknown): string {
+  try {
+    const parsed =
+      typeof summaryHtml === "string"
+        ? JSON.parse(summaryHtml)
+        : summaryHtml;
+
+    const firstParagraph = parsed?.summary?.[0]?.paragraph;
+
+    return typeof firstParagraph === "string"
+      ? firstParagraph.slice(0, 160) + "…"
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+
+
+const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  if (!progressRef.current) return;
+  const rect = progressRef.current.getBoundingClientRect();
+  const percentage = (e.clientX - rect.left) / rect.width;
+  const newTime = percentage * duration;
+
+  if (audioRef.current) {
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  }
+};
+
+const formatTime = (seconds: number) => {
+  const rounded = Math.floor(seconds); // Round down to nearest second
+  return `${Math.floor(rounded / 60)}:${(rounded % 60).toString().padStart(2, "0")}`;
+};
+
+  if (error) return <p className="p-12 text-red-500">{error}</p>;
+  if (!interview) return <p className="p-12">Loading...</p>;
+
+  const transcript =
+    typeof interview.summary_html === "string"
+      ? JSON.parse(interview.summary_html)?.summary ?? []
+      : interview.summary_html?.summary ?? [];
 
   return (
-    <div className="min-h-screen bg-[#2C2C2C] text-[#F5F1E8]">
-      <audio ref={audioRef} src={media.storage_url} />
+    <div>
+      {/* -------------------- BACK BUTTON -------------------- */}
+      <div className="fixed top-8 left-8 z-50">
+        <button
+          onClick={() => onNavigate("back")}
+          className="text-[#333333] hover:text-[#8B4513] transition-colors"
+          style={{ fontFamily: "'Space Mono', monospace" }}
+        >
+          <span className="text-sm">← BACK</span>
+        </button>
+      </div>
 
-      {/* ---------- Waveform ---------- */}
-      <div className="h-32 border-b border-[#F5F1E8]/10 flex items-end justify-center gap-[2px] px-8">
-        {Array.from({ length: 64 }).map((_, i) => (
+      {/* -------------------- HERO -------------------- */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="w-full h-[60vh] bg-[#333333] overflow-hidden"
+      >
+        <ImageWithFallback
+          src={interview.picture}
+          alt={interview.title}
+          className="w-full h-full object-cover grayscale opacity-90"
+        />
+      </motion.div>
+
+      {/* -------------------- AUDIO SECTION -------------------- */}
+      <div className="bg-white border-b border-[#333333]/10">
+        <div className="max-w-4xl mx-auto px-8 py-12">
+
           <motion.div
-            key={i}
-            animate={{ height: waveData[i] ? waveData[i] / 2 : 10 }}
-            transition={{ duration: 0.1 }}
-            className="w-1 bg-accent rounded-full"
-          />
-        ))}
-      </div>
-
-      {/* ---------- Header ---------- */}
-      <div className="p-12 border-b border-[#F5F1E8]/10">
-        <p className="text-xs opacity-60">ORAL HISTORY · {media.communities?.name}</p>
-        <h1 className="text-4xl mb-4">{media.title}</h1>
-        <p className="opacity-70">{media.description}</p>
-      </div>
-
-      {/* ---------- Controls ---------- */}
-      <div className="px-12 py-8 border-b border-[#F5F1E8]/10">
-        <div className="flex items-center gap-8 max-w-2xl">
-          <SkipBack />
-
-          <button
-            onClick={togglePlay}
-            className="w-16 h-16 rounded-full border-2 flex items-center justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-8"
           >
-            {isPlaying ? <Pause /> : <Play className="ml-1" />}
-          </button>
+            <p className="text-xs tracking-widest text-[#666666] mb-4" style={{ fontFamily: "'Space Mono', monospace" }}>
+              ORAL HISTORY ARCHIVE · {interview.communities?.name?.toUpperCase()} COMMUNITY · {interview.district?.toUpperCase()}
+            </p>
 
-          <SkipForward />
+            <h1 className="text-5xl mb-4 leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {interview.title}
+            </h1>
 
-          <div className="flex-1">
-            <div
-              ref={progressRef}
-              className="h-0.5 bg-[#F5F1E8]/20 rounded-full cursor-pointer"
-              onMouseDown={(e) => {
-                setIsDragging(true);
-                seek(e.clientX);
-              }}
-              onMouseMove={(e) => isDragging && seek(e.clientX)}
-              onMouseUp={() => setIsDragging(false)}
-              onMouseLeave={() => setIsDragging(false)}
-            >
-              <div
-                className="h-full bg-accent"
-                style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
-              />
+            <p className="text-lg text-[#666666]">
+              Recorded {interview.date} · Duration {formatTime(totalDuration)}
+            </p>
+          </motion.div>
+
+          {/* AUDIO CONTROLS */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-[#F9F9F9] border border-[#333333]/10 p-8"
+          >
+            <audio
+              ref={audioRef}
+              src={interview.audio}
+              preload="metadata"
+              style={{ display: "none" }}
+            />
+            <div className="flex items-center gap-6 mb-6">
+              <button
+                onClick={togglePlay}
+                className="w-16 h-16 rounded-full bg-[#8B4513] hover:bg-[#704010] text-white flex items-center justify-center transition-all shadow-lg"
+              >
+                {isPlaying ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+              </button>
+
+              <div className="flex-1">
+                <div
+                  ref={progressRef}
+                  onClick={handleProgressClick}
+                  className="h-2 bg-[#E5E5E5] rounded-full overflow-hidden cursor-pointer mb-2"
+                >
+                  <div
+                    className="h-full bg-[#8B4513]"
+                    style={{ width: `${(currentTime / totalDuration) * 100}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-xs text-[#666666]">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(totalDuration)}</span>
+                </div>
+              </div>
+
+              <button><Download className="w-5 h-5" /></button>
+              <button><Share2 className="w-5 h-5" /></button>
             </div>
 
-            <div className="flex justify-between text-xs opacity-60 mt-2">
-              <span>{Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2,"0")}</span>
-              <span>{Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2,"0")}</span>
+            <div className="text-xs text-[#666666] space-y-1">
+              <p>Speaker: {interview.interviewee}</p>
+              <p>Language: {interview.metadata?.language}</p>
+              <p>Interviewer: {interview.metadata?.interviewer}</p>
             </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* -------------------- LONG FORM -------------------- */}
+      <motion.article
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.4 }}
+        className="max-w-3xl mx-auto px-8 py-16"
+      >
+        <div className="prose prose-lg max-w-none" style={{ fontFamily: "'Playfair Display', serif" }}>
+          {transcript.map((p: any, i: number) => (
+            <p key={i} className={i === 0 ? "text-xl leading-relaxed mb-8 first-letter:text-6xl first-letter:font-bold first-letter:mr-2 first-letter:float-left first-letter:text-[#8B4513]" : ""}>
+              {p.paragraph}
+            </p>
+          ))}
+        </div>
+      </motion.article>
+      {/* Recent Stories Footer */}
+      <div className="bg-white border-t border-[#333333]/10 py-16">
+        <div className="max-w-7xl mx-auto px-8">
+          <h2 
+            className="text-4xl mb-12 text-center"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            More Voices from the Archive
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {recentStoriesData.map((story, index) => (
+              <motion.div
+                key={story.id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
+                className="group cursor-pointer"
+                onClick={() => onNavigate(`audio:${story.id}`)}
+              >
+                <div className="mb-4 overflow-hidden bg-[#333333]">
+                  <ImageWithFallback
+                    src={story.picture || story.image}
+                    alt={`Portrait of ${story.interviewee || story.name}`}
+                    className="w-full aspect-[3/4] object-cover grayscale group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <h3 
+                  className="text-2xl mb-2"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  {story.interviewee || story.name}, {story.age}
+                </h3>
+                <p 
+                  className="text-xs tracking-widest text-[#666666] mb-3"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  {(story.communities?.name || story.community || "").toUpperCase()}
+                </p>
+                <p className="text-[#666666] leading-relaxed italic">
+                  "{getSummaryText(story.summary_html)}"
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ---------- Transcript ---------- */}
-      {transcript && (
-        <div className="p-12 max-w-3xl mx-auto space-y-10">
-          {transcript.timestamps.map((seg: any, idx: number) => (
-            <div
-              key={idx}
-              ref={(el) => { transcriptRefs.current[idx] = el; }}
-              onClick={() => {
-                audioRef.current!.currentTime = seg.start;
-                audioRef.current!.play();
-                setIsPlaying(true);
-              }}
-              className={`cursor-pointer transition-opacity ${
-                idx === activeIndex ? "opacity-100" : "opacity-40"
-              }`}
-            >
-              <p className="text-xs mb-2">{seg.time}</p>
-              <p className="text-xl italic">{seg.text}</p>
-              {seg.translation && <p className="opacity-70">{seg.translation}</p>}
-            </div>
-          ))}
+      {/* -------------------- FOOTER -------------------- */}
+      <footer className="bg-[#333333] text-[#F9F9F9] py-8">
+        <div className="max-w-7xl mx-auto px-8 text-center">
+          <p className="text-sm opacity-70" style={{ fontFamily: "'Space Mono', monospace" }}>
+            EthnoVerse Living Archives · Preserving the Cultural Heritage of Sindh
+          </p>
+          <p className="text-xs opacity-50 mt-2">
+            © 2026 EthnoVerse Project · All oral histories recorded with informed consent
+          </p>
         </div>
-      )}
-
-      {/* ---------- Back ---------- */}
-      <button
-        onClick={() => onNavigate(`community:${media.community_id}`)}
-        className="fixed top-8 left-8 text-sm opacity-60 hover:text-accent"
-      >
-        ← BACK TO COLLECTION
-      </button>
+      </footer>
     </div>
   );
 }

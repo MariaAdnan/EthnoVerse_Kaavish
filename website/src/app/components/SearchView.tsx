@@ -1,28 +1,91 @@
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
+import { searchArchive } from "../../services/search";
+import { getArchiveStats } from "../../services/archivestats";
+
 interface SearchViewProps {
   onNavigate: (view: string) => void;
+}
+interface SearchArchiveResponse {
+  interviews: any[];
+  media: any[];
+}
+
+interface SearchResult {
+  id: string;
+  type: "Audio" | "Image" | "Video" | "PDF" | "3D";
+  title: string;
+  community: string;
+  date: string;
 }
 
 export function SearchView({ onNavigate }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const searchResults = searchQuery.length > 0 ? [
-    { id: "ARCHIVE-043", type: "Audio", title: "Oral History: Elder Narratives", community: "Kolhi", date: "2024-11" },
-    { id: "ARCHIVE-044", type: "Image", title: "Traditional Tattoo Patterns", community: "Kolhi", date: "2024-11" },
-    { id: "ARCHIVE-031", type: "3D", title: "Traditional Dwelling Scan", community: "Kolhi", date: "2024-10" },
-    { id: "ARCHIVE-022", type: "Video", title: "Weaving Demonstration", community: "Bheel", date: "2024-09" },
-    { id: "ARCHIVE-015", type: "Audio", title: "Ceremonial Songs", community: "Meghwar", date: "2024-08" },
-  ] : [];
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+const [stats, setStats] = useState({
+  totalItems: 0,
+  totalCommunities: 0,
+});
+useEffect(() => {
+  const fetchStats = async () => {
+    const data = await getArchiveStats();
+    setStats(data);
+  };
+
+  fetchStats();
+}, []);
+
+  useEffect(() => {
+    const runSearch = async () => {
+      if (searchQuery.length === 0) {
+        setSearchResults([]);
+        return;
+      }
+
+      const data = await searchArchive(searchQuery);
+
+      // interviews → AUDIO
+      const audioResults: SearchResult[] = data.interviews.map(
+        (item: any) => ({
+          id: item.id,
+          type: "Audio",
+          title: item.title,
+          community: item.communities?.name || "Unknown",
+          date: item.date,
+        })
+      );
+
+      // media_items → IMAGE / VIDEO / PDF / 3D
+      const mediaResults: SearchResult[] = data.media.map((item: any) => {
+        let type: SearchResult["type"] = "Image";
+
+        if (item.media_type === "video") type = "Video";
+        if (item.media_type === "document") type = "PDF";
+        if (item.media_type === "3d") type = "3D";
+
+        return {
+          id: item.media_id,
+          type,
+          title: item.title,
+          community: item.communities?.name || "Unknown",
+          date: item.date_captured,
+        };
+      });
+
+      setSearchResults([...audioResults, ...mediaResults]);
+    };
+
+    runSearch();
+  }, [searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       {/* Back Navigation */}
       <div className="fixed top-8 left-8 z-50">
         <button
-          onClick={() => onNavigate('home')}
+          onClick={() => onNavigate("home")}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
@@ -38,21 +101,22 @@ export function SearchView({ onNavigate }: SearchViewProps) {
           transition={{ duration: 0.8 }}
           className="mb-12 text-center"
         >
-          <h1 
+          <h1
             className="text-6xl mb-4"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             Search Archives
           </h1>
-          <p 
-            className="text-sm opacity-60"
-            style={{ fontFamily: "'Space Mono', monospace" }}
-          >
-            248 ITEMS · 12 COMMUNITIES · 180GB DATA
-          </p>
+         {stats.totalItems > 0 && (
+  <p className="text-sm opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+    {stats.totalItems} ITEMS · {stats.totalCommunities} COMMUNITIES · 180GB DATA
+  </p>
+)}
+
+
         </motion.div>
 
-        {/* Search Input - Type-Only Interface */}
+        {/* Search Input */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -66,20 +130,23 @@ export function SearchView({ onNavigate }: SearchViewProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="SEARCH THE ARCHIVE..."
               className="w-full bg-transparent border-b-2 border-foreground focus:border-accent outline-none py-6 pr-12 transition-colors"
-              style={{ 
+              style={{
                 fontFamily: "'Space Mono', monospace",
-                fontSize: '1.5rem',
-                caretColor: '#CC7722'
+                fontSize: "1.5rem",
+                caretColor: "#CC7722",
               }}
             />
             <Search className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 opacity-40" />
           </div>
-          <p className="text-xs opacity-60 mt-4" style={{ fontFamily: "'Space Mono', monospace" }}>
+          <p
+            className="text-xs opacity-60 mt-4"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
             Search by keyword, community, type, or archive ID
           </p>
         </motion.div>
 
-        {/* Results - Library Index Card System */}
+        {/* Results */}
         {searchResults.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -87,7 +154,7 @@ export function SearchView({ onNavigate }: SearchViewProps) {
             transition={{ duration: 0.5 }}
           >
             <div className="mb-6">
-              <p 
+              <p
                 className="text-sm opacity-60"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
@@ -98,21 +165,27 @@ export function SearchView({ onNavigate }: SearchViewProps) {
             <div className="space-y-0 border-t border-border">
               {searchResults.map((result, index) => (
                 <motion.button
-                  key={result.id}
+                  key={`${result.type}-${result.id}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.05 * index }}
                   onClick={() => {
-                    if (result.type === 'Audio') {
-                      onNavigate('audio');
-                    } else if (result.type === '3D') {
-                      onNavigate('3d-tour');
+                    if (result.type === "Audio") {
+                      onNavigate(`audio:${result.id}`);
+                    } else if (result.type === "Image") {
+                      onNavigate(`image:${result.id}`);
+                    } else if (result.type === "Video") {
+                      onNavigate(`video:${result.id}`);
+                    } else if (result.type === "PDF") {
+                      onNavigate(`pdf:${result.id}`);
+                    } else if (result.type === "3D") {
+                      onNavigate(`3d-tour:${result.id}`);
                     }
                   }}
                   className="w-full text-left border-b border-border hover:bg-secondary/30 transition-colors py-6 group"
                 >
                   <div className="grid grid-cols-12 gap-4 items-center">
-                    <div 
+                    <div
                       className="col-span-2 text-sm opacity-60"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
@@ -126,13 +199,13 @@ export function SearchView({ onNavigate }: SearchViewProps) {
                     <div className="col-span-5 group-hover:text-accent transition-colors">
                       {result.title}
                     </div>
-                    <div 
+                    <div
                       className="col-span-2 text-sm opacity-60"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
                       {result.community}
                     </div>
-                    <div 
+                    <div
                       className="col-span-2 text-sm opacity-60 text-right"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import Masonry from "react-responsive-masonry";
 import React, { useEffect, useState } from "react";
 import { getAllCommunities } from "../../services/communities";
+import { NavigationBar } from "./NavigationBar.tsx";
 
 
 interface ExploreCommunitiesProps {
@@ -80,7 +81,10 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
   return (
     <div className="min-h-screen">
       {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
+      
+      {/* Navigation Bar */}
+      <NavigationBar onNavigate={onNavigate} />
+<div className="fixed top-8 left-8 z-50">
         <button
           onClick={() => onNavigate('home')}
           className="text-foreground hover:text-accent transition-colors"
@@ -89,13 +93,12 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
           <span className="text-sm">← HOME</span>
         </button>
       </div>
-
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="p-12 text-center"
+        className="p-12 pt-32 text-center"
       >
         <h1 
           className="text-7xl mb-4"
@@ -109,7 +112,7 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
         >
           12 INDIGENOUS GROUPS · SINDH PROVINCE
         </p>
-      </motion.div>
+      </motion.div>      
 
       {/* Masonry Grid - "The Mosaic" */}
       <div className="px-12 pb-12">
