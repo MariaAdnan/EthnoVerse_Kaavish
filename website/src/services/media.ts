@@ -53,3 +53,44 @@ export async function createMedia(payload: {
     .select()
     .single();
 }
+
+export async function getMediaIndexItems(communityId?: string) {
+  // let query = supabase
+  const mediaQuery = supabase
+    .from("media_items")
+    .select(`
+      media_id,
+      media_type,
+      title,
+      date_captured,
+      storage_url,
+      visible
+    `)
+    .eq("visible", true)
+    .order("created_at", { ascending: false });
+
+  // if (communityId) {
+  //   query = query.eq("community_id", communityId);
+  // }
+  
+  if (communityId) mediaQuery.eq("community_id", communityId);
+
+  const { data: mediaData, error: mediaError } = await mediaQuery;
+
+const interviewQuery = supabase
+    .from("interviews")
+    .select("id, title, date, community_id");
+
+  if (communityId) interviewQuery.eq("community_id", communityId);
+
+  const { data: interviewData, error: interviewError } =
+    await interviewQuery;
+
+  return {
+    data: {
+      media: mediaData || [],
+      interviews: interviewData || [],
+    },
+    error: mediaError || interviewError,
+  };
+}
