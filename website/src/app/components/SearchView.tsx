@@ -19,7 +19,62 @@ interface SearchResult {
   title: string;
   community: string;
   date: string;
+  summary?: string;   // raw searchable text
+  snippet?: string;   // extracted preview
 }
+function highlight(text: string, query: string) {
+  if (!query) return text;
+
+  const regex = new RegExp(`(${query})`, "gi");
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-accent/30 text-accent px-1 rounded">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+function extractSnippet(
+  text: string,
+  query: string,
+  radius = 120
+): string | undefined {
+  if (!text || !query) return undefined;
+
+  const cleanText = text.replace(/\s+/g, " ").toLowerCase();
+  const words = query.toLowerCase().split(/\s+/);
+
+  let matchIndex = -1;
+  let matchedWord = "";
+
+  for (const word of words) {
+    if (word.length < 2) continue; // skip tiny words
+    const idx = cleanText.indexOf(word);
+    if (idx !== -1) {
+      matchIndex = idx;
+      matchedWord = word;
+      break;
+    }
+  }
+
+  if (matchIndex === -1) return undefined;
+
+  const start = Math.max(0, matchIndex - radius);
+  const end = Math.min(
+    cleanText.length,
+    matchIndex + matchedWord.length + radius
+  );
+
+  return (
+    (start > 0 ? "…" : "") +
+    text.slice(start, end) +
+    (end < text.length ? "…" : "")
+  );
+}
+
+
 
 export function SearchView({ onNavigate }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,6 +83,7 @@ const [stats, setStats] = useState({
   totalItems: 0,
   totalCommunities: 0,
 });
+
 useEffect(() => {
   const fetchStats = async () => {
     const data = await getArchiveStats();
@@ -47,32 +103,48 @@ useEffect(() => {
       const data = await searchArchive(searchQuery);
 
       // interviews → AUDIO
-      const audioResults: SearchResult[] = data.interviews.map(
-        (item: any) => ({
-          id: item.id,
-          type: "Audio",
-          title: item.title,
-          community: item.communities?.name || "Unknown",
-          date: item.date,
-        })
-      );
+      const audioResults: SearchResult[] = data.interviews.map((item: any) => {
+  const summaryText =
+    item.summary_html?.replace(/<[^>]+>/g, "") || "";
+
+  const snippet =
+  extractSnippet(summaryText, searchQuery) ??
+  summaryText.slice(0, 180);
+console.log("SUMMARY:", item.id, item.summary_html);
+
+return {
+  id: item.id,
+  type: "Audio",
+  title: item.title,
+  community: item.communities?.name || "Unknown",
+  date: item.date,
+  summary: summaryText,
+  snippet,
+};
+
+});
+
 
       // media_items → IMAGE / VIDEO / PDF / 3D
-      const mediaResults: SearchResult[] = data.media.map((item: any) => {
-        let type: SearchResult["type"] = "Image";
+const mediaResults: SearchResult[] = data.media.map((item: any) => {
+  let type: SearchResult["type"] = "Image";
+  if (item.media_type === "video") type = "Video";
+  if (item.media_type === "document") type = "PDF";
+  if (item.media_type === "3d") type = "3D";
 
-        if (item.media_type === "video") type = "Video";
-        if (item.media_type === "document") type = "PDF";
-        if (item.media_type === "3d") type = "3D";
+  const description = item.description || "";
 
-        return {
-          id: item.media_id,
-          type,
-          title: item.title,
-          community: item.communities?.name || "Unknown",
-          date: item.date_captured,
-        };
-      });
+  return {
+    id: item.media_id,
+    type,
+    title: item.title,
+    community: item.communities?.name || "Unknown",
+    date: item.date_captured,
+    summary: description,
+    snippet: extractSnippet(description, searchQuery),
+  };
+});
+
 
       setSearchResults([...audioResults, ...mediaResults]);
     };
@@ -196,9 +268,18 @@ useEffect(() => {
                         {result.type}
                       </span>
                     </div>
-                    <div className="col-span-5 group-hover:text-accent transition-colors">
-                      {result.title}
-                    </div>
+                    <div className="col-span-5">
+  <div className="group-hover:text-accent transition-colors">
+    {highlight(result.title, searchQuery)}
+  </div>
+
+  {result.snippet && (
+    <p className="mt-2 text-sm opacity-60 leading-relaxed">
+      {highlight(result.snippet, searchQuery)}
+    </p>
+  )}
+</div>
+
                     <div
                       className="col-span-2 text-sm opacity-60"
                       style={{ fontFamily: "'Space Mono', monospace" }}
