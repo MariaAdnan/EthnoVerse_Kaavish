@@ -249,7 +249,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
                     if (result.type === "Audio") {
                       onNavigate(`audio:${result.id}`);
                     } else if (result.type === "Image") {
-                      onNavigate(`image:${result.id}`);
+                      onNavigate(`image-detail:${result.id}`);
                     } else if (result.type === "Video") {
                       onNavigate(`video:${result.id}`);
                     } else if (result.type === "PDF") {
