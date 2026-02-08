@@ -22,7 +22,8 @@ interface SearchResult {
   summary?: string;   // raw searchable text
   snippet?: string;   // extracted preview
 }
-function highlight(text: string, query: string) {
+function highlight(text: string | null | undefined, query: string) {
+  if (!text) return "";      // ⭐ THIS FIX PREVENTS CRASH
   if (!query) return text;
 
   const regex = new RegExp(`(${query})`, "gi");
@@ -36,6 +37,7 @@ function highlight(text: string, query: string) {
     )
   );
 }
+
 function extractSnippet(
   text: string,
   query: string,
@@ -104,13 +106,13 @@ useEffect(() => {
 
       // interviews → AUDIO
       const audioResults: SearchResult[] = data.interviews.map((item: any) => {
-  const summaryText =
-    item.summary_html?.replace(/<[^>]+>/g, "") || "";
+  const summaryText = item.summary_text || "";
+
 
   const snippet =
   extractSnippet(summaryText, searchQuery) ??
   summaryText.slice(0, 180);
-console.log("SUMMARY:", item.id, item.summary_html);
+// console.log("SUMMARY:", item.id, item.summary_html);
 
 return {
   id: item.id,
@@ -127,23 +129,25 @@ return {
 
       // media_items → IMAGE / VIDEO / PDF / 3D
 const mediaResults: SearchResult[] = data.media.map((item: any) => {
-  let type: SearchResult["type"] = "Image";
-  if (item.media_type === "video") type = "Video";
-  if (item.media_type === "document") type = "PDF";
-  if (item.media_type === "3d") type = "3D";
-
   const description = item.description || "";
 
+  // convert ["temple","god"] → "temple, god"
+  const tagsText = Array.isArray(item.tags) ? item.tags.join(", ") : "";
+
+  const fallbackTitle = tagsText || "Untitled Image";
+
   return {
-    id: item.media_id,
-    type,
-    title: item.title,
+    id: item.id,
+    type: "Image",
+    title: item.title || fallbackTitle,     // ⭐ FIX
     community: item.communities?.name || "Unknown",
-    date: item.date_captured,
-    summary: description,
-    snippet: extractSnippet(description, searchQuery),
+    date: "",
+    summary: description || tagsText,       // ⭐ FIX
+    snippet: extractSnippet(description || tagsText, searchQuery),
   };
 });
+
+
 
 
       setSearchResults([...audioResults, ...mediaResults]);

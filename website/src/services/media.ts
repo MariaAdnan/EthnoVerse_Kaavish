@@ -2,86 +2,83 @@
 import { supabase } from "../lib/supabase";
 
 export async function getMediaByCommunity(communityId: string) {
-  const { data, error } = await supabase
-    .from("media_items")
-    .select("*")
+const { data, error } = await supabase
+    .from("visual_media")
+    .select(`
+      id,
+      title,
+      description,
+      picture_cloudinary_url,
+      tags,
+      created_at,
+      communities ( community_id, name, location )
+    `)
     .eq("community_id", communityId)
-    .eq("visible", true)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
   return data;
 }
+
 export async function saveMediaItem(payload: any) {
   const { data, error } = await supabase
-    .from("media_items")
+    .from("visual_media")
     .insert(payload);
 
   if (error) throw error;
   return data;
 }
 
-export async function getMediaById(mediaId: string) {
+export async function getMediaById(id: string | number) {
   const { data, error } = await supabase
-    .from("media_items")
+    .from("visual_media")
     .select(`
       *,
-      communities (
-        community_id,
-        name,
-        location
-      )
+      communities ( community_id, name, location )
     `)
-    .eq("media_id", mediaId)
+    .eq("id", Number(id)) // 👈 force bigint match
     .single();
 
   if (error) throw error;
   return data;
 }
 
+
 export async function createMedia(payload: {
   title: string;
   description: string;
   community_id: string;
-  media_type: "image" | "audio" | "video";
-  storage_url: string;
-  date_captured?: string;
+  picture_cloudinary_url: string;
+  tags?: any;
 }) {
   return supabase
-    .from("media_items") 
+    .from("visual_media")
     .insert([payload])
     .select()
     .single();
 }
 
 export async function getMediaIndexItems(communityId?: string) {
-  // let query = supabase
-  const mediaQuery = supabase
-    .from("media_items")
-    .select(`
-      media_id,
-      media_type,
-      title,
-      date_captured,
-      storage_url,
-      visible
-    `)
-    .eq("visible", true)
+  let mediaQuery = supabase
+    .from("visual_media")
+    .select("id, title, created_at, community_id")
     .order("created_at", { ascending: false });
 
-  // if (communityId) {
-  //   query = query.eq("community_id", communityId);
-  // }
-  
-  if (communityId) mediaQuery.eq("community_id", communityId);
+  // ⭐ filter ONLY if communityId exists
+  if (communityId && communityId !== "ALL") {
+    mediaQuery = mediaQuery.eq("community_id", communityId);
+  }
 
   const { data: mediaData, error: mediaError } = await mediaQuery;
 
-const interviewQuery = supabase
+  let interviewQuery = supabase
     .from("interviews")
-    .select("id, title, date, community_id");
+    .select("id, title, date, community_id")
+    .order("date", { ascending: false });
 
-  if (communityId) interviewQuery.eq("community_id", communityId);
+  if (communityId && communityId !== "ALL") {
+    interviewQuery = interviewQuery.eq("community_id", communityId);
+  }
 
   const { data: interviewData, error: interviewError } =
     await interviewQuery;

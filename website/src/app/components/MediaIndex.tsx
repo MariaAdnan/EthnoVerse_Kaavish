@@ -1,3 +1,4 @@
+// src/app/components/MediaIndex.tsx
 import { motion } from "motion/react";
 import {
   Volume2,
@@ -29,7 +30,6 @@ export function MediaIndex({
   initialFilter = "ALL",
   communityId,
 }: MediaIndexProps) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState(initialFilter);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
@@ -38,6 +38,8 @@ export function MediaIndex({
     const { data, error } = await getMediaIndexItems(communityId);
 
     if (!error && data) {
+          console.log("MEDIA:", data.media);
+    console.log("INTERVIEWS:", data.interviews);
       const iconMap = {
         AUDIO: Volume2,
         IMAGE: Image,
@@ -47,31 +49,23 @@ export function MediaIndex({
 
       // 🔊 interviews → AUDIO
       const audioItems: MediaItem[] = data.interviews.map((item) => ({
-        id: item.id,
-        type: "AUDIO",
-        title: item.title,
-        date: item.date,
-        icon: iconMap.AUDIO,
-      }));
+  id: String(item.id), // ⭐ FIX
+  type: "AUDIO",
+  title: item.title ?? "Untitled Interview",
+  date: item.date,
+  icon: iconMap.AUDIO,
+}));
 
-      // 🖼🎥📄 media → IMAGE/VIDEO/PDF
-      const mediaItemsMapped: MediaItem[] = data.media.map((item) => {
-        const typeMap: Record<string, MediaItem["type"]> = {
-          image: "IMAGE",
-          video: "VIDEO",
-          document: "PDF",
-        };
+const mediaItemsMapped: MediaItem[] = data.media.map((item) => ({
+  id: String(item.id), // ⭐ FIX
+  type: "IMAGE",
+  title: item.title ?? "Untitled Image",
+  date: item.created_at,
+  icon: iconMap.IMAGE,
+}));
 
-        const type = typeMap[item.media_type];
 
-        return {
-          id: item.media_id,
-          type,
-          title: item.title,
-          date: item.date_captured,
-          icon: iconMap[type],
-        };
-      });
+
 
       // merge both
       setMediaItems([...audioItems, ...mediaItemsMapped]);
@@ -82,19 +76,12 @@ export function MediaIndex({
 }, [communityId]);
 
   const filteredItems = mediaItems.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase());
-
-    let matchesFilter = false;
-    if (filterType === "ALL") matchesFilter = true;
-    else if (filterType === "VISUAL")
-      matchesFilter = item.type === "IMAGE" || item.type === "VIDEO";
-    else if (filterType === "TEXT") matchesFilter = item.type === "PDF";
-    else matchesFilter = item.type === filterType;
-
-    return matchesSearch && matchesFilter;
-  });
+  if (filterType === "ALL") return true;
+  if (filterType === "VISUAL")
+    return item.type === "IMAGE" || item.type === "VIDEO";
+  if (filterType === "TEXT") return item.type === "PDF";
+  return item.type === filterType;
+});
 
   const getTitle = () => {
     if (filterType === "VISUAL") return "Visual Media Collection";
@@ -190,7 +177,7 @@ export function MediaIndex({
                   transition={{ duration: 0.3, delay: 0.05 * index }}
                   onClick={() => {
                     const typeMap: Record<string, string> = {
-                      IMAGE: "image",
+                      IMAGE: "image-detail",
                       AUDIO: "audio",
                       VIDEO: "video",
                       PDF: "pdf",
@@ -212,6 +199,12 @@ export function MediaIndex({
           </div>
         </div>
       </div>
+      {filteredItems.length === 0 && (
+  <div className="text-center py-20 opacity-60">
+    No items found.
+  </div>
+)}
+
     </div>
   );
 }
