@@ -1,12 +1,12 @@
 // src/services/communities.ts
 import { supabase } from "../lib/supabase";
 
-export const getAllCommunities = async () => {
-  return supabase
+export async function getAllCommunities() {
+  return await supabase
     .from("communities")
     .select("*")
     .order("created_at", { ascending: false });
-};
+}
 export const getCommunityById = async (id: string) => {
   return supabase
     .from("communities")
@@ -28,7 +28,7 @@ export const createCommunity = async (data: {
   language: string;
   short_description: string;
   long_description: string;
-  cover_image?: string | null;
+  picture_cloudinary_url?: string | null;
 }) => {
   return supabase
     .from("communities")
