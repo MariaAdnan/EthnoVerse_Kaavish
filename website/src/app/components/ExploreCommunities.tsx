@@ -132,8 +132,8 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
                 {/* Image */}
                 <img
   src={
-    community.cover_image
-      ? community.cover_image
+    community.picture_cloudinary_url
+      ? community.picture_cloudinary_url
       : "/placeholder-community.jpg"
   }
   alt={community.name}

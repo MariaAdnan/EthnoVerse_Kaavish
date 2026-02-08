@@ -13,11 +13,11 @@ export function Homepage({ onNavigate }: HomepageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+useEffect(() => {
   const fetchCommunities = async () => {
     setLoading(true);
-
     const { data, error } = await getAllCommunities();
+    console.log("Homepage communities fetch:", { data, error }); // 🔹 Add this
 
     if (error) {
       setError("Failed to load communities");
@@ -31,6 +31,7 @@ export function Homepage({ onNavigate }: HomepageProps) {
 
   fetchCommunities();
 }, []);
+
 const featured = communities.length > 0 ? communities[0] : null;
 
   return (
@@ -154,8 +155,8 @@ onClick={() => {
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img
   src={
-    featured?.cover_image
-      ? featured.cover_image
+    featured?.picture_cloudinary_url
+      ? featured.picture_cloudinary_url
       : "/placeholder-community.jpg"
   }
   alt={featured?.name}

@@ -10,7 +10,7 @@ interface ImageDetailProps {
 }
 
 export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
-  const mediaId = view.split(":")[1];
+const mediaId = Number(view.split(":")[1]);
 
   const [media, setMedia] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,12 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
   }, [mediaId]);
 
   if (loading || !media) return null;
+  console.log("MEDIA:", media);
+if (isNaN(mediaId)) {
+  console.error("Invalid media id", view);
+  return null;
+}
+
 
   return (
     <div className="fixed inset-0 bg-[#1A1A1A]/95 z-50 flex items-center justify-center p-8">
@@ -53,7 +59,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
         className="relative max-w-6xl max-h-[80vh] flex items-center justify-center"
       >
         <img
-          src={media.storage_url}
+          src={media.picture_cloudinary_url}
           alt={media.title}
           className="max-w-full max-h-[80vh] object-contain"
           loading="eager"
@@ -74,7 +80,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
                 className="text-xs text-[#F5F1E8]/60 mb-2"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
-                IMAGE · {media.communities?.name || "ARCHIVE"}
+  IMAGE · {media.communities?.[0]?.name || "ARCHIVE"}
               </p>
 
               <h2
@@ -85,13 +91,13 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
               </h2>
 
               <p className="text-sm text-[#F5F1E8]/70 mt-2">
-                {media.description}
+  {media.description || "No description"}
               </p>
             </div>
 
             {/* Download */}
             <a
-              href={media.storage_url}
+              href={media.picture_cloudinary_url}
               download
               className="w-12 h-12 flex items-center justify-center border border-[#F5F1E8]/30 hover:border-accent hover:bg-accent/10 transition-colors text-[#F5F1E8]"
               title="Download Image"
@@ -115,7 +121,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
             <div>
               <p className="mb-1">LOCATION</p>
               <p className="text-[#F5F1E8]/90">
-                {media.communities?.location || "—"}
+                {media.communities?.[0]?.location || "—"}
               </p>
             </div>
 
