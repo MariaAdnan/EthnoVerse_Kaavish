@@ -88,6 +88,7 @@ export default function App() {
           />
         )}
         {currentView === '3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} />}
+        
         {currentView.startsWith('audio:') && (
           <AudioPlayer
             onNavigate={handleNavigate}
