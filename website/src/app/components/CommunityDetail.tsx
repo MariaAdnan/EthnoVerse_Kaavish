@@ -126,7 +126,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img
-  src={interview.picture || "/placeholder.jpg"}
+  src={interview.picture_cloudinary_url || "/placeholder.jpg"}
   alt={interview.interviewee}
   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
 />

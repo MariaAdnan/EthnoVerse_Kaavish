@@ -99,7 +99,9 @@ export default function App() {
         {currentView === 'admin-login' && <AdminLogin onNavigate={handleNavigate} />}
         {currentView === 'media-upload' && <MediaUpload onNavigate={handleNavigate} />}
         {currentView === 'about' && <AboutPage onNavigate={handleNavigate} />}
-        {currentView === 'image-detail' && <ImageDetail onNavigate={handleNavigate} view={currentView} />}
+{currentView.startsWith('image-detail:') && (
+  <ImageDetail onNavigate={handleNavigate} view={currentView} />
+)}
         {currentView === 'video' && <VideoPlayer onNavigate={handleNavigate} />}
         {currentView === 'add-community' && <AddCommunity onNavigate={handleNavigate} />}
         {currentView === 'contact' && <ContactPage onNavigate={handleNavigate} />}

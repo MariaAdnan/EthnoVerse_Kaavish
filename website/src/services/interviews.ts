@@ -1,3 +1,4 @@
+// src/services/interviews.ts
 import { supabase } from "../lib/supabase";
 
 export function getInterviewsByCommunity(communityId: string) {
@@ -7,7 +8,6 @@ export function getInterviewsByCommunity(communityId: string) {
     .eq("community_id", communityId)
     .order("date", { ascending: false });
 }
-
 export const getInterviewById = async (id: string) => {
   return await supabase
     .from("interviews")
@@ -15,13 +15,17 @@ export const getInterviewById = async (id: string) => {
       id,
       title,
       interviewee,
-      audio,
+      interviewer,
+      audio_cloudinary_url,
       date,
       summary_html,
-      picture,
-      community_id,
+      summary_text,
+      summary_urdu,
+      summary_sindhi,
+      picture_cloudinary_url,
       communities (
-        name
+        name,
+        language
       )
     `)
     .eq("id", id)
@@ -31,17 +35,23 @@ export const getInterviewById = async (id: string) => {
 export const getRecentInterviews = async (limit: number = 3) => {
   return await supabase
     .from("interviews")
-    .select(`id,
+    .select(`
+      id,
       title,
       interviewee,
-      audio,
+      interviewer,
+      audio_cloudinary_url,
       date,
       summary_html,
-      picture,
-      community_id,
+      summary_text,
+      summary_urdu,
+      summary_sindhi,
+      picture_cloudinary_url,
       communities (
-        name
-      )`)
-    .order("date", { ascending: true })
+        name,
+        language
+      )
+    `)
+    .order("date", { ascending: false })
     .limit(limit);
 };
