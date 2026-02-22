@@ -20,14 +20,14 @@ const { data, error } = await supabase
   return data;
 }
 
-export async function saveMediaItem(payload: any) {
-  const { data, error } = await supabase
-    .from("visual_media")
-    .insert(payload);
+// export async function saveMediaItem(payload: any) {
+//   const { data, error } = await supabase
+//     .from("visual_media")
+//     .insert(payload);
 
-  if (error) throw error;
-  return data;
-}
+//   if (error) throw error;
+//   return data;
+// }
 
 export async function getMediaById(id: string | number) {
   const { data, error } = await supabase
@@ -43,25 +43,36 @@ export async function getMediaById(id: string | number) {
   return data;
 }
 
-
 export async function createMedia(payload: {
   title: string;
-  description: string;
+  description?: string | null;
   community_id: string;
   picture_cloudinary_url: string;
-  tags?: any;
+  tags?: string[] | null;
 }) {
-  return supabase
+  const { data, error } = await supabase
     .from("visual_media")
-    .insert([payload])
+    .insert([
+      {
+        title: payload.title,
+        description: payload.description ?? null,
+        community_id: payload.community_id,
+        picture_cloudinary_url: payload.picture_cloudinary_url,
+        tags: payload.tags ?? null,
+      },
+    ])
     .select()
     .single();
+
+  return { data, error };
 }
+
+
 
 export async function getMediaIndexItems(communityId?: string) {
   let mediaQuery = supabase
     .from("visual_media")
-    .select("id, title, created_at, community_id")
+    .select("id, title, created_at, community_id, picture_cloudinary_url")
     .order("created_at", { ascending: false });
 
   // ⭐ filter ONLY if communityId exists
@@ -91,3 +102,10 @@ export async function getMediaIndexItems(communityId?: string) {
     error: mediaError || interviewError,
   };
 }
+export type AdminMediaItem = {
+  id: string;
+  media_type: "image" | "audio";
+  title: string;
+  created_at: string;
+  visible: boolean;
+};
