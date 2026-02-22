@@ -40,7 +40,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       language: formData.language,
       short_description: formData.shortDescription,
       long_description: formData.longDescription,
-      cover_image: coverImageUrl,
+      picture_cloudinary_url: coverImageUrl,
     });
 
     if (error) throw error;

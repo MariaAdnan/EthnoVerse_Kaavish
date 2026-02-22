@@ -1,333 +1,443 @@
-// src/app/components/MediaUpload.tsx
+//src/app/components/MediaUpload.tsx  
 
 import { motion } from "motion/react";
-import { Upload, File as FileIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import React from "react";
-import { uploadToCloudinary } from "../../lib/cloudinary";
-import { createMedia } from "../../services/media";
-import { getAllCommunities } from "../../services/communities";   
+  import { Upload, File } from "lucide-react";
+  import { useState } from "react";
+  import { createInterview } from "../../services/interviews";
+  import { createMedia } from "../../services/media";
+  import { uploadToCloudinary } from "../../services/upload";
+  import { supabase } from "../../lib/supabase";
+  import { useEffect } from "react";
 
+  interface MediaUploadProps {
+    onNavigate: (view: string) => void;
+  }
 
-interface MediaUploadProps {
-  onNavigate: (view: string) => void;
-}
+  type MediaType = "audio" | "image" | "";
 
-export function MediaUpload({ onNavigate }: MediaUploadProps) {
-  const [dragActive, setDragActive] = useState(false);
-  // const [uploadedFile, setUploadedFile] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [title, setTitle] = useState("");
-  const [community, setCommunity] = useState("");
-  const [date, setDate] = useState("");
-  const [description, setDescription] = useState("");
+  export function MediaUpload({ onNavigate }: MediaUploadProps) {
+    const [mediaType, setMediaType] = useState<MediaType>("");
+    const [dragActive, setDragActive] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [communities, setCommunities] = useState<any[]>([]);
-useEffect(() => {
-  getAllCommunities()
-    .then(({ data, error }) => {
-      if (error) throw error;
-      setCommunities(data ?? []);
-    })
-    .catch(console.error);
-}, []);
 
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      const { data, error } = await supabase
+        .from("communities")
+        .select("community_id, name");
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
+      if (error) {
+        console.error(error);
+      } else {
+        setCommunities(data || []);
+      }
+    };
+
+    fetchCommunities();
+  }, []);
+    // Common Fields
+    const [title, setTitle] = useState("");
+    const [community, setCommunity] = useState("");
+    const [date, setDate] = useState("");
+
+    // Audio Fields
+    const [interviewer, setInterviewer] = useState("");
+    const [interviewee, setInterviewee] = useState("");
+    const [summaryText, setSummaryText] = useState("");
+    const [summaryUrdu, setSummaryUrdu] = useState("");
+    const [summarySindhi, setSummarySindhi] = useState("");
+
+    // Image Fields
+    const [description, setDescription] = useState("");
+    const [tags, setTags] = useState("");
+
+    /* ------------------ Drag Handlers ------------------ */
+
+    const handleDrag = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.type === "dragenter" || e.type === "dragover") {
+        setDragActive(true);
+      } else {
+        setDragActive(false);
+      }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       setDragActive(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        setUploadedFile(e.dataTransfer.files[0]);
+      }
+    };
+
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        setUploadedFile(e.target.files[0]);
+      }
+    };
+
+  const handlePublish = async () => {
+    try {
+      if (!mediaType) return alert("Select media type");
+      if (!uploadedFile) return alert("Upload a file");
+      if (!title || !community) return alert("Fill required fields");
+
+      // 1️⃣ Upload to Cloudinary
+      const fileUrl = await uploadToCloudinary(uploadedFile);
+
+      if (mediaType === "audio") {
+        const { error } = await createInterview({
+          title,
+          community_id: community,
+          audio_cloudinary_url: fileUrl,
+          date: date || null,
+          interviewer: interviewer || null,
+          interviewee: interviewee || null,
+          summary_text: summaryText || null,
+          summary_urdu: summaryUrdu || null,
+          summary_sindhi: summarySindhi || null,
+          picture_cloudinary_url: null,
+        });
+
+        if (error) throw error;
+      }
+
+      if (mediaType === "image") {
+        const { error } = await createMedia({
+          title,
+          description: description || null,
+          community_id: community,
+          picture_cloudinary_url: fileUrl,
+          tags: tags
+            ? tags.split(",").map((t) => t.trim())
+            : null,
+        });
+
+        if (error) throw error;
+      }
+
+      alert("Uploaded successfully ✅");
+      onNavigate("admin");
+
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Upload failed");
     }
   };
 
-const handleDrop = (e: React.DragEvent) => {
-  e.preventDefault();
-  setDragActive(false);
-  if (e.dataTransfer.files[0]) {
-    setFile(e.dataTransfer.files[0]);
-  }
-};
+    return (
+      <div className="min-h-screen">
 
-const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files?.[0]) {
-    setFile(e.target.files[0]);
-  }
-};
+        {/* HEADER */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="border-b border-border p-8"
+        >
+          <div className="max-w-7xl mx-auto">
+            <p
+              className="text-sm mb-2 opacity-60"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              FR-W02 · CONTENT MANAGEMENT
+            </p>
+            <h1
+              className="text-5xl"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Upload New Media
+            </h1>
+          </div>
+        </motion.div>
 
+        <div className="max-w-7xl mx-auto p-8 grid lg:grid-cols-2 gap-12">
 
-  const handleSaveDraft = () => {
-    console.log("Saving draft...");
-    onNavigate('admin');
-  };
-
-const handlePublish = async () => {
-  if (!file || !title || !community) {
-    alert("Missing required fields");
-    return;
-  }
-
-  try {
-    setUploading(true);
-
-    //  Upload to Cloudinary
-    const uploadResult = await uploadToCloudinary(file);
-
-    const mediaType =
-      uploadResult.resource_type === "image"
-        ? "image"
-        : uploadResult.resource_type === "video"
-        ? "video"
-        : "audio";
-
-    //  Insert into Supabase
-    const { error } = await createMedia({
-      title,
-      description,
-      community_id: community,
-      media_type: mediaType,
-      storage_url: uploadResult.url, 
-      date_captured: date || undefined,
-    });
-
-    if (error) throw error;
-
-    alert("Media published successfully");
-    onNavigate("admin");
-
-  }  catch (err: any) {
-  console.error("PUBLISH ERROR:", err);
-  alert(err.message || "Upload failed");
-}
- finally {
-    setUploading(false);
-  }
-};
-  return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="border-b border-border p-8"
-      >
-        <div className="max-w-7xl mx-auto">
-          <p 
-            className="text-sm mb-2 opacity-60"
-            style={{ fontFamily: "'Space Mono', monospace" }}
-          >
-            FR-W02 · CONTENT MANAGEMENT
-          </p>
-          <h1 
-            className="text-5xl"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Upload New Media
-          </h1>
-        </div>
-      </motion.div>
-
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Left Zone - File Drop Area */}
+          {/* LEFT SIDE */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <label 
-              className="block text-sm mb-4 opacity-60"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            >
-              MEDIA FILE
-            </label>
-            
-            <div
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              className={`relative border-2 border-dashed transition-all duration-300 aspect-[4/3] flex flex-col items-center justify-center cursor-pointer ${
-                dragActive 
-                  ? 'border-accent bg-accent/5' 
-                  : file
-                  ? 'border-sage bg-sage/5'
-                  : 'border-border hover:border-accent hover:bg-accent/5'
-              }`}
-            >
-              <input
-                type="file"
-                id="file-upload"
-                onChange={handleFileInput}
-                accept="image/*,audio/*,video/*"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              
-              {file ? (
-                <div className="text-center px-6">
-                  <FileIcon className="w-16 h-16 mx-auto mb-4 text-sage" />
-                  <p 
-                    className="text-sm mb-2"
-                    style={{ fontFamily: "'Space Mono', monospace" }}
-                  >
-                    {file.name}
-                  </p>
-                  <p className="text-xs opacity-60">Click or drag to replace</p>
-                </div>
-              ) : (
-                <div className="text-center px-6">
-                  <Upload className="w-16 h-16 mx-auto mb-4 opacity-40" />
-                  <p 
-                    className="text-lg mb-2"
-                    style={{ fontFamily: "'Space Mono', monospace" }}
-                  >
-                    DROP FILES
-                  </p>
-                  <p className="text-sm opacity-60 mb-4">
-                    Image, Audio, Video
-                  </p>
-                  <p className="text-xs opacity-40">
-                    or click to browse
-                  </p>
-                </div>
-              )}
+            {/* MEDIA TYPE */}
+            <div className="mb-8">
+              <label
+                className="block text-sm mb-4 opacity-60"
+                style={{ fontFamily: "'Space Mono', monospace" }}
+              >
+                MEDIA TYPE *
+              </label>
+
+              <select
+                value={mediaType}
+                onChange={(e) => {
+                  setMediaType(e.target.value as MediaType);
+                  setUploadedFile(null);
+                }}
+                className="w-full bg-background border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                required
+              >
+                <option value="">Select Media Type</option>
+                <option value="audio">Audio Interview</option>
+                <option value="image">Image / Visual Media</option>
+              </select>
             </div>
 
-            <p 
-              className="text-xs opacity-60 mt-4"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            >
-              SUPPORTED: JPG, PNG, MP3, WAV, MP4, MOV · MAX 500MB
-            </p>
+            {/* FILE DROP AREA */}
+            {mediaType && (
+              <>
+                <label
+                  className="block text-sm mb-4 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  MEDIA FILE
+                </label>
+
+                <div
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  className={`relative border-2 border-dashed transition-all duration-300 aspect-[4/3] flex flex-col items-center justify-center cursor-pointer ${
+                    dragActive
+                      ? "border-accent bg-accent/5"
+                      : uploadedFile
+                      ? "border-sage bg-sage/5"
+                      : "border-border hover:border-accent hover:bg-accent/5"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept={
+                      mediaType === "audio"
+                        ? "audio/*"
+                        : "image/*"
+                    }
+                    onChange={handleFileInput}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+
+                  {uploadedFile ? (
+                    <div className="text-center px-6">
+                      <File className="w-16 h-16 mx-auto mb-4 text-sage" />
+                      <p
+                        className="text-sm mb-2"
+                        style={{ fontFamily: "'Space Mono', monospace" }}
+                      >
+                        {uploadedFile.name}
+                      </p>
+                      <p className="text-xs opacity-60">
+                        Click or drag to replace
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center px-6">
+                      <Upload className="w-16 h-16 mx-auto mb-4 opacity-40" />
+                      <p
+                        className="text-lg mb-2"
+                        style={{ fontFamily: "'Space Mono', monospace" }}
+                      >
+                        DROP FILES
+                      </p>
+                      <p className="text-sm opacity-60 mb-4">
+                        {mediaType === "audio"
+                          ? "Audio Files"
+                          : "Image Files"}
+                      </p>
+                      <p className="text-xs opacity-40">
+                        or click to browse
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </motion.div>
 
-          {/* Right Form - Metadata Fields */}
+          {/* RIGHT SIDE */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
             className="space-y-8"
           >
-            <label 
-              className="block text-sm mb-4 opacity-60"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            >
-              METADATA
-            </label>
+            {mediaType && (
+              <>
+                <label
+                  className="block text-sm mb-4 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  METADATA
+                </label>
 
-            {/* Title Field */}
-            <div>
-              <label 
-                className="block text-xs mb-3 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                TITLE *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Traditional Tattoo Patterns"
-                className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
-                style={{ caretColor: '#CC7722' }}
-                required
-              />
-            </div>
+                {/* TITLE */}
+                <div>
+                  <label
+                    className="block text-xs mb-3 opacity-60"
+                    style={{ fontFamily: "'Space Mono', monospace" }}
+                  >
+                    TITLE *
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    required
+                  />
+                </div>
 
-            {/* Community Dropdown */}
-            <div>
-              <label 
-                className="block text-xs mb-3 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                COMMUNITY *
-              </label>
-              <select
-  value={community}
-  onChange={(e) => setCommunity(e.target.value)}
-  required
-  className="w-full bg-background border-b-2 border-border pb-3"
->
-  <option value="">Select Community</option>
+                {/* COMMUNITY */}
+                {/* Community Dropdown */}
+              <div>
+  <label 
+    className="block text-xs mb-3 opacity-60"
+    style={{ fontFamily: "'Space Mono', monospace" }}
+  >
+    COMMUNITY *
+  </label>
 
-  {communities.map((c) => (
-    <option key={c.community_id} value={c.community_id}>
-      {c.name}
-    </option>
-  ))}
-</select>
+  <select
+    value={community}
+    onChange={(e) => setCommunity(e.target.value)}
+    className="w-full bg-background border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+    required
+  >
+    <option value="">Select Community</option>
 
-            </div>
+    {communities.map((c) => (
+      <option key={c.community_id} value={c.community_id}>
+        {c.name}
+      </option>
+    ))}
+  </select>
+</div>
 
-            {/* Date Field */}
-            <div>
-              <label 
-                className="block text-xs mb-3 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                DATE RECORDED
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-background border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
-                style={{ caretColor: '#CC7722' }}
-              />
-            </div>
+                {/* AUDIO FIELDS */}
+                {mediaType === "audio" && (
+                  <>
+                    {/* <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    /> */}
+                    <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  INTERVIEWER *
+                </label>
+                    <input
+                      type="text"
+                      placeholder="xyz (e.g. John Doe)"
+                      value={interviewer}
+                      onChange={(e) => setInterviewer(e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    />
+                    <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  INTERVIEWEE *
+                </label>
+                    <input
+                      type="text"
+                      placeholder="abc (e.g. Jane Doe)"
+                      value={interviewee}
+                      onChange={(e) => setInterviewee(e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    />
+  <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  SUMMARY (ENGLISH) 
+                </label>
+                    <textarea
+                      placeholder= "Provide a concise summary of the interview in English..."
+                      value={summaryText}
+                      onChange={(e) => setSummaryText(e.target.value)}
+                      className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
+                    />
+  <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  SUMMARY (URDU)
+                </label>
+                    <textarea
+                      placeholder="Provide a concise summary of the interview in Urdu..."
+                      value={summaryUrdu}
+                      onChange={(e) => setSummaryUrdu(e.target.value)}
+                      className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
+                    />
+  <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  SUMMARY (SINDHI)
+                </label>
+                    <textarea
+                      placeholder="Provide a concise summary of the interview in Sindhi..."
+                      value={summarySindhi}
+                      onChange={(e) => setSummarySindhi(e.target.value)}
+                      className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
+                    />
+                  </>
+                )}
 
-            {/* Description Field */}
-            <div>
-              <label 
-                className="block text-xs mb-3 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                DESCRIPTION
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Provide context and details about this media..."
-                rows={6}
-                className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
-                style={{ caretColor: '#CC7722' }}
-              />
-            </div>
+                {/* IMAGE FIELDS */}
+                {mediaType === "image" && (
+                  <>
+                    {/* Description Field */}
+              <div>
+                <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  DESCRIPTION
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Provide context and details about this media..."
+                  rows={6}
+                  className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
+                  style={{ caretColor: '#CC7722' }}
+                />
+              </div>
+  <label 
+                  className="block text-xs mb-3 opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  TAGS *
+                </label>
+                    <input
+                      type="text"
+                      placeholder="Tags (comma separated)"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    />
+                  </>
+                )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-6">
-              <button
-                onClick={handleSaveDraft}
-                className="flex-1 border-2 border-foreground hover:bg-foreground hover:text-background transition-all py-4"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                SAVE DRAFT
-              </button>
-              <button
-                onClick={handlePublish}
-                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 transition-all py-4"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                PUBLISH
-              </button>
-            </div>
+                {/* PUBLISH */}
+                <button
+                  onClick={handlePublish}
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 transition-all py-4"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  PUBLISH
+                </button>
+              </>
+            )}
           </motion.div>
         </div>
       </div>
-
-      {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
-        <button
-          onClick={() => onNavigate('admin')}
-          className="text-foreground hover:text-accent transition-colors"
-          style={{ fontFamily: "'Space Mono', monospace" }}
-        >
-          <span className="text-sm">← BACK TO DASHBOARD</span>
-        </button>
-      </div>
-    </div>
-  );
-}
+    );
+  }
