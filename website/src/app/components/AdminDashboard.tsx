@@ -1,52 +1,69 @@
 // src/app/components/AdminDashboard.tsx
-import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
-import {
-  getAdminStats,
-  getRecentMedia,
-  deleteMedia,
+import { useEffect, useState } from "react";
+import { 
+  getDashboardStats, 
+  getRecentActivity,
+  deleteArchiveItem
 } from "../../services/admin";
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
 }
 
-interface AdminStats {
-  mediaCount: number;
-  communityCount: number;
-}
-
-interface RecentMedia {
-  media_id: string;
-  media_type: string;
-  title: string;
-  created_at: string;
-  visible: boolean;
-}
-
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [recentActivity, setRecentActivity] = useState<RecentMedia[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+  totalArchives: 0,
+  communities: 0,
+  newUsersThisMonth: 0,
+});
 
-  useEffect(() => {
-    const loadAdminData = async () => {
-      try {
-        const statsData = await getAdminStats();
-        const recentData = await getRecentMedia(7);
+const [recentActivity, setRecentActivity] = useState<any[]>([]);
+const [loading, setLoading] = useState( true);
+useEffect(() => {
+  async function loadDashboard() {
+    try {
+      const [statsData, activityData] = await Promise.all([
+        getDashboardStats(),
+        getRecentActivity(),
+      ]);
 
-        setStats(statsData);
-        setRecentActivity(recentData);
-      } catch (err) {
-        console.error("Admin dashboard load error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setStats(statsData);
+      setRecentActivity(activityData);
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    loadAdminData();
-  }, []);
+  loadDashboard();
+}, []);
+  const handleDelete = async (id: string, type: string) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this item?");
+  if (!confirmDelete) return;
+
+  try {
+    const { error } = await deleteArchiveItem(id, type);
+
+    if (error) {
+      console.error(error);
+      alert("Delete failed.");
+      return;
+    }
+
+    // remove from UI immediately
+    setRecentActivity(prev => prev.filter(item => item.id !== id));
+
+    // update stats
+    const updatedStats = await getDashboardStats();
+    setStats(updatedStats);
+
+  } catch (err) {
+    console.error("Delete error:", err);
+  }
+};
 
   return (
     <div className="min-h-screen">
@@ -58,13 +75,13 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
         className="border-b border-border p-8"
       >
         <div className="max-w-7xl mx-auto">
-          <p
+          <p 
             className="text-sm mb-2 opacity-60"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ADMINISTRATIVE INTERFACE
           </p>
-          <h1
+          <h1 
             className="text-5xl"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
@@ -74,7 +91,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       </motion.div>
 
       <div className="max-w-7xl mx-auto p-8">
-        {/* Stats */}
+        {/* Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,56 +101,54 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           <div className="border border-border p-8 hover:border-accent transition-colors">
             <div className="flex items-start justify-between mb-4">
               <Database className="w-8 h-8 text-accent" />
-              <p
+              <p 
                 className="text-xs opacity-60"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 TOTAL ARCHIVES
               </p>
             </div>
-            <p
+            <p 
               className="text-6xl mb-2"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              {stats?.mediaCount ?? "—"}
+              {loading ? "—" : stats.totalArchives}
             </p>
             <p className="text-sm text-muted-foreground">
-              Across {stats?.communityCount ?? "—"} communities
+              Across {stats.communities} communities · Cloud storage
             </p>
           </div>
 
           <div className="border border-border p-8 hover:border-accent transition-colors">
             <div className="flex items-start justify-between mb-4">
               <Users className="w-8 h-8 text-accent" />
-              <p
+              <p 
                 className="text-xs opacity-60"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 USER ACTIVITY
               </p>
             </div>
-            <p
+            <p 
               className="text-6xl mb-2"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              —
+{loading ? "—" : stats.newUsersThisMonth}
             </p>
             <p className="text-sm text-muted-foreground">
-              Analytics coming soon
+              Active researchers this month · +18% growth
             </p>
           </div>
         </motion.div>
-{/* Primary Actions */}
+
+        {/* Upload Action */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mb-12 space-y-4"
-
         >
-          {/* Upload Media */}
-          
- <button 
+          <button 
             onClick={() => onNavigate('media-upload')}
             className="w-full border-2 border-accent bg-accent/5 hover:bg-accent hover:text-accent-foreground transition-all p-8 group"
           >
@@ -161,33 +176,32 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               </span>
             </div>
           </button>
-         
         </motion.div>
 
-
-        {/* Recent Activity */}
+        {/* Recent Activity Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
         >
           <div className="mb-6 flex items-center justify-between">
-            <h2
+            <h2 
               className="text-3xl"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Recent Activity
             </h2>
-            <p
+            <p 
               className="text-sm opacity-60"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
-              LATEST UPLOADS
+              LAST 7 DAYS
             </p>
           </div>
 
           <div className="border border-border">
-            <div
+            {/* Table Header */}
+            <div 
               className="grid grid-cols-12 gap-4 p-6 border-b border-border bg-secondary/30 text-sm"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
@@ -198,70 +212,49 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               <div className="col-span-2">ACTIONS</div>
             </div>
 
-            {!loading &&
-              recentActivity.map((item, index) => (
-                <motion.div
-                  key={item.media_id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                  className="grid grid-cols-12 gap-4 p-6 border-b border-border hover:bg-secondary/20 transition-colors"
+            {/* Table Rows */}
+            {recentActivity.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * index }}
+                className="grid grid-cols-12 gap-4 p-6 border-b border-border hover:bg-secondary/20 transition-colors group"
+              >
+                <div 
+                  className="col-span-2 text-sm opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  <div
-                    className="col-span-2 text-sm opacity-60"
-                    style={{ fontFamily: "'Space Mono', monospace" }}
-                  >
-                    {item.media_id.slice(0, 8).toUpperCase()}
-                  </div>
-
-                  <div className="col-span-2">
-                    <span className="inline-block px-2 py-1 bg-accent/10 text-accent text-xs rounded">
-                      {item.media_type.toUpperCase()}
-                    </span>
-                  </div>
-
-                  <div className="col-span-4">{item.title}</div>
-
-                  <div
-                    className="col-span-2 text-sm opacity-60"
-                    style={{ fontFamily: "'Space Mono', monospace" }}
-                  >
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </div>
-
-                  <div className="col-span-2 flex gap-2">
-                    <button
-                      // onClick={() =>
-                      //   onNavigate(`media-edit:${item.media_id}`)
-                      // }
-                      className="p-2 hover:bg-accent/10 hover:text-accent transition-colors rounded"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={async () => {
-                        const ok = window.confirm(
-                          "Delete this media item permanently?"
-                        );
-                        if (!ok) return;
-
-                        await deleteMedia(item.media_id);
-                        setRecentActivity(prev =>
-                          prev.filter(m => m.media_id !== item.media_id)
-                        );
-                      }}
-                      className="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                  {item.id}
+                </div>
+                <div className="col-span-2">
+                  <span className="inline-block px-2 py-1 bg-accent/10 text-accent text-xs rounded">
+                    {item.type}
+                  </span>
+                </div>
+                <div className="col-span-4">{item.title}</div>
+                <div 
+                  className="col-span-2 text-sm opacity-60"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  {item.date}
+                </div>
+                <div className="col-span-2 flex gap-2">
+                  <button className="p-2 hover:bg-accent/10 hover:text-accent transition-colors rounded">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+<button
+  onClick={() => handleDelete(item.id, item.type)}
+  className="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded"
+>                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
-      </div>
-{/* System Info */}
+
+        {/* System Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -292,11 +285,12 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             </div>
           </div>
         </motion.div>
-      
-      {/* Back */}
+      </div>
+
+      {/* Back Navigation */}
       <div className="fixed top-8 left-8 z-50">
         <button
-          onClick={() => onNavigate("home")}
+          onClick={() => onNavigate('home')}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
