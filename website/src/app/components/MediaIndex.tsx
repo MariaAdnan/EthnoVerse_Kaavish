@@ -23,6 +23,7 @@ interface MediaItem {
   title: string;
   date?: string;
   icon: any;
+  imageUrl?: string;
 }
 
 export function MediaIndex({
@@ -62,6 +63,7 @@ const mediaItemsMapped: MediaItem[] = data.media.map((item) => ({
   title: item.title ?? "Untitled Image",
   date: item.created_at,
   icon: iconMap.IMAGE,
+  imageUrl: item.picture_cloudinary_url, 
 }));
 
 
@@ -165,40 +167,76 @@ const mediaItemsMapped: MediaItem[] = data.media.map((item) => ({
 
       {/* List */}
       <div className="px-12 py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="border border-[#1A1A1A]/10 rounded-lg overflow-hidden bg-white">
-            {filteredItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <motion.button
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.05 * index }}
-                  onClick={() => {
-                    const typeMap: Record<string, string> = {
-                      IMAGE: "image-detail",
-                      AUDIO: "audio",
-                      VIDEO: "video",
-                      PDF: "pdf",
-                    };
-                    onNavigate(`${typeMap[item.type]}:${item.id}`);
-                  }}
-                  className="w-full grid grid-cols-12 gap-4 px-6 py-5 border-b border-[#1A1A1A]/10 hover:bg-[#1A1A1A]/5 transition-colors group text-left items-center"
-                >
-                  <div className="col-span-1">
-                    <Icon className="w-4 h-4 text-[#CC7722]" />
-                  </div>
-                  <div className="col-span-8 font-medium">{item.title}</div>
-                  <div className="col-span-3 text-right opacity-60 text-xs">
-                    {item.type}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+  <div className="max-w-7xl mx-auto">
+
+    {/* 🖼 VISUAL = GALLERY */}
+    {filterType === "VISUAL" ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {filteredItems.map((item, index) => (
+          <motion.div
+            key={`${item.type}-${item.id}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.05 * index }}
+            onClick={() => onNavigate(`image-detail:${item.id}`)}
+            className="cursor-pointer group"
+          >
+            {item.imageUrl ? (
+  <img
+    src={item.imageUrl}
+    alt={item.title}
+    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+  />
+) : (
+  <div className="absolute inset-0 flex items-center justify-center text-[#CC7722]">
+    <Image className="w-10 h-10 opacity-40" />
+  </div>
+)}
+
+            <div className="mt-3 text-sm font-medium group-hover:text-[#CC7722] transition-colors">
+              {item.title}
+            </div>
+          </motion.div>
+        ))}
       </div>
+    ) : (
+
+      /* 📋 NORMAL LIST */
+      <div className="border border-[#1A1A1A]/10 rounded-lg overflow-hidden bg-white">
+        {filteredItems.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <motion.button
+              key={`${item.type}-${item.id}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.05 * index }}
+              onClick={() => {
+                const typeMap: Record<string, string> = {
+                  IMAGE: "image-detail",
+                  AUDIO: "audio",
+                  VIDEO: "video",
+                  PDF: "pdf",
+                };
+                onNavigate(`${typeMap[item.type]}:${item.id}`);
+              }}
+              className="w-full grid grid-cols-12 gap-4 px-6 py-5 border-b border-[#1A1A1A]/10 hover:bg-[#1A1A1A]/5 transition-colors group text-left items-center"
+            >
+              <div className="col-span-1">
+                <Icon className="w-4 h-4 text-[#CC7722]" />
+              </div>
+              <div className="col-span-8 font-medium">{item.title}</div>
+              <div className="col-span-3 text-right opacity-60 text-xs">
+                {item.type}
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+
+    )}
+  </div>
+</div>
       {filteredItems.length === 0 && (
   <div className="text-center py-20 opacity-60">
     No items found.

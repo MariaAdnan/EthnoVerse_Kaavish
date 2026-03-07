@@ -1,3 +1,5 @@
+// src/app/components/AudioPlayer.tsx
+
 import { motion } from "motion/react";
 import { Play, Pause, Download, Share2, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -58,8 +60,10 @@ useEffect(() => {
 
   const audio = audioRef.current;
 
-  const onLoadedMetadata = () => {
-    setDuration(audio.duration);
+  const updateDuration = () => {
+    if (!isNaN(audio.duration) && audio.duration !== Infinity) {
+      setDuration(audio.duration);
+    }
   };
 
   const onTimeUpdate = () => {
@@ -70,16 +74,18 @@ useEffect(() => {
     setIsPlaying(false);
   };
 
-  audio.addEventListener("loadedmetadata", onLoadedMetadata);
+  audio.addEventListener("loadedmetadata", updateDuration);
+  audio.addEventListener("durationchange", updateDuration);
   audio.addEventListener("timeupdate", onTimeUpdate);
   audio.addEventListener("ended", onEnded);
 
   return () => {
-    audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+    audio.removeEventListener("loadedmetadata", updateDuration);
+    audio.removeEventListener("durationchange", updateDuration);
     audio.removeEventListener("timeupdate", onTimeUpdate);
     audio.removeEventListener("ended", onEnded);
   };
-}, [interview?.audio]);
+}, [interview?.audio_cloudinary_url]);
 function getSummaryByLanguage() {
   if (!interview) return "";
 
@@ -241,8 +247,11 @@ const formatTime = (seconds: number) => {
                 >
                   <div
                     className="h-full bg-[#8B4513]"
-                    style={{ width: `${(currentTime / totalDuration) * 100}%` }}
-                  />
+style={{
+  width: totalDuration
+    ? `${(currentTime / totalDuration) * 100}%`
+    : "0%"
+}}                  />
                 </div>
 
                 <div className="flex justify-between text-xs text-[#666666]">
@@ -295,12 +304,22 @@ const formatTime = (seconds: number) => {
   transition={{ duration: 0.8, delay: 0.4 }}
   className="max-w-3xl mx-auto px-8 py-16"
 >
-  <div 
-    className="prose prose-lg max-w-none whitespace-pre-line"
-    style={{ fontFamily: "'Playfair Display', serif" }}
-  >
-    {getSummaryByLanguage()}
-  </div>
+  <div
+  dir={summaryLang === "ur" || summaryLang === "sd" ? "rtl" : "ltr"}
+  className={`prose prose-lg max-w-none whitespace-pre-line ${
+    summaryLang === "ur" || summaryLang === "sd"
+      ? "text-right"
+      : "text-left"
+  }`}
+  style={{
+    fontFamily:
+      summaryLang === "ur" || summaryLang === "sd"
+        ? "'Noto Nastaliq Urdu', serif"
+        : "'Playfair Display', serif",
+  }}
+>
+  {getSummaryByLanguage()}
+</div>
 </motion.article>
 
       {/* Recent Stories Footer */}
