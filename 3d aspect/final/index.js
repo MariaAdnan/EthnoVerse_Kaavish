@@ -1,9 +1,9 @@
 // to maria and afifah: watch this: https://youtu.be/lGokKxJ8D2c?si=Ye0FsN33LdLfcbYM
 
 //Import the THREE.js library
-import * as THREE from "https://cdn.skypack.dev/three@0.129.0/build/three.module.js";
-// To allow for importing the .gltf file
-import { GLTFLoader } from "https://cdn.skypack.dev/three@0.129.0/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { SplatMesh } from "@sparkjsdev/spark";
 
 // raycaster for ground detection
 const raycaster = new THREE.Raycaster();
@@ -38,6 +38,10 @@ loader.load(
     });
 
     scene.add(object);
+  
+    const matka = new SplatMesh({ url: "matka.ply" });
+    matka.position.set(0, 0, -3);
+    scene.add(matka);
   }
 );
 
