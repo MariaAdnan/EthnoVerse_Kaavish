@@ -313,5 +313,147 @@ if (btn) {
   })
 }
 
+
+
+
+
+
+
+
+
+// MARIAS CODE STARTS
+
+let lastClickPosition = { screen: null, world: null };
+let placedObjectScene = null;
+let awaitingPlacement = false; // are we waiting for the user to click the world?
+
+// --- CREATE THE "INSERT OBJECT" BUTTON ---
+const insertBtn = document.createElement('button');
+insertBtn.innerText = '+ Insert Object';
+insertBtn.style.cssText = `
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 999;
+  padding: 10px 18px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+`;
+document.body.appendChild(insertBtn);
+
+// --- CREATE HIDDEN FILE INPUT ---
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = '.glb';
+fileInput.style.display = 'none';
+document.body.appendChild(fileInput);
+
+// --- CREATE INSTRUCTION BANNER (hidden by default) ---
+const banner = document.createElement('div');
+banner.innerText = '🖱️ Click anywhere on the world to place your object. Press Escape to cancel.';
+banner.style.cssText = `
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  padding: 12px 24px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+  display: none;
+`;
+document.body.appendChild(banner);
+
+// --- BUTTON CLICK → open file picker ---
+insertBtn.addEventListener('click', () => {
+  fileInput.click();
+});
+
+// --- FILE UPLOADED → load the GLB, then prompt user to click ---
+fileInput.addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  const placementLoader = new GLTFLoader();
+
+  placementLoader.load(url, (gltf) => {
+    placedObjectScene = gltf.scene;
+    console.log(`"${file.name}" loaded and ready to place.`);
+
+    // Enter placement mode
+    awaitingPlacement = true;
+    banner.style.display = 'block';
+    insertBtn.innerText = '(click on world to place...)';
+    insertBtn.style.opacity = '0.5';
+  });
+
+  // Reset input so the same file can be re-uploaded if needed
+  fileInput.value = '';
+});
+
+// --- WORLD CLICK → place the object ---
+window.addEventListener('click', (event) => {
+  // Ignore if we're not in placement mode
+  if (!awaitingPlacement || !placedObjectScene) return;
+
+  const mouse = new THREE.Vector2(
+    (event.clientX / window.innerWidth) * 2 - 1,
+   -(event.clientY / window.innerHeight) * 2 + 1
+  );
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = object ? raycaster.intersectObject(object, true) : [];
+
+  if (intersects.length > 0) {
+    const point = intersects[0].point;
+
+    lastClickPosition = {
+      screen: { x: event.clientX, y: event.clientY },
+      world:  { x: point.x.toFixed(2), y: point.y.toFixed(2), z: point.z.toFixed(2) }
+    };
+    console.log(`Placed at World: X: ${lastClickPosition.world.x}, Y: ${lastClickPosition.world.y}, Z: ${lastClickPosition.world.z}`);
+
+    const clone = placedObjectScene.clone();
+    clone.position.set(point.x, point.y, point.z);
+
+
+    clone.scale.set(0.01, 0.01, 0.01); // adjust as needed
+    
+    
+    
+    // GENERALIZE A SCALE
+    
+    
+    scene.add(clone);
+
+    // Exit placement mode
+    awaitingPlacement = false;
+    banner.style.display = 'none';
+    insertBtn.innerText = '+ Insert Object';
+    insertBtn.style.opacity = '1';
+  }
+});
+
+// --- ESCAPE KEY → cancel placement ---
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && awaitingPlacement) {
+    awaitingPlacement = false;
+    placedObjectScene = null;
+    banner.style.display = 'none';
+    insertBtn.innerText = '+ Insert Object';
+    insertBtn.style.opacity = '1';
+    console.log('Placement cancelled.');
+  }
+});
+
+// MARIAS CODE ENDS
+
 // Start the loop
 animate();
