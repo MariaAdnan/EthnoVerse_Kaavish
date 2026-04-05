@@ -20,7 +20,7 @@ let object;
 const loader = new GLTFLoader();
 
 loader.load(
-  `desert.glb`,
+  `desert-v1.glb`,
   function (gltf) {
     object = gltf.scene;
     object.position.set(70, -4.5, -70); 
