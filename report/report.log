@@ -1288,4 +1288,198 @@ File: 7.png Graphic file (type png)
 Package pdftex.def Info: 7.png  used on input line 271.
 (pdftex.def)             Requested size: 422.77664pt x 264.23268pt.
  [29
-pdfTeX warning (ext4)
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.5}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.275 
+       <./6.png>]
+<8.png, id=611, 1445.4pt x 903.375pt>
+File: 8.png Graphic file (type png)
+<use 8.png>
+Package pdftex.def Info: 8.png  used on input line 284.
+(pdftex.def)             Requested size: 422.77664pt x 264.23268pt.
+ [30
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.6}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.292 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.7}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.292 
+       <./7.png> <./8.png>]
+<3.png, id=619, 1445.4pt x 903.375pt>
+File: 3.png Graphic file (type png)
+<use 3.png>
+Package pdftex.def Info: 3.png  used on input line 298.
+(pdftex.def)             Requested size: 422.77664pt x 264.23268pt.
+
+Overfull \hbox (58.50945pt too wide) in paragraph at lines 320--321
+[]\T1/lmr/bx/n/12 Auth End-points: \T1/lmr/m/n/12 Fa-cil-i-tate user lo-gin and ses-sion man-age-ment (\T1/lmtt/m/n/12 /auth/login\T1/lmr/m/n/12 , \T1/lmtt/m/n/12 /auth/register\T1/lmr/m/n/12 )
+ []
+
+[31
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.8}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.324         \item \texttt
+                           {PUT /api/media/\{id\}}, \texttt{DELETE /api/medi... <./3.png>]
+Overfull \hbox (7.87488pt too wide) in paragraph at lines 324--325
+[]\T1/lmtt/m/n/12 PUT /api/media/{id}\T1/lmr/m/n/12 , \T1/lmtt/m/n/12 DELETE /api/media/{id}\T1/lmr/m/n/12 : Edit or re-move ex-ist-ing archive
+ []
+
+<chapters/usecase.png, id=625, 1072.005pt x 431.6125pt>
+File: chapters/usecase.png Graphic file (type png)
+<use chapters/usecase.png>
+Package pdftex.def Info: chapters/usecase.png  used on input line 360.
+(pdftex.def)             Requested size: 399.29463pt x 160.76103pt.
+[32] [33
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.9}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.396 
+       <./chapters/usecase.png>] [34
+pdfTeX warning (ext4): destination with the same identifier (name{table.3.3}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.415 
+      ]
+<chapters/systemdiag.png, id=639, 1628.0825pt x 1325.95375pt>
+File: chapters/systemdiag.png Graphic file (type png)
+<use chapters/systemdiag.png>
+Package pdftex.def Info: chapters/systemdiag.png  used on input line 425.
+(pdftex.def)             Requested size: 446.26582pt x 363.43459pt.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[35
+pdfTeX warning (ext4): destination with the same identifier (name{table.3.4}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.444 
+      ] [36
+pdfTeX warning (ext4): destination with the same identifier (name{figure.3.10}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.450 
+       <./chapters/systemdiag.png>]) [37]
+Chapter 4.
+
+Overfull \hbox (11.701pt too wide) in paragraph at lines 85--85
+|[]\T1/lmr/bx/n/24.88 Software De-sign Spec-i-fi-ca-tion (SDS)| 
+ []
+
+(chapters/sds.tex
+<UML.png, id=655, 1484.54625pt x 1315.91624pt>
+File: UML.png Graphic file (type png)
+<use UML.png>
+Package pdftex.def Info: UML.png  used on input line 10.
+(pdftex.def)             Requested size: 446.26582pt x 395.561pt.
+ [38
+
+] [39
+pdfTeX warning (ext4): destination with the same identifier (name{figure.4.1}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.27     \item \textbf
+                      {profileMeta}: Optional metadata such as biography or ... <./UML.png>] [40] [41] [42]
+Overfull \hbox (10.9156pt too wide) in paragraph at lines 161--162
+[]\T1/lmr/bx/n/12 Transcoding/Thumbnailing\T1/lmr/m/n/12 : cre-ate web-friendly deriva-tives (im-ages: webp/jpeg
+ []
+
+
+Overfull \hbox (3.26932pt too wide) in paragraph at lines 166--167
+[]\T1/lmr/bx/n/12 Delivery / View-ing\T1/lmr/m/n/12 : Fron-tend fetches op-ti-mized as-sets and ren-ders 3D scene (Three.js
+ []
+
+[43] [44{C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.enc}{C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}] [45{C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}]) [46]
+Chapter 5.
+
+Overfull \hbox (3.28427pt too wide) in paragraph at lines 89--89
+|[]\T1/lmr/bx/n/24.88 Methodology, Ex-per-i-ments and Re-
+ []
+
+(chapters/results.tex [47
+
+] [48]) [49]
+Chapter 6.
+(chapters/conclusion.tex [50
+
+]) [51]
+Chapter 7.
+(chapters/reflection.tex
+Overfull \hbox (31.13794pt too wide) in paragraph at lines 17--18
+\T1/lmr/m/n/12 fer-ent com-po-nents of the sys-tem. How-ever, co-or-di-nat-ing work across par-al-lel mod-ules^^Vparticularly
+ []
+
+[52
+
+] [53]) [54]
+Appendix A.
+(chapters/appendix-math.tex) [55
+
+]
+Appendix B.
+(chapters/appendix-data.tex) [56
+
+]
+Appendix C.
+(chapters/appendix-code.tex (C:\Users\HP\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
+File: lstlang1.sty 2025/11/14 1.11b listings language file
+)
+Overfull \hbox (1.50482pt too wide) in paragraph at lines 17--18
+[]\T1/lmr/m/n/12 Our code can be found at []$\T1/lmtt/m/n/12 https : / / github . com / habib-[]university / Kaavish-[]Template$[]\T1/lmr/m/n/12 . 
+ []
+
+) [57
+
+]
+Overfull \hbox (19.86882pt too wide) in paragraph at lines 119--119
+[]\T1/lmr/m/it/12 DigiLibraries.com: Free eBooks\T1/lmr/m/n/12 . Ac-cessed: Jan. 2025. 2025. \T1/lmr/m/sc/12 url\T1/lmr/m/n/12 : []$\T1/lmtt/m/n/12 https : / / digilibraries .
+ []
+
+
+Overfull \hbox (21.08797pt too wide) in paragraph at lines 119--119
+[]\T1/lmr/m/it/12 Living Refugee Archive\T1/lmr/m/n/12 . Ac-cessed: Jan. 2025. 2025. \T1/lmr/m/sc/12 url\T1/lmr/m/n/12 : []$\T1/lmtt/m/n/12 https : / / livingrefugeearchive .
+ []
+
+
+Overfull \hbox (1.366pt too wide) in paragraph at lines 119--119
+[]\T1/lmr/m/it/12 Loss/Capture Project\T1/lmr/m/n/12 . Ac-cessed: Jan. 2025. 2025. \T1/lmr/m/sc/12 url\T1/lmr/m/n/12 : []$\T1/lmtt/m/n/12 https : / / losscaptureproject .
+ []
+
+[58
+
+]
+Overfull \hbox (68.27pt too wide) in paragraph at lines 119--119
+[]\T1/lmr/m/it/12 The 1947 Par-ti-tion Archive\T1/lmr/m/n/12 . Ac-cessed: Jan. 2025. 2025. \T1/lmr/m/sc/12 url\T1/lmr/m/n/12 : []$\T1/lmtt/m/n/12 https : / / www . 1947partitionarchive .
+ []
+
+[59] (report.aux (titlepage.aux) (approval.aux))
+ ***********
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
+ ***********
+Package rerunfilecheck Info: File `report.out' has not changed.
+(rerunfilecheck)             Checksum: 10924F66DF62488CE91F1DA53BA30ACC;13099.
+Package logreq Info: Writing requests to 'report.run.xml'.
+\openout1 = `report.run.xml'.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 32393 strings out of 467867
+ 610300 string characters out of 5419786
+ 1419965 words of memory out of 5000000
+ 60525 multiletter control sequences out of 15000+600000
+ 710093 words of font info for 98 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 84i,10n,104p,1228b,1486s stack positions out of 10000i,1000n,20000p,200000b,200000s
+<C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbxi10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmcsc10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi12.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri12.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users/HP/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt12.pfb>
+Output written on report.pdf (60 pages, 22076303 bytes).
+PDF statistics:
+ 930 PDF objects out of 1000 (max. 8388607)
+ 205 named destinations out of 1000 (max. 500000)
+ 734 words of extra memory for PDF output out of 10000 (max. 10000000)
+
