@@ -1,1 +1,61 @@
-Our work is awesome. We would write more but we need to catch the flight to collect our Turing Award.
+\section{Conclusion}
+
+EthnoVerse presents a comprehensive approach to digital cultural preservation by integrating a scalable archival platform with immersive 3D visualization technologies. The system successfully combines full-stack web development, structured metadata management, and modern 3D reconstruction techniques to create an interactive and accessible repository for marginalized cultural knowledge.
+
+A key contribution of this project is the integration of 3D scene reconstruction into a cultural archive. While Neural Radiance Fields (NeRF) were initially explored for their high-fidelity rendering capabilities, the transition to 3D Gaussian Splatting (3DGS) proved to be a critical design decision. 3DGS enabled significantly faster training and real-time rendering, making it suitable for web-based deployment and interactive user experiences. This shift highlights the importance of aligning technical choices with practical constraints such as performance, scalability, and accessibility.
+
+The system demonstrates that cultural archives need not remain static repositories; instead, they can evolve into dynamic, experiential platforms that allow users to engage with cultural environments in meaningful ways. By linking media, transcripts, and reconstructed spaces, EthnoVerse provides a richer, multi-modal representation of community knowledge.
+
+Beyond its technical contributions, the project emphasizes ethical considerations in digital archiving, including informed consent, contextual metadata, and responsible representation. These aspects are essential when working with historically underrepresented communities.
+
+Overall, EthnoVerse establishes a strong foundation for future work at the intersection of computer science, digital humanities, and cultural preservation.
+
+\section{Future Work}
+
+While the current system achieves its core objectives, several avenues exist for further enhancement and expansion.
+
+\subsection{Scalability and Multi-Community Support}
+
+Future iterations of the system can extend beyond a single community to support multiple cultural groups. This would require improved data organization, scalable storage solutions, and more robust indexing mechanisms to handle larger datasets.
+
+\subsection{Mobile-Based Data Collection}
+
+Developing a mobile application for data collection would enable field researchers and community members to capture and upload media directly. This would streamline the data ingestion process and encourage participatory archiving.
+
+\subsection{Enhanced 3D Reconstruction}
+
+Although 3D Gaussian Splatting enables real-time rendering, further improvements can be explored:
+\begin{itemize}
+    \item Hybrid approaches combining 3DGS with mesh extraction for better geometry
+    \item Improved handling of dynamic scenes and moving subjects
+    \item Optimization for low-resource devices such as mobile browsers
+\end{itemize}
+
+\subsection{User Interaction and Immersive Features}
+
+Future work can enhance user engagement by introducing:
+\begin{itemize}
+    \item Guided virtual tours within reconstructed environments
+    \item Annotation layers for cultural storytelling
+    \item Virtual or augmented reality (VR/AR) support
+\end{itemize}
+
+\subsection{AI-Assisted Metadata and Search}
+
+The system can be extended using advanced AI techniques:
+\begin{itemize}
+    \item Automatic tagging of images and videos using computer vision
+    \item Semantic search using embeddings instead of keyword matching
+    \item Multilingual transcription and translation support
+\end{itemize}
+
+\subsection{Community Participation and Ethics}
+
+A key direction for future work is enabling community-driven contributions:
+\begin{itemize}
+    \item User-submitted content with moderation workflows
+    \item Consent management dashboards
+    \item Tools for community members to curate and narrate their own archives
+\end{itemize}
+
+These improvements would not only enhance the technical robustness of EthnoVerse but also strengthen its role as a participatory and ethically grounded cultural preservation platform.

@@ -1,4 +1,64 @@
-Learning Reflection: Learning experience, skills gained, and challenges overcome.
-Team Reflection (if applicable): Collaboration experience, role distribution, communication, and teamwork challenges.
-Project Reflection: Also a reflection on what was proposed vs what was achieved? Were any proposed features removed/were any features added that were not proposed initially? What are the reasons for these choices? What are opportunities and challenges led to these design decisions?
-Process Reflection: What worked well? What could be improved in the approach?
+\section{Reflections}
+
+\subsection{Individual Reflections}
+
+This project provided a deeply interdisciplinary learning experience, combining technical development with critical engagement in cultural representation and archival practices. On the technical side, we gained hands-on experience in full-stack development, including database design, API development, and frontend integration. Additionally, working with modern 3D reconstruction techniques introduced us to complex concepts in computer vision and neural rendering, which required significant self-learning beyond standard coursework.
+
+One of the most challenging aspects was understanding and implementing 3D reconstruction pipelines. Initially, Neural Radiance Fields (NeRF) were explored, which required grappling with volumetric rendering, ray sampling, and neural network optimization. While conceptually rich, NeRF proved difficult to adapt for real-time applications. Transitioning to 3D Gaussian Splatting (3DGS) required not only learning a new technique but also rethinking the system design to prioritize performance and usability.
+
+Beyond technical challenges, this project also strengthened our ability to work with real-world, imperfect data. Issues such as inconsistent image quality, incomplete metadata, and ethical considerations around consent required careful handling. This experience highlighted the importance of designing systems that are robust, flexible, and socially responsible.
+
+Overall, the project helped us develop both technical depth and critical awareness, particularly in understanding how computational tools intersect with cultural knowledge and representation.
+
+\subsection{Team Reflection}
+
+The project was carried out collaboratively, requiring clear communication, coordination, and division of responsibilities. Tasks were distributed based on individual strengths, with team members focusing on areas such as backend development, frontend design, and 3D reconstruction.
+
+Regular meetings and progress updates were essential in maintaining alignment across different components of the system. However, coordinating work across parallel modules—particularly the archival platform and the 3D reconstruction pipeline—posed challenges. Integration required continuous communication and iterative adjustments.
+
+One key learning from the team experience was the importance of flexibility. As the project evolved, especially during the transition from NeRF to 3DGS, roles and responsibilities had to be adapted. This required openness to feedback and a willingness to rework previously completed components.
+
+Despite these challenges, the collaborative process was productive and allowed us to build a more comprehensive system than would have been possible individually. The experience reinforced the value of interdisciplinary teamwork, especially in projects that span both technical and conceptual domains.
+
+\subsection{Process Reflection}
+
+The iterative development approach proved to be effective for this project. Building the archival platform first provided a stable foundation upon which more experimental features, such as 3D reconstruction, could be integrated.
+
+One aspect that worked particularly well was the modular system design. By separating components such as media processing, transcription, search indexing, and 3D reconstruction, we were able to develop and test each module independently before integration.
+
+However, one area that could be improved is early-stage technical validation. Initially, more time was spent exploring NeRF without fully accounting for its computational limitations in a web-based setting. Earlier benchmarking and feasibility analysis could have reduced the need for later redesign.
+
+Another challenge was managing the complexity of integrating diverse technologies, including cloud storage, GPU-based processing, and frontend rendering. Debugging across these layers required significant time and coordination.
+
+Overall, the process highlighted the importance of balancing experimentation with practicality, especially when working with emerging technologies.
+
+\subsection{Plans vs Achievements}
+
+At the proposal stage, the project aimed to develop a digital cultural archive enhanced with immersive 3D scene reconstruction using Neural Radiance Fields (NeRF). The goal was to create high-quality, photorealistic representations of community environments.
+
+In practice, while the archival platform was successfully implemented as planned, the 3D reconstruction component underwent a significant shift. NeRF, although effective in producing high-quality results, was found to be computationally expensive and unsuitable for real-time interaction. As a result, the project transitioned to 3D Gaussian Splatting (3DGS), which enabled faster training and real-time rendering.
+
+This change led to several outcomes:
+\begin{itemize}
+    \item \textbf{Achieved:}
+    \begin{itemize}
+        \item Fully functional archival platform with media management and search
+        \item Integration of transcription and metadata indexing
+        \item Real-time 3D scene visualization using 3DGS
+    \end{itemize}
+
+    \item \textbf{Modified:}
+    \begin{itemize}
+        \item Replacement of NeRF with 3DGS as the primary reconstruction method
+    \end{itemize}
+
+    \item \textbf{Added:}
+    \begin{itemize}
+        \item Performance-focused optimization for web-based rendering
+        \item Improved integration of 3D scenes into the user interface
+    \end{itemize}
+\end{itemize}
+
+The decision to shift from NeRF to 3DGS was driven by practical constraints such as rendering speed, hardware limitations, and the need for interactive user experiences. This reflects an important lesson from the project: design decisions must balance theoretical potential with real-world feasibility.
+
+While not all initial plans were implemented exactly as proposed, the final system is more aligned with the project's core objective of accessibility and usability. The challenges encountered ultimately led to a more robust and deployable solution.

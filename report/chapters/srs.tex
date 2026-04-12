@@ -4,7 +4,7 @@ This Software Requirements Specification (SRS) outlines the software and system 
 
 \section{Functional Requirements}
 
-This section specifies the functional requirements of the system. The requirements are divided into two primary categories: those pertaining to the \textbf{web platform} and those related to the \textbf{3D virtual tour module} developed using Neural Radiance Fields (NeRF). Each subsection includes a tabular summary and a module-wise functional outline for clarity.
+This section specifies the functional requirements of the system. The requirements are divided into two primary categories: those pertaining to the \textbf{web platform} and those related to the \textbf{3D virtual tour module} developed using Guassian Splatting. Each subsection includes a tabular summary and a module-wise functional outline for clarity.
 
 \subsection{EthnoVerse Web Platform}
 
@@ -78,10 +78,10 @@ The 3D module demonstrates the technical application of computer graphics techni
 \begin{outline}
   \1 \textbf{Module 1: Data Preparation}
     \2 Capture or collect photographs of community sites (courtyards, huts, shrines) from multiple angles.
-    \2 Preprocess images (resize, align, normalize lighting) before NeRF input.
+    \2 Preprocess images (resize, align, normalize lighting) before 3DGS input.
 
   \1 \textbf{Module 2: Scene Reconstruction}
-    \2 Implement NeRF or Gaussian Splatting for 3D radiance field estimation.
+    \2 Implement 3D Gaussian Splatting (primary) with NeRF explored as a baseline method.
     \2 Generate scene models stored in compressed formats for web use.
 
   \1 \textbf{Module 3: Rendering and Visualization}
@@ -105,12 +105,12 @@ The 3D module demonstrates the technical application of computer graphics techni
 \hline
 \textbf{ID} & \textbf{Function Name} & \textbf{Description} & \textbf{Users} \\
 \hline
-FR-3D01 & Dataset Preparation & Collect and preprocess multiple-angle photographs of community spaces for NeRF input. & Admin \\
-FR-3D02 & Scene Reconstruction & Generate 3D radiance field representations using NeRF or Gaussian Splatting techniques. & System \\
+FR-3D01 & Dataset Preparation & Collect and preprocess multiple-angle photographs of community spaces for Guassian Splats input. & Admin \\
+FR-3D02 & Scene Reconstruction & Generate 3D radiance field representations using Gaussian Splatting techniques. & System \\
 FR-3D03 & Rendering and Visualization & Render 3D scenes into navigable virtual tours integrated into the web interface (via Three.js). & Public, Admin \\
 FR-3D04 & Scene Management & Store, update, or remove 3D models and their metadata (scene name, location, source images). & Admin \\
 FR-3D05 & Performance Optimization & Optimize rendering quality and load times for web deployment. & System \\
-FR-3D06 & Fallback Handling & If NeRF reconstruction fails, fallback to photo-based 360° panoramic tour is generated. & System \\
+FR-3D06 & Fallback Handling & If reconstruction fails, fallback to photo-based 360° panoramic tour is generated. & System \\
 \hline
 \end{tabular}
 \caption{Summary of Functional requirements for the 3D reconstruction module.}
@@ -262,7 +262,7 @@ This page serves as the dedicated hub for a specific community, showcasing all a
 
 \vspace{0.2cm}
 \par
-The viewer provides an immersive, navigable virtual tour experience of the reconstructed community environment. The screen hosts the interactive 3D rendering, generated using NeRF and Gaussian Splatting, which is optimized for web deployment. A supporting section, \texttt{About This Tour}, provides context on the ethnographic and technical basis of the reconstruction. 
+The viewer provides an immersive, navigable virtual tour experience of the reconstructed community environment. The screen hosts the interactive 3D rendering, generated using Gaussian Splatting, which is optimized for web deployment. A supporting section, \texttt{About This Tour}, provides context on the ethnographic and technical basis of the reconstruction. 
 
 \vspace{0.2cm}
 
@@ -312,7 +312,7 @@ This page provides background and rationale to stakeholders, researchers, and th
 
 \subsection{Application Program Interface (API)}
 
-The system is built using a \textbf{RESTful API} architecture (Node.js/Express backend) to manage data flow between the React frontend, the MongoDB database, and the Python-based 3D Reconstruction Engine.
+The system is built using a \textbf{RESTful API} architecture (Node.js/Express backend) to manage data flow between the React frontend, the Supabase database, and the Python-based 3D Reconstruction Engine.
 
 \vspace{0.2cm}
 \noindent\textbf{Core API Endpoints}
@@ -330,7 +330,7 @@ The system is built using a \textbf{RESTful API} architecture (Node.js/Express b
     \end{itemize}
     \item \textbf{3D Scene Endpoints:} Used for the virtual tour module:
     \begin{itemize}
-        \item \texttt{POST /api/3d/reconstruct}: (Admin/System) Triggers the NeRF/Gaussian Splatting engine for a new scene reconstruction.
+        \item \texttt{POST /api/3d/reconstruct}: (Admin/System) Triggers the Gaussian Splatting engine for a new scene reconstruction.
         \item \texttt{GET /api/3d/\{sceneId\}/model}: Retrieves the optimized 3D model data (e.g., JSON, point cloud) for rendering in the client's Three.js viewer.
     \end{itemize}
 \end{itemize}
@@ -340,7 +340,7 @@ The system is built using a \textbf{RESTful API} architecture (Node.js/Express b
 
 \begin{itemize}
 \item \textbf{Client-Side:} Standard desktop or laptop computers with modern web browser compatibility.
-\item \textbf{Server-Side Infrastructure:} The backend and database (MongoDB) are hosted on a cloud environment, supporting modular scaling.
+\item \textbf{Server-Side Infrastructure:} The backend and database are hosted on a cloud environment, supporting modular scaling.
 \item \textbf{Specialized Hardware (3D Reconstruction):} A mid-range GPU (e.g., NVIDIA RTX 3060 or equivalent) is recommended for 3D reconstruction tasks, managed by a dedicated service or cloud instance (Non-Functional Requirement: Performance).
 \item \textbf{Communication Protocols:} All data transfer, including API calls, media streaming, and asset retrieval, uses HTTPS to ensure data integrity and security.
 \end{itemize}
@@ -428,7 +428,7 @@ These use cases focus on the control, maintenance, and archival duties performed
 \end{figure}
 
 \noindent
-The EthnoVerse architecture follows a modular, service-oriented design built on the MERN stack with a dedicated 3D reconstruction module. Figure~\ref{fig:systemblock} illustrates the high-level components and data flow between them.
+The EthnoVerse architecture follows a modular, service-oriented design built with a dedicated 3D reconstruction module. Figure~\ref{fig:systemblock} illustrates the high-level components and data flow between them.
 
 \subsubsection*{1. Frontend (React.js)}
 The frontend provides a dynamic, responsive user interface that allows users to browse communities, view multimedia archives, and launch immersive 3D tours. It communicates with the backend through RESTful APIs over HTTPS. Administrators access a separate dashboard for content management, uploads, and system monitoring.
@@ -436,13 +436,13 @@ The frontend provides a dynamic, responsive user interface that allows users to 
 \subsubsection*{2. Backend (Node.js + Express)}
 The backend serves as the core logic layer responsible for handling API requests, authentication, routing, and data processing. It manages CRUD operations for multimedia content and interacts with both the database and the 3D reconstruction module. It implements secure JWT-based authentication and role-based access control for administrators.
 
-\subsubsection*{3. Database (MongoDB)}
-MongoDB stores all structured metadata, user profiles, and references to media files. The schema supports flexible, community-specific expansion and version-controlled updates. It also logs administrative actions and maintains backup copies for recovery and integrity checks.
+\subsubsection*{3. Database (Supabase)}
+Supabase stores all structured metadata, user profiles, and references to media files. The schema supports flexible, community-specific expansion and version-controlled updates. It also logs administrative actions and maintains backup copies for recovery and integrity checks.
 
 \subsubsection*{4. Media Storage Service}
-All uploaded media—images, audio, video, and 3D assets—are stored in a cloud-based repository. Metadata in MongoDB links each file to its respective community and media type. The storage layer supports redundancy and retrieval optimization for faster access and rendering.
+All uploaded media—images, audio, video, and 3D assets—are stored in a cloud-based repository. Metadata in Supabase links each file to its respective community and media type. The storage layer supports redundancy and retrieval optimization for faster access and rendering.
 
-\subsubsection*{5. 3D Reconstruction Engine (NeRF / Gaussian Splatting)}
+\subsubsection*{5. 3D Reconstruction Engine (Gaussian Splatting)}
 This module operates as an independent service responsible for generating immersive 3D scenes from multi-angle photographs. Once processed, the resulting models are optimized for web use and integrated into the platform’s frontend via Three.js. The engine can fall back to 360° panoramic tours if GPU or data constraints arise.
 
 \subsubsection*{6. Admin Console}
@@ -452,7 +452,7 @@ The Admin Console provides authenticated users with control over system content 
 \begin{itemize}
     \item Users interact with the system through the React.js interface.
     \item The frontend communicates with the Node.js backend via RESTful API calls.
-    \item The backend retrieves or updates records in MongoDB and media storage.
+    \item The backend retrieves or updates records in Supabase and media storage.
     \item For 3D content, the backend triggers the reconstruction engine and retrieves the processed model.
     \item The processed 3D scenes and media are delivered back to the frontend for visualization.
 \end{itemize}

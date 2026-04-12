@@ -114,6 +114,23 @@ NeRF offers several critical advantages for documenting indigenous and cultural 
     \item \textbf{Non-intrusive capture:} Requires only RGB images—ideal for sensitive cultural settings where scanning hardware (e.g., LiDAR) is impractical.
 \end{itemize}
 
+
+
+\subsection{Gaussian Splatting (3DGS)}
+3D Gaussian Splatting (3DGS) represents a recent advancement in real-time radiance field rendering, introduced as an alternative to computationally intensive NeRF models. Instead of encoding the scene in a neural network, 3DGS represents it as a collection of anisotropic Gaussian primitives in 3D space. Each Gaussian encodes position, color, opacity, and covariance, allowing efficient rasterization directly on the GPU.
+Compared to NeRF, 3DGS offers:
+
+\begin{itemize}
+    \item \textbf{Real-time rendering:} Enables interactive frame rates suitable for web-based visualization
+    \item \textbf{Faster training times:} Scene optimization completes in minutes instead of hours
+    \item \textbf{Explicit representation:} Easier integration with graphics pipelines like Three.js
+    \item \textbf{Lower computational overhead:} More feasible for mid-range GPU setups
+\end{itemize}
+
+
+
+
+
 \section{Novelty and Contribution of \textit{EthnoVerse}}
 
 \textit{EthnoVerse} contributes to the state-of-the-art by:
@@ -121,9 +138,9 @@ NeRF offers several critical advantages for documenting indigenous and cultural 
 \begin{itemize}
     \item creating Pakistan's first multimedia, searchable digital archive dedicated 
     to Indigenous communities,
-    \item integrating state-of-the-art NeRF and Gaussian Splatting methods within a 
+    \item integrating state-of-the-art Gaussian Splatting methods within a 
     cultural archival workflow,
-    \item designing a scalable MERN-based platform capable of supporting multiple 
+    \item designing a scalable platform capable of supporting multiple 
     communities,
     \item embedding ethical, consent-driven metadata aligned with Indigenous 
     sovereignty frameworks,

@@ -1,6 +1,6 @@
 \section{Problem Statement}
 
-Indigenous tribal communities in Pakistan are routinely under-represented in public archives and scholarly resources. While valuable, existing archival bodies in Pakistan primarily hold government, colonial, or language-specific records and do not provide accessible, multimedia documentation of contemporary tribal community life. As a result, cultural practices, oral histories, and built environments of these communities remain fragmented, inaccessible, or framed only as historical relics rather than as part of a continuing cultural present. This project addresses the absence of a centralized, searchable, multimedia archive that documents tribal communities in ways that are accessible to researchers, educators, and the public. Our motivation is both technical (to build a robust, extensible system demonstrating MERN-stack, and 3D reconstruction techniques) and social (to make community knowledge discoverable and ethically represented).
+Indigenous tribal communities in Pakistan are routinely under-represented in public archives and scholarly resources. While valuable, existing archival bodies in Pakistan primarily hold government, colonial, or language-specific records and do not provide accessible, multimedia documentation of contemporary tribal community life. As a result, cultural practices, oral histories, and built environments of these communities remain fragmented, inaccessible, or framed only as historical relics rather than as part of a continuing cultural present. This project addresses the absence of a centralized, searchable, multimedia archive that documents tribal communities in ways that are accessible to researchers, educators, and the public. Our motivation is both technical (to build a robust, extensible system and 3D reconstruction techniques) and social (to make community knowledge discoverable and ethically represented).
 
 \section{Proposed Solution}
 
@@ -40,7 +40,7 @@ EthnoVerse will serve multiple types of users, each interacting with the system 
 \begin{itemize}
     \item Software Requirement Specification (SRS)
     \item Software Design Specification (SDS)
-    \item Functional Web Platform Prototype (MERN-based)
+    \item Functional Web Platform Prototype
     \item Preliminary Dataset Integration (Kolhi community)
     \item Testing and Evaluation Report
 \end{itemize}
@@ -49,7 +49,7 @@ EthnoVerse will serve multiple types of users, each interacting with the system 
 
 \begin{itemize}
     \item 3D Reconstruction Module (NeRF / Gaussian Splatting)
-    \item Integrated Virtual Tour Interface (Three.js-based)
+    \item Integrated Virtual Tour Interface
     \item Optimization and Final Integration of all modules
     \item Final Report, Presentation, and Deployed System
 \end{itemize}
@@ -60,7 +60,7 @@ EthnoVerse will serve multiple types of users, each interacting with the system 
 
 \subsection{Technical complexity of 3D reconstruction}
 \begin{itemize}
-  \item \textbf{Risk:} Implementing NeRF/Gaussian Splatting from scratch is technically demanding and GPU-intensive.
+  \item \textbf{Risk:} Implementing Gaussian Splatting from scratch is technically demanding and GPU-intensive.
   \item \textbf{Mitigation:} Treat the neural reconstruction as an experimental PoC with a documented fallback (photo-based panoramic/stitched virtual tour). Use preexisting open-source implementations where licensing allows; limit model scope to a single site for the final deliverable if resources/time are constrained.
 \end{itemize}
 
