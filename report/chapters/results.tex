@@ -1,1 +1,97 @@
-We did many experiments and got the best results.
+\section{Methodology}
+
+This project follows an iterative, modular development methodology combining full-stack web development with experimental 3D reconstruction workflows. The system was developed in two parallel components: (1) a digital cultural archive platform and (2) a 3D scene reconstruction module. The workflow integrates data collection, preprocessing, model generation, and deployment into a unified pipeline.
+
+\subsection{System Development Approach}
+
+The development process followed an incremental model, where core archival functionality was implemented first, followed by integration of advanced visualization features. The major phases included:
+
+\begin{enumerate}
+    \item Requirements gathering and domain understanding
+    \item System architecture and database design
+    \item Implementation of media archival platform
+    \item Integration of transcription and search features
+    \item Experimentation with 3D reconstruction techniques
+    \item Transition to 3D Gaussian Splatting for real-time rendering
+    \item Deployment and performance optimization
+\end{enumerate}
+
+\subsection{Data Collection}
+
+Cultural data was collected in the form of:
+\begin{itemize}
+    \item Photographs of community environments
+    \item Audio interviews and oral histories
+    \item Video recordings of cultural practices
+    \item Contextual metadata and consent documentation
+\end{itemize}
+
+For 3D reconstruction, multi-view images were captured with overlapping viewpoints to ensure sufficient coverage of the scene. Typically, between 20 and 200 images were used for each reconstruction.
+
+\subsection{Preprocessing Pipeline}
+
+Before reconstruction, the collected images underwent preprocessing:
+
+\begin{itemize}
+    \item Image resizing and format normalization
+    \item Removal of blurry or redundant frames
+    \item EXIF extraction for camera information (when available)
+    \item Structure-from-Motion (SfM) using COLMAP for camera pose estimation
+\end{itemize}
+
+The output of this stage included camera intrinsics, extrinsics, and a sparse point cloud used for initialization.
+
+\subsection{3D Reconstruction Method}
+
+Initially, Neural Radiance Fields (NeRF) were explored for scene reconstruction. While NeRF produced high-quality outputs, its slow training time and rendering latency made it unsuitable for real-time web-based deployment. Therefore, the methodology transitioned to 3D Gaussian Splatting (3DGS) as the primary reconstruction approach.
+
+In 3DGS, the scene is represented as a set of Gaussian primitives. The reconstruction process includes:
+
+\begin{enumerate}
+    \item Initializing Gaussians from sparse point cloud
+    \item Optimizing Gaussian parameters (position, color, covariance, opacity)
+    \item Minimizing photometric reconstruction error
+    \item Generating real-time renderable scene representation
+\end{enumerate}
+
+This method significantly reduced training time while enabling interactive visualization.
+
+\subsection{Web Integration}
+
+The reconstructed scenes were integrated into the web platform using a browser-based 3D viewer. The integration involved:
+
+\begin{itemize}
+    \item Exporting optimized Gaussian representation
+    \item Converting assets to web-compatible format
+    \item Loading scene via Three.js-based renderer
+    \item Linking scenes to community pages in the archive
+\end{itemize}
+
+Users can navigate reconstructed environments interactively, allowing immersive exploration of cultural spaces.
+
+\subsection{Search and Metadata Indexing}
+
+All uploaded media and transcripts were indexed using a search engine. The indexing pipeline included:
+
+\begin{itemize}
+    \item Metadata extraction
+    \item Transcript generation using speech-to-text
+    \item Full-text indexing
+    \item Tag-based filtering
+\end{itemize}
+
+This enabled efficient retrieval of cultural artifacts and contextual information.
+
+\subsection{Evaluation Criteria}
+
+The system was evaluated based on:
+
+\begin{itemize}
+    \item Reconstruction quality
+    \item Rendering performance
+    \item Scene load time
+    \item Search accuracy
+    \item Usability of archival interface
+\end{itemize}
+
+3D Gaussian Splatting demonstrated improved performance compared to NeRF, particularly in rendering speed and interactivity, making it suitable for deployment in a web-based cultural archive.

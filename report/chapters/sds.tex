@@ -114,7 +114,7 @@ and technical algorithms.
     \item \textbf{communityId}: Foreign key referencing the associated community.
     \item \textbf{sourceMediaList}: Collection of media items used for reconstruction.
     \item \textbf{modelUri}: Storage location of the generated 3D model.
-    \item \textbf{methodUsed}: Reconstruction method (\texttt{NeRF} or \texttt{GaussianSplatting}).
+    \item \textbf{methodUsed}: Reconstruction method (\texttt{3DGS} as primary, \texttt{NeRF} as baseline).
     \item \textbf{status}: Current build status (\texttt{pending}, \texttt{processing}, \texttt{ready}, \texttt{failed}).
     \item \textbf{metadata}: Camera pose summaries and build parameters.
     \item \textbf{performanceStats}: Metrics such as model size or rendering speed.
@@ -161,10 +161,9 @@ This section describes how data flows from user upload to discovery and 3D recon
       \item \textbf{Transcoding/Thumbnailing}: create web-friendly derivatives (images: webp/jpeg smaller; audio: mp3/ogg; video: H.264 mp4).
       \item \textbf{Transcript Generation}: send audio/video to Speech-to-Text worker (Whisper-like or cloud ASR); produce transcript and timestamps.
       \item \textbf{Indexing}: push metadata + transcript to Search Index (ElasticSearch) for full-text search.
-      \item \textbf{3D Build (optional)}: enqueue scene build job (NeRF) if user requests a 3D reconstruction from a set of images.
-    \end{itemize}
-  \item \textbf{3D Reconstruction}: GPU worker pulls images from storage, computes camera poses (COLMAP or similar), trains NeRF/Instant-NGP or Gaussian Splatting, outputs optimized model and preview images, saves modelUri and metadata in DB.
-  \item \textbf{Delivery / Viewing}: Frontend fetches optimized assets and renders 3D scene (Three.js viewer) and media via CDN.
+      \item \textbf{3D Build (optional)}: enqueue scene build job (3D Gaussian Splatting) if user requests a 3D reconstruction from a set of images.    \end{itemize}
+\item \textbf{3D Reconstruction}: GPU worker pulls images from storage, computes camera poses (COLMAP or similar), and performs 3D Gaussian Splatting (3DGS) optimization. The system generates a set of Gaussian primitives representing the scene, along with preview renders. Optimized scene data, metadata, and performance statistics are stored in the database.
+\item \textbf{Delivery / Viewing}: Frontend fetches optimized assets and renders 3D scene (Three.js viewer) and media via CDN.
   \item \textbf{Audit \& Monitoring}: All actions logged to AuditLogs; status updated throughout.
 \end{enumerate}
 
@@ -177,94 +176,93 @@ This section describes how data flows from user upload to discovery and 3D recon
 
 \section{Technical Details and Algorithms}
 
-\subsection{NeRF 3D Reconstruction pipeline}
+\subsection{3D Gaussian Splatting (3DGS) Reconstruction Pipeline}
 
-\subsubsection{NeRF Algorithm}
+\subsubsection{3D Gaussian Splatting Algorithm}
 
-Neural Radiance Fields (NeRF), introduced by Mildenhall et al.\ \cite{mildenhall2020}, represent one of the most significant recent advancements in neural rendering and view synthesis. NeRF reconstructs a continuous 3D scene representation by optimizing a neural network to map spatial coordinates and viewing directions to volumetric density and emitted color. This enables photorealistic novel-view synthesis from sparse image sets—an essential capability for cultural heritage documentation, where controlled scanning conditions are rarely available. 
+3D Gaussian Splatting (3DGS) is a recent real-time neural rendering technique that represents a scene as a collection of anisotropic Gaussian primitives instead of encoding it in a neural network. This explicit representation enables significantly faster rendering and training compared to Neural Radiance Fields (NeRF), making it suitable for interactive applications.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{NeRF.png}
-    \caption{Overview of the NeRF pipeline following Mildenhall et al.\ (2020): 
-    (a) rays sampled from calibrated input images, 
-    (b) neural network prediction of color and density, 
-    (c) volumetric rendering along each ray, and 
-    (d) photometric reconstruction loss.}
-\end{figure}
+\subsubsection*{Scene Representation}
 
-\subsubsection*{Input Representation}
+In 3DGS, a scene is modeled as a set of Gaussian primitives:
 
-NeRF treats the 3D scene as a continuous volumetric function. The model receives as input a 5D vector:
 \[
-(x, y, z, \theta, \phi),
-\]
-where $(x, y, z)$ is a 3D spatial position and $(\theta, \phi)$ is the viewing direction encoded as a 3D unit vector. Input images must be accompanied by camera intrinsics and extrinsics, allowing NeRF to cast rays through each pixel into 3D space.
-
-To improve the network’s ability to model high-frequency details, NeRF applies \textit{positional encoding} to each input coordinate using a multi-scale Fourier mapping:
-\[
-\gamma(p) = \big(\sin(2^0\pi p), \cos(2^0\pi p), \ldots, \sin(2^L\pi p), \cos(2^L\pi p)\big),
-\]
-allowing the MLP to represent complex illumination and fine geometric structure.
-
-\subsubsection*{Network Architecture and Output}
-
-The NeRF architecture consists of a fully-connected multi-layer perceptron (MLP) with ReLU activations. The MLP predicts two outputs for each sampled 3D point:
-
-\begin{enumerate}
-    \item \textbf{Density} $\sigma$: a scalar indicating how much light is absorbed at the point (analogous to volumetric opacity).
-    \item \textbf{Color} $(R,G,B)$: the emitted radiance in the camera viewing direction.
-\end{enumerate}
-
-Formally, the network is parameterized as:
-\[
-F_{\Theta}(x, y, z, \theta, \phi) \rightarrow (R, G, B, \sigma).
+G_i = (\mu_i, \Sigma_i, c_i, \alpha_i)
 \]
 
-\subsubsection*{Ray Sampling and Volume Rendering}
-
-For each training image, NeRF sends a ray through every pixel. A ray is parameterized as:
-\[
-r(t) = o + td,
-\]
-where $o$ is the camera origin, $d$ is the ray direction, and $t$ is the distance along the ray. NeRF samples $N$ points along each ray and evaluates the MLP at each point.
-
-Using the predicted densities and colors, NeRF employs classical \textit{volume rendering} to approximate the expected color of that pixel:
-\[
-C(r) = \sum_{i=1}^{N} T_i \big(1 - e^{-\sigma_i \delta_i}\big) c_i,
-\]
 where:
+\begin{itemize}
+    \item $\mu_i$: 3D position of the Gaussian
+    \item $\Sigma_i$: covariance matrix defining shape and orientation
+    \item $c_i$: RGB color
+    \item $\alpha_i$: opacity
+\end{itemize}
+
+Each Gaussian contributes to the final rendered image through alpha blending.
+
+\subsubsection*{Input Requirements}
+
+The system requires:
+\begin{itemize}
+    \item Multi-view RGB images (20–200 images with overlap)
+    \item Camera intrinsics and extrinsics (computed via COLMAP)
+\end{itemize}
+
+\subsubsection*{Initialization}
+
+A sparse point cloud generated from Structure-from-Motion (SfM) is used to initialize Gaussian positions. Each point is converted into an initial Gaussian primitive.
+
+\subsubsection*{Optimization}
+
+Gaussian parameters are optimized using gradient-based methods to minimize reconstruction error:
+
 \[
-T_i = \exp\left(-\sum_{j=1}^{i-1} \sigma_j \delta_j\right)
+\mathcal{L} = \sum || I_{\text{rendered}} - I_{\text{groundtruth}} ||^2
 \]
-is the accumulated transmittance, $\sigma_i$ is the density, $c_i$ is the color, and $\delta_i$ is the spacing between adjacent samples.
 
-This formulation interpolates the contributions of all sampled 3D points to compute the pixel’s final color.
+Parameters updated during optimization:
+\begin{itemize}
+    \item Position ($\mu$)
+    \item Covariance ($\Sigma$)
+    \item Color ($c$)
+    \item Opacity ($\alpha$)
+\end{itemize}
 
-\subsubsection*{Optimization and Loss Function}
+\subsubsection*{Rendering}
 
-NeRF optimizes network parameters $\Theta$ by minimizing the photometric reconstruction error between rendered colors and ground-truth pixels:
-\[
-\mathcal{L} = \sum_{r \in \mathcal{R}} \| C(r) - C_{\mathrm{gt}}(r) \|_2^2,
-\]
-where $\mathcal{R}$ is the set of rays sampled across all training images.
+Unlike NeRF, which relies on volumetric ray marching, 3DGS uses rasterization-based rendering. Each Gaussian is projected onto the image plane and contributes to pixel color using alpha compositing.
 
-The network is trained using stochastic gradient descent (typically Adam) over tens to hundreds of thousands of iterations.
+This enables:
+\begin{itemize}
+    \item Real-time rendering (30–60 FPS)
+    \item Efficient GPU utilization
+    \item Low latency interaction
+\end{itemize}
 
 
-\subsubsection{NeRF Pipeline}
-\textbf{Purpose:} reconstruct immersive 3D scenes from multi-angle field photos to create virtual tours.
+\subsubsection{3DGS Reconstruction Pipeline}
+\textbf{Purpose:} reconstruct immersive 3D scenes from multi-angle field photos for real-time virtual exploration.
 
 \textbf{Inputs:}
 \begin{itemize}
-  \item Image set for scene (ideally 20–200 images with overlapping views),
-  \item EXIF for camera intrinsics (when available),
-  \item Optional sparse camera poses (if photogrammetry was precomputed).
+  \item Image set for scene (20–200 overlapping images),
+  \item Camera intrinsics and extrinsics (estimated via COLMAP),
+  \item Optional metadata for scene organization.
 \end{itemize}
 
 \textbf{Outputs:}
 \begin{itemize}
-  \item Optimized 3D model for web view (e.g., multi-resolution point cloud / Gaussian splats or baked textured mesh / cubemap),
-  \item Preview images and metadata (camera pose summary, reconstruction stats),
+  \item Optimized Gaussian-based 3D representation,
+  \item Real-time renderable scene for web viewer,
+  \item Preview images and metadata (camera pose summary, performance stats),
   \item Status updates and logs.
 \end{itemize}
+
+\textbf{Steps:}
+\begin{enumerate}
+  \item Image acquisition and preprocessing
+  \item Camera pose estimation (Structure-from-Motion)
+  \item Gaussian initialization from sparse point cloud
+  \item Optimization of Gaussian parameters
+  \item Real-time rendering integration (Three.js viewer)
+\end{enumerate}
