@@ -26,49 +26,49 @@
 \contentsline {section}{\numberline {3.2}Non-Functional Requirements}{23}{section.3.2}%
 \contentsline {section}{\numberline {3.3}External Interfaces}{24}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}User Interfaces}{24}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Application Program Interface (API)}{31}{subsection.3.3.2}%
-\contentsline {subsection}{\numberline {3.3.3}Hardware and Communication Interfaces}{32}{subsection.3.3.3}%
-\contentsline {section}{\numberline {3.4}Use Cases}{32}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Use Case Diagram}{32}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Use Cases by Actor}{33}{subsection.3.4.2}%
-\contentsline {subsubsection}{Public User / Researcher Use Cases}{33}{subsection.3.4.2}%
-\contentsline {subsubsection}{Administrator Use Cases}{34}{table.3.3}%
-\contentsline {section}{\numberline {3.5}System Diagram}{35}{section.3.5}%
-\contentsline {chapter}{\numberline {4}Software Design Specification (SDS)}{38}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Software Design}{39}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Class Description}{39}{subsection.4.1.1}%
-\contentsline {section}{\numberline {4.2}Data Pipeline}{43}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Overview (stages)}{43}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Resilience and observability}{44}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Technical Details and Algorithms}{44}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}3D Gaussian Splatting (3DGS) Reconstruction Pipeline}{44}{subsection.4.3.1}%
-\contentsline {subsubsection}{3D Gaussian Splatting Algorithm}{44}{subsection.4.3.1}%
-\contentsline {subsubsection}{3DGS Reconstruction Pipeline}{45}{subsection.4.3.1}%
-\contentsline {chapter}{\numberline {5}Methodology, Experiments and Results OR Testing and Analysis}{47}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Methodology}{47}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}System Development Approach}{47}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}Data Collection}{47}{subsection.5.1.2}%
-\contentsline {subsection}{\numberline {5.1.3}Preprocessing Pipeline}{48}{subsection.5.1.3}%
-\contentsline {subsection}{\numberline {5.1.4}3D Reconstruction Method}{48}{subsection.5.1.4}%
-\contentsline {subsection}{\numberline {5.1.5}Web Integration}{49}{subsection.5.1.5}%
-\contentsline {subsection}{\numberline {5.1.6}Search and Metadata Indexing}{49}{subsection.5.1.6}%
-\contentsline {subsection}{\numberline {5.1.7}Evaluation Criteria}{49}{subsection.5.1.7}%
-\contentsline {chapter}{\numberline {6}Conclusion and Future Work}{50}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Conclusion}{50}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Future Work}{50}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Scalability and Multi-Community Support}{50}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Mobile-Based Data Collection}{51}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Enhanced 3D Reconstruction}{51}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}User Interaction and Immersive Features}{51}{subsection.6.2.4}%
-\contentsline {subsection}{\numberline {6.2.5}AI-Assisted Metadata and Search}{51}{subsection.6.2.5}%
-\contentsline {subsection}{\numberline {6.2.6}Community Participation and Ethics}{51}{subsection.6.2.6}%
-\contentsline {chapter}{\numberline {7}Reflection}{52}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Reflections}{52}{section.7.1}%
-\contentsline {subsection}{\numberline {7.1.1}Individual Reflections}{52}{subsection.7.1.1}%
-\contentsline {subsection}{\numberline {7.1.2}Team Reflection}{52}{subsection.7.1.2}%
-\contentsline {subsection}{\numberline {7.1.3}Process Reflection}{53}{subsection.7.1.3}%
-\contentsline {subsection}{\numberline {7.1.4}Plans vs Achievements}{53}{subsection.7.1.4}%
-\contentsline {chapter}{Appendix \numberline {A}More Math}{55}{appendix.1.A}%
-\contentsline {chapter}{Appendix \numberline {B}Data}{56}{appendix.1.B}%
-\contentsline {chapter}{Appendix \numberline {C}Code}{57}{appendix.1.C}%
-\contentsline {chapter}{References}{58}{appendix*.7}%
+\contentsline {subsection}{\numberline {3.3.2}Application Program Interface (API)}{29}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Hardware and Communication Interfaces}{30}{subsection.3.3.3}%
+\contentsline {section}{\numberline {3.4}Use Cases}{30}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Use Case Diagram}{30}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Use Cases by Actor}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{Public User / Researcher Use Cases}{31}{subsection.3.4.2}%
+\contentsline {subsubsection}{Administrator Use Cases}{32}{table.3.3}%
+\contentsline {section}{\numberline {3.5}System Diagram}{32}{section.3.5}%
+\contentsline {chapter}{\numberline {4}Software Design Specification (SDS)}{35}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Software Design}{36}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Class Description}{36}{subsection.4.1.1}%
+\contentsline {section}{\numberline {4.2}Data Pipeline}{40}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Overview (stages)}{40}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Resilience and observability}{41}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Technical Details and Algorithms}{41}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}3D Gaussian Splatting (3DGS) Reconstruction Pipeline}{41}{subsection.4.3.1}%
+\contentsline {subsubsection}{3D Gaussian Splatting Algorithm}{41}{subsection.4.3.1}%
+\contentsline {subsubsection}{3DGS Reconstruction Pipeline}{42}{subsection.4.3.1}%
+\contentsline {chapter}{\numberline {5}Methodology, Experiments and Results OR Testing and Analysis}{44}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Methodology}{44}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}System Development Approach}{44}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Data Collection}{44}{subsection.5.1.2}%
+\contentsline {subsection}{\numberline {5.1.3}Preprocessing Pipeline}{45}{subsection.5.1.3}%
+\contentsline {subsection}{\numberline {5.1.4}3D Reconstruction Method}{45}{subsection.5.1.4}%
+\contentsline {subsection}{\numberline {5.1.5}Web Integration}{46}{subsection.5.1.5}%
+\contentsline {subsection}{\numberline {5.1.6}Search and Metadata Indexing}{46}{subsection.5.1.6}%
+\contentsline {subsection}{\numberline {5.1.7}Evaluation Criteria}{46}{subsection.5.1.7}%
+\contentsline {chapter}{\numberline {6}Conclusion and Future Work}{47}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Conclusion}{47}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Future Work}{47}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Scalability and Multi-Community Support}{47}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Mobile-Based Data Collection}{48}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Enhanced 3D Reconstruction}{48}{subsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.2.4}User Interaction and Immersive Features}{48}{subsection.6.2.4}%
+\contentsline {subsection}{\numberline {6.2.5}AI-Assisted Metadata and Search}{48}{subsection.6.2.5}%
+\contentsline {subsection}{\numberline {6.2.6}Community Participation and Ethics}{48}{subsection.6.2.6}%
+\contentsline {chapter}{\numberline {7}Reflection}{49}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Reflections}{49}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}Individual Reflections}{49}{subsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.1.2}Team Reflection}{49}{subsection.7.1.2}%
+\contentsline {subsection}{\numberline {7.1.3}Process Reflection}{50}{subsection.7.1.3}%
+\contentsline {subsection}{\numberline {7.1.4}Plans vs Achievements}{50}{subsection.7.1.4}%
+\contentsline {chapter}{Appendix \numberline {A}More Math}{52}{appendix.1.A}%
+\contentsline {chapter}{Appendix \numberline {B}Data}{53}{appendix.1.B}%
+\contentsline {chapter}{Appendix \numberline {C}Code}{54}{appendix.1.C}%
+\contentsline {chapter}{References}{55}{appendix*.7}%

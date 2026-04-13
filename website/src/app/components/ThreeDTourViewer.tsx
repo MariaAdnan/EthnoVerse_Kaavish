@@ -8,8 +8,7 @@ interface ThreeDTourViewerProps {
 
 export function ThreeDTourViewer({ onNavigate }: ThreeDTourViewerProps) {
   return (
-    <div className="min-h-screen bg-black relative">
-      {/* 3D TOUR */}
+<div className="min-h-screen bg-black relative">      {/* 3D TOUR */}
       <iframe
         src="/3d-tour/index.html"
         className="w-full h-screen border-none"
