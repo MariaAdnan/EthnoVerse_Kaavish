@@ -76,8 +76,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <NavigationBar onNavigate={handleNavigate} />
-
+{currentView !== '3d-tour' && (
+  <NavigationBar onNavigate={handleNavigate} />
+)}
       <main>
         {currentView === 'home' && <Homepage onNavigate={handleNavigate} />}
         {currentView === 'explore' && <ExploreCommunities onNavigate={handleNavigate} />}

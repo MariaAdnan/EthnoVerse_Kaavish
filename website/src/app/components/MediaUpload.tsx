@@ -129,8 +129,17 @@ import { motion } from "motion/react";
   };
 
     return (
+      
       <div className="min-h-screen">
-
+<div className="fixed top-24 left-8 z-50">
+        <button
+          onClick={() => onNavigate("back")}
+          className="text-[#1A1A1A] hover:text-[#CC7722] transition-colors"
+          style={{ fontFamily: "'Space Mono', monospace" }}
+        >
+          <span className="text-sm">← BACK</span>
+        </button>
+      </div>
         {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
