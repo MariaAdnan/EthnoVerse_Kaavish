@@ -1,3 +1,4 @@
+// App.tsx
 import { useState } from "react";
 import { Homepage } from "./components/Homepage";
 import { ExploreCommunities } from "./components/ExploreCommunities";
@@ -16,12 +17,13 @@ import { ContactPage } from "./components/ContactPage";
 import {PDFViewer } from "./components/PDFviewer";
 import { MediaIndex } from "./components/MediaIndex";
 import { NavigationBar } from "./components/NavigationBar";
+import ModelProcessingDemo from "./components/ModelProcessing";
 
 type View = 
-  | 'home' | 'explore' | 'community' | '3d-tour' | 'audio' | 'admin' | 'search'
+  | 'home' | 'explore' | 'community' | '3d-tour' | 'admin-3d-tour' | 'audio' | 'admin' | 'search'
   | 'admin-login' | 'media-upload' | 'about' | 'image-detail' | 'video'
   | 'add-community' | 'contact' | 'pdf' | 'media-index'
-  | 'media-visual' | 'media-audio' | 'media-text';
+  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -76,7 +78,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
-{currentView !== '3d-tour' && (
+{currentView !== '3d-tour' && currentView !== 'admin-3d-tour' && (
   <NavigationBar onNavigate={handleNavigate} />
 )}
       <main>
@@ -89,6 +91,7 @@ export default function App() {
           />
         )}
         {currentView === '3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} />}
+        {currentView === 'admin-3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} isAdmin />}
         
         {currentView.startsWith('audio:') && (
           <AudioPlayer
@@ -114,6 +117,9 @@ export default function App() {
         {currentView === 'media-visual' && <MediaIndex onNavigate={handleNavigate} initialFilter="VISUAL" />}
         {currentView === 'media-audio' && <MediaIndex onNavigate={handleNavigate} initialFilter="AUDIO" />}
         {currentView === 'media-text' && <MediaIndex onNavigate={handleNavigate} initialFilter="TEXT" />}
+        {currentView.startsWith('model-processing') && (
+          <ModelProcessingDemo onNavigate={handleNavigate} view={currentView} />
+        )}
       </main>
     </div>
   );

@@ -13,8 +13,7 @@ import { motion } from "motion/react";
     onNavigate: (view: string) => void;
   }
 
-  type MediaType = "audio" | "image" | "";
-
+    type MediaType = "audio" | "image" | "3d-tour" | "";
   export function MediaUpload({ onNavigate }: MediaUploadProps) {
     const [mediaType, setMediaType] = useState<MediaType>("");
     const [dragActive, setDragActive] = useState(false);
@@ -52,6 +51,7 @@ import { motion } from "motion/react";
     const [description, setDescription] = useState("");
     const [tags, setTags] = useState("");
 
+    const [objectName, setObjectName] = useState("");
     /* ------------------ Drag Handlers ------------------ */
 
     const handleDrag = (e: React.DragEvent) => {
@@ -118,6 +118,23 @@ import { motion } from "motion/react";
 
         if (error) throw error;
       }
+      if (mediaType === "3d-tour") {
+  if (!objectName) return alert("Enter an object name");
+
+  // Upload video to Cloudinary first
+  const videoUrl = await uploadToCloudinary(uploadedFile);
+
+  const { error } = await supabase.from("model_jobs").insert([{
+    id: crypto.randomUUID(),
+    community_id: community,
+    video_url: videoUrl,
+    object_name: objectName,
+    status: "queued",
+    progress: 0,
+  }]);
+
+  if (error) throw error;
+}
 
       alert("Uploaded successfully ✅");
       onNavigate("admin");
@@ -192,6 +209,7 @@ import { motion } from "motion/react";
                 <option value="">Select Media Type</option>
                 <option value="audio">Audio Interview</option>
                 <option value="image">Image / Visual Media</option>
+                <option value="3d-tour">3D Tour (Gaussian Splat)</option>
               </select>
             </div>
 
@@ -221,10 +239,10 @@ import { motion } from "motion/react";
                   <input
                     type="file"
                     accept={
-                      mediaType === "audio"
-                        ? "audio/*"
-                        : "image/*"
-                    }
+  mediaType === "audio" ? "audio/*" :
+  mediaType === "3d-tour" ? "video/*" :
+  "image/*"
+}
                     onChange={handleFileInput}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
@@ -434,6 +452,26 @@ import { motion } from "motion/react";
                     />
                   </>
                 )}
+                {mediaType === "3d-tour" && (
+  <div>
+    <label
+      className="block text-xs mb-3 opacity-60"
+      style={{ fontFamily: "'Space Mono', monospace" }}
+    >
+      OBJECT NAME *
+    </label>
+    <input
+      type="text"
+      value={objectName}
+      onChange={(e) => setObjectName(e.target.value)}
+      placeholder="e.g. ketchup, pottery-jar"
+      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+    />
+    <p className="text-xs opacity-40 mt-2" style={{ fontFamily: "'Space Mono', monospace" }}>
+      Used as the folder name in the pipeline output
+    </p>
+  </div>
+)}
 
                 {/* PUBLISH */}
                 <button

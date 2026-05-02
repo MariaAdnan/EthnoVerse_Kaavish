@@ -1,12 +1,13 @@
 // src/app/components/AdminDashboard.tsx
 import { motion } from "motion/react";
-import { Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
+import { Box, Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { 
   getDashboardStats, 
   getRecentActivity,
   deleteArchiveItem
 } from "../../services/admin";
+import { getJobs } from "../../services/jobs";
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
@@ -21,6 +22,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
 const [recentActivity, setRecentActivity] = useState<any[]>([]);
 const [loading, setLoading] = useState( true);
+const [jobs, setJobs] = useState<any[]>([]);  
 useEffect(() => {
   async function loadDashboard() {
     try {
@@ -28,6 +30,8 @@ useEffect(() => {
         getDashboardStats(),
         getRecentActivity(),
       ]);
+      const jobsData = await getJobs();
+      setJobs(jobsData || []);
 
       setStats(statsData);
       setRecentActivity(activityData);
@@ -176,8 +180,107 @@ useEffect(() => {
               </span>
             </div>
           </button>
-        </motion.div>
 
+          <button
+            onClick={() => onNavigate('admin-3d-tour')}
+            className="w-full border-2 border-foreground bg-transparent hover:bg-foreground/10 transition-all p-6 group"
+          >
+            <div className="flex items-center justify-center gap-4">
+              <Box className="w-5 h-5" />
+              <span
+                style={{ fontFamily: "'Space Mono', monospace" }}
+              >
+                OPEN 3D TOUR EDITOR
+              </span>
+            </div>
+          </button>
+        </motion.div>
+{/* 3D Tour Jobs */}
+{jobs.length > 0 && (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.8, delay: 0.5 }}
+    className="mb-12"
+  >
+    <div className="mb-6 flex items-center justify-between">
+      <h2
+        className="text-3xl"
+        style={{ fontFamily: "'Playfair Display', serif" }}
+      >
+        3D Tour Jobs
+      </h2>
+      <p
+        className="text-sm opacity-60"
+        style={{ fontFamily: "'Space Mono', monospace" }}
+      >
+        RUN COLAB TO PROCESS
+      </p>
+    </div>
+
+    <div className="border border-border divide-y divide-border">
+      {jobs.map((job) => (
+        <div key={job.id} className="p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+          {/* Status badge */}
+          <span className={`text-xs px-2 py-1 rounded font-mono shrink-0 ${
+            job.status === "done"      ? "bg-green-500/10 text-green-600" :
+            job.status === "failed"    ? "bg-red-500/10 text-red-600" :
+            job.status === "processing"? "bg-blue-500/10 text-blue-600" :
+                                         "bg-accent/10 text-accent"
+          }`}>
+            {job.status.toUpperCase()}
+          </span>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {job.object_name}
+            </p>
+            <p className="text-xs opacity-50" style={{ fontFamily: "'Space Mono', monospace" }}>
+              {job.communities?.name} · {new Date(job.created_at).toLocaleDateString()}
+            </p>
+          </div>
+
+          {/* Progress bar (only when processing) */}
+          {job.status === "processing" && (
+            <div className="w-32 shrink-0">
+              <div className="h-1 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent transition-all"
+                  style={{ width: `${job.progress}%` }}
+                />
+              </div>
+              <p className="text-xs opacity-40 mt-1 text-right" style={{ fontFamily: "'Space Mono', monospace" }}>
+                {job.progress}%
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={() => onNavigate(`model-processing:${job.id}`)}
+            className="text-xs px-3 py-2 border border-accent rounded text-accent hover:bg-accent/10 shrink-0"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            VIEW PROGRESS
+          </button>
+
+          {/* Tour link when done */}
+          {job.status === "done" && job.model_url && (
+            <a
+              href={job.model_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-accent hover:underline shrink-0"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              VIEW MODEL →
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  </motion.div>
+)}
         {/* Recent Activity Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

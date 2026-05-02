@@ -4,13 +4,14 @@ import React from "react";
 
 interface ThreeDTourViewerProps {
   onNavigate: (view: string) => void;
+  isAdmin?: boolean;
 }
 
-export function ThreeDTourViewer({ onNavigate }: ThreeDTourViewerProps) {
+export function ThreeDTourViewer({ onNavigate, isAdmin = false }: ThreeDTourViewerProps) {
   return (
 <div className="min-h-screen bg-black relative">      {/* 3D TOUR */}
       <iframe
-        src="/3d-tour/index.html"
+        src={isAdmin ? "/3d-tour/index.html?mode=admin" : "/3d-tour/index.html"}
         className="w-full h-screen border-none"
         allow="fullscreen"
       />
