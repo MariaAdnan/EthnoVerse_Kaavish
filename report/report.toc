@@ -27,12 +27,12 @@
 \contentsline {section}{\numberline {3.3}External Interfaces}{24}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}User Interfaces}{24}{subsection.3.3.1}%
 \contentsline {subsection}{\numberline {3.3.2}Application Program Interface (API)}{29}{subsection.3.3.2}%
-\contentsline {subsection}{\numberline {3.3.3}Hardware and Communication Interfaces}{30}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.3}Hardware and Communication Interfaces}{29}{subsection.3.3.3}%
 \contentsline {section}{\numberline {3.4}Use Cases}{30}{section.3.4}%
 \contentsline {subsection}{\numberline {3.4.1}Use Case Diagram}{30}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Use Cases by Actor}{31}{subsection.3.4.2}%
-\contentsline {subsubsection}{Public User / Researcher Use Cases}{31}{subsection.3.4.2}%
-\contentsline {subsubsection}{Administrator Use Cases}{32}{table.3.3}%
+\contentsline {subsection}{\numberline {3.4.2}Use Cases by Actor}{30}{subsection.3.4.2}%
+\contentsline {subsubsection}{Public User / Researcher Use Cases}{30}{subsection.3.4.2}%
+\contentsline {subsubsection}{Administrator Use Cases}{31}{table.3.3}%
 \contentsline {section}{\numberline {3.5}System Diagram}{32}{section.3.5}%
 \contentsline {chapter}{\numberline {4}Software Design Specification (SDS)}{35}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Software Design}{36}{section.4.1}%
@@ -68,7 +68,5 @@
 \contentsline {subsection}{\numberline {7.1.2}Team Reflection}{49}{subsection.7.1.2}%
 \contentsline {subsection}{\numberline {7.1.3}Process Reflection}{50}{subsection.7.1.3}%
 \contentsline {subsection}{\numberline {7.1.4}Plans vs Achievements}{50}{subsection.7.1.4}%
-\contentsline {chapter}{Appendix \numberline {A}More Math}{52}{appendix.1.A}%
-\contentsline {chapter}{Appendix \numberline {B}Data}{53}{appendix.1.B}%
-\contentsline {chapter}{Appendix \numberline {C}Code}{54}{appendix.1.C}%
-\contentsline {chapter}{References}{55}{appendix*.7}%
+\contentsline {chapter}{Appendix \numberline {A}Code}{52}{appendix.1.A}%
+\contentsline {chapter}{References}{53}{appendix*.7}%
