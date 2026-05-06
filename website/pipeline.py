@@ -13,9 +13,18 @@ import modal
 # compiled ON a GPU machine (not during image build which has no GPU/CUDA).
 # So we only pre-install system tools + pure-Python packages here.
 # The GS repo is cloned into the image so it's available at runtime.
-# -- Modal image --
+volume = modal.Volume.from_name("ethnoverse-ply-storage", create_if_missing=True)
 image = (
-    modal.Image.debian_slim(python_version="3.11")
+    modal.Image.from_registry(
+        "nvidia/cuda:11.8.0-devel-ubuntu22.04",
+        add_python="3.11",
+    )
+    .env({
+        "CUDA_HOME": "/usr/local/cuda",
+        # Tell PyTorch exactly which GPU arch to compile for.
+        # T4 = 7.5. Without this, arch_list is empty at build time → crash.
+        "TORCH_CUDA_ARCH_LIST": "7.5",
+    })
     .apt_install(
         "ffmpeg",
         "colmap",
@@ -25,26 +34,18 @@ image = (
         "ninja-build",
         "libgl1",
         "libglib2.0-0",
-    )
-    .pip_install(
-        "torch==2.1.0+cu118",
-        "torchvision==0.16.0+cu118",
-        extra_index_url="https://download.pytorch.org/whl/cu118",
-    )
-    .pip_install(
-        "fastapi[standard]",  # <--- FIX 1: Add this
-        "numpy<2",
-        "supabase",
-        "cloudinary",
-        "requests",
-        "pycolmap",
-        "plyfile",
-        "tqdm",
-        "Pillow",
-        "scipy",
+        "clang",
     )
     .run_commands(
+        "pip install setuptools>=68 wheel packaging",
+        "pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118",
+        "pip install numpy==1.26.4 supabase cloudinary requests pycolmap plyfile tqdm Pillow scipy fastapi",
         "git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
+        "pip install setuptools>=68 wheel",
+        "pip install numpy==1.26.4 supabase cloudinary requests pycolmap plyfile tqdm Pillow scipy fastapi opencv-python-headless",
+        # Pass arch explicitly here too, in case env isn't inherited by subprocess
+        "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/diff-gaussian-rasterization",
+        "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/simple-knn",
     )
 )
 
@@ -59,11 +60,13 @@ def update_job(supabase, job_id: str, **kwargs):
 
 
 # ── GPU function ───────────────────────────────────────────────────────────────
+
 @app.function(
     gpu="T4",
-    timeout=60 * 90,           # 90 min hard limit
+    timeout=60 * 90,
     secrets=secrets,
-    ephemeral_disk=524288,      # 512 GiB — Modal minimum (in MiB)
+    ephemeral_disk=524288,
+    volumes={"/mnt/ply_storage": volume},   # ← mount the volume
 )
 def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: str):
     import shutil
@@ -101,18 +104,6 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
             folder.mkdir(parents=True, exist_ok=True)
         if DB_PATH.exists():
             DB_PATH.unlink()
-
-        # ── Step 2: Compile GS CUDA extensions on the GPU machine (10%) ────────
-        # This MUST happen at runtime on a machine that has CUDA drivers.
-        update_job(supabase, job_id, progress=8, message="Compiling CUDA extensions")
-
-        gs_rast = GS_REPO / "submodules/diff-gaussian-rasterization"
-        gs_knn  = GS_REPO / "submodules/simple-knn"
-
-        subprocess.run(["pip", "install", str(gs_rast)], check=True)
-        subprocess.run(["pip", "install", str(gs_knn)],  check=True)
-        print("✅ CUDA extensions compiled")
-
         # ── Step 3: Download video (10%) ───────────────────────────────────────
         update_job(supabase, job_id, progress=10, message="Downloading video")
 
@@ -212,29 +203,30 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
 
         print("✅ Training complete!")
 
-        # ── Step 10: Upload to Cloudinary (90%) ───────────────────────────────
-        update_job(supabase, job_id, progress=90, message="Uploading model to Cloudinary")
+        # ── Step 10: Save .ply to Modal Volume (90%) ──────────────────────────
+        update_job(supabase, job_id, progress=90, message="Saving model to storage")
 
         ply_path = MODEL_OUT / "point_cloud" / "iteration_7000" / "point_cloud.ply"
         if not ply_path.exists():
             raise FileNotFoundError(f".ply not found at {ply_path}")
 
-        upload_result = cloudinary.uploader.upload(
-            str(ply_path),
-            resource_type="raw",
-            folder=f"3d-tours/{object_name}",
-            public_id="point_cloud",
-        )
-        model_url = upload_result["secure_url"]
-        print(f"Uploaded: {model_url}")
+        # Copy into the volume
+        dest_dir = Path(f"/mnt/ply_storage/{object_name}")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest_path = dest_dir / "point_cloud.ply"
+        shutil.copy(str(ply_path), str(dest_path))
+        volume.commit()   # flush writes to the volume
+
+        # Store the volume path in Supabase so we can serve it later
+        model_path = f"{object_name}/point_cloud.ply"
 
         # ── Step 11: Mark done (100%) ──────────────────────────────────────────
         update_job(supabase, job_id,
-                   status="done", progress=100,
-                   message="Complete", model_url=model_url)
+                status="done", progress=100,
+                message="Complete", model_url=model_path)   # store path, not URL
 
         supabase.table("communities").update({
-            "tour_url": model_url
+            "tour_url": model_path
         }).eq("community_id", community_id).execute()
 
         print(f"✅ Done! tour_url written to community {community_id}")
@@ -246,13 +238,33 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
         raise
 
 
+@app.function(
+    volumes={"/mnt/ply_storage": volume},
+    secrets=secrets,
+)
+@modal.web_endpoint(method="GET")
+def download_ply(object_name: str):
+    from fastapi import Response
+    ply_path = Path(f"/mnt/ply_storage/{object_name}/point_cloud.ply")
+    if not ply_path.exists():
+        return Response(content="Not found", status_code=404)
+
+    data = ply_path.read_bytes()
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{object_name}_point_cloud.ply"',
+            "Access-Control-Allow-Origin": "*",   # ← add this
+        }
+    )
 # ── Webhook endpoint ───────────────────────────────────────────────────────────
-# -- Webhook endpoint --
 @app.function(secrets=secrets)
-@modal.fastapi_endpoint(method="POST")  # <--- FIX 2: Updated decorator name
+@modal.web_endpoint(method="POST")
 def webhook(payload: dict):
     """
     Supabase Database Webhook calls this on every model_jobs INSERT.
+    Payload: { "type": "INSERT", "record": { ...row... } }
     """
     record = payload.get("record", {})
 

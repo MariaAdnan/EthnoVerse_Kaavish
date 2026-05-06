@@ -266,16 +266,23 @@ useEffect(() => {
 
           {/* Tour link when done */}
           {job.status === "done" && job.model_url && (
-            <a
-              href={job.model_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-accent hover:underline shrink-0"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            >
-              VIEW MODEL →
-            </a>
-          )}
+  <button
+    onClick={async () => {
+      const url = `https://afifah-uzair-19--ethnoverse-3dgs-download-ply.modal.run?object_name=${job.object_name}`;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${job.object_name}_point_cloud.ply`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }}
+    className="text-xs px-3 py-2 border border-green-600 rounded text-green-600 hover:bg-green-600/10 shrink-0"
+    style={{ fontFamily: "'Space Mono', monospace" }}
+  >
+    DOWNLOAD .PLY →
+  </button>
+)}
         </div>
       ))}
     </div>
