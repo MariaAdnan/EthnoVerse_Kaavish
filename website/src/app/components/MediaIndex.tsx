@@ -82,9 +82,15 @@ export function MediaIndex({
   imageUrl: item.picture_cloudinary_url,
   tags: item.tags ?? [],   // ← add this
 }));
+const docItems: MediaItem[] = (data.documents ?? []).map((item: any) => ({
+  id: String(item.id),
+  type: "PDF" as MediaType,
+  title: item.title ?? "Untitled Document",
+  date: item.created_at,
+}));
 
         // Newest first
-        const merged = [...audioItems, ...imageItems].sort(
+        const merged = [...audioItems, ...imageItems, ...docItems].sort(
           (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
         );
         setAllItems(merged);
@@ -135,8 +141,8 @@ const filteredItems = useMemo(() => {
     } else if (item.type === "VIDEO") {
       onNavigate("video");
     } else if (item.type === "PDF") {
-      onNavigate("pdf");
-    }
+  onNavigate(`pdf:${item.id}`);
+}
   }
 
   // ── Title ──────────────────────────────────────────────────────────────────

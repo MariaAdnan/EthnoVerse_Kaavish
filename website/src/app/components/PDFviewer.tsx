@@ -1,258 +1,454 @@
-import { motion } from "motion/react";
-import { X, Download, FileText, ZoomIn, ZoomOut } from "lucide-react";
-import { Search } from "lucide-react";
-import { useState } from "react";
+// src/app/components/PDFviewer.tsx
+import { motion, AnimatePresence } from "motion/react";
+import {
+  X,
+  Download,
+  FileText,
+  ZoomIn,
+  ZoomOut,
+  Loader2,
+  AlertCircle,
+  ExternalLink,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { getDocumentById } from "../../services/document";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface PDFViewerProps {
   onNavigate: (view: string) => void;
+  view: string; // "pdf" | "pdf:ID"
 }
 
-export function PDFViewer({ onNavigate }: PDFViewerProps) {
+interface Doc {
+  id: string | number;
+  title: string;
+  pdf_cloudinary_url: string;
+  author?: string | null;
+  created_at?: string | null;
+  communities?: { name: string } | { name: string }[] | null;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function communityName(doc: Doc): string {
+  if (!doc.communities) return "";
+  if (Array.isArray(doc.communities)) return doc.communities[0]?.name ?? "";
+  return doc.communities.name ?? "";
+}
+
+function archiveId(id: string | number): string {
+  return `ARCHIVE-${String(id).padStart(3, "0")}`;
+}
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function PDFViewer({ onNavigate, view }: PDFViewerProps) {
+  const docId = view.startsWith("pdf:") ? view.split(":")[1] : null;
+
+  const [doc, setDoc] = useState<Doc | null>(null);
+  const [loading, setLoading] = useState(!!docId);
+  const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
+  // Some browsers/environments block PDFs in <object>; we offer a fallback
+  const [embedFailed, setEmbedFailed] = useState(false);
 
-  const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 25, 200));
-  };
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!docId) {
+      setLoading(false);
+      setError("No document specified.");
+      return;
+    }
 
-  const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 25, 50));
-  };
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
+    getDocumentById(docId)
+      .then((data) => {
+        if (cancelled) return;
+        if (!data) { setError("Document not found."); return; }
+        setDoc(data as Doc);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? "Failed to load document.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [docId]);
+
+  // ── Zoom helpers ───────────────────────────────────────────────────────────
+  const zoomIn  = () => setZoom((z) => Math.min(z + 25, 200));
+  const zoomOut = () => setZoom((z) => Math.max(z - 25, 50));
+
+  // ── Keyboard ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onNavigate("back");
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-") zoomOut();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onNavigate]);
+
+  // ─── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-[#1A1A1A]/95 z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-[#F5F1E8]/60">
+          <Loader2 className="w-10 h-10 animate-spin text-[#CC7722]" />
+          <p style={{ fontFamily: "'Space Mono', monospace" }} className="text-xs tracking-widest">
+            LOADING DOCUMENT...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Error ─────────────────────────────────────────────────────────────────
+  if (error || !doc) {
+    return (
+      <div className="fixed inset-0 bg-[#1A1A1A]/95 z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-[#F5F1E8]/70 max-w-sm text-center px-6">
+          <AlertCircle className="w-10 h-10 text-[#CC7722]" />
+          <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-xl">
+            Document unavailable
+          </p>
+          <p style={{ fontFamily: "'Space Mono', monospace" }} className="text-xs opacity-60">
+            {error}
+          </p>
+          <button
+            onClick={() => onNavigate("back")}
+            className="mt-2 px-6 py-2 border border-[#F5F1E8]/30 hover:border-[#CC7722] transition-colors text-xs text-[#F5F1E8]"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            ← GO BACK
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const community = communityName(doc);
+
+  // ─── Main render ───────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-[#1A1A1A]/95 z-50 flex flex-col">
-      {/* Header Bar */}
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex items-center justify-between p-6 border-b border-[#F5F1E8]/20"
+        className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4 border-b border-[#F5F1E8]/20 flex-wrap sm:flex-nowrap"
       >
-        <div className="flex items-center gap-4">
-          <FileText className="w-6 h-6 text-[#F5F1E8]" />
-          <div>
-            <h2 
-              className="text-[#F5F1E8] text-xl mb-1"
+        {/* Title */}
+        <div className="flex items-center gap-3 min-w-0">
+          <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#F5F1E8] shrink-0" />
+          <div className="min-w-0">
+            <h2
+              className="text-[#F5F1E8] text-base sm:text-xl mb-0.5 truncate"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              Traditional Craft Manuscripts
+              {doc.title}
             </h2>
-            <p 
-              className="text-[#F5F1E8]/60 text-xs"
+            <p
+              className="text-[#F5F1E8]/60 text-xs truncate"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
-              ARCHIVE-049 · PDF DOCUMENT · KOLHI COMMUNITY
+              {archiveId(doc.id)} · PDF DOCUMENT
+              {community ? ` · ${community.toUpperCase()}` : ""}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Zoom Controls */}
-          <div className="flex items-center gap-2 border border-[#F5F1E8]/30 rounded px-3 py-1.5">
+        {/* Controls */}
+        <div className="flex items-center gap-2 sm:gap-4 ml-auto shrink-0">
+
+          {/* Zoom */}
+          <div className="flex items-center gap-1.5 border border-[#F5F1E8]/30 rounded px-2 sm:px-3 py-1.5">
             <button
-              onClick={handleZoomOut}
-              className="text-[#F5F1E8] hover:text-accent transition-colors"
+              onClick={zoomOut}
               disabled={zoom <= 50}
+              aria-label="Zoom out"
+              className="text-[#F5F1E8] hover:text-[#CC7722] transition-colors disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomOut className="w-4 h-4" />
             </button>
-            <span 
-              className="text-[#F5F1E8] text-sm min-w-[50px] text-center"
+            <span
+              className="text-[#F5F1E8] text-xs sm:text-sm min-w-[40px] text-center"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               {zoom}%
             </span>
             <button
-              onClick={handleZoomIn}
-              className="text-[#F5F1E8] hover:text-accent transition-colors"
+              onClick={zoomIn}
               disabled={zoom >= 200}
+              aria-label="Zoom in"
+              className="text-[#F5F1E8] hover:text-[#CC7722] transition-colors disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomIn className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Download Button */}
-          <button
-            className="flex items-center gap-2 px-4 py-2 border border-[#F5F1E8]/30 hover:border-accent hover:bg-accent/10 transition-colors text-[#F5F1E8]"
+          {/* Download */}
+          <a
+            href={doc.pdf_cloudinary_url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 border border-[#F5F1E8]/30 hover:border-[#CC7722] hover:bg-[#CC7722]/10 transition-colors text-[#F5F1E8]"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             <Download className="w-4 h-4" />
             <span className="text-sm">DOWNLOAD</span>
-          </button>
+          </a>
 
-          {/* Close Button */}
-          <button
-            onClick={() => onNavigate('community')}
-            className="w-12 h-12 flex items-center justify-center border border-[#F5F1E8]/30 hover:border-accent hover:bg-accent/10 transition-colors text-[#F5F1E8]"
+          {/* Download icon-only on mobile */}
+          <a
+            href={doc.pdf_cloudinary_url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download"
+            className="sm:hidden w-10 h-10 flex items-center justify-center border border-[#F5F1E8]/30 hover:border-[#CC7722] hover:bg-[#CC7722]/10 transition-colors text-[#F5F1E8]"
           >
-            <X className="w-6 h-6" />
+            <Download className="w-4 h-4" />
+          </a>
+
+          {/* Close */}
+          <button
+            onClick={() => onNavigate("back")}
+            aria-label="Close"
+            className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center border border-[#F5F1E8]/30 hover:border-[#CC7722] hover:bg-[#CC7722]/10 transition-colors text-[#F5F1E8]"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
       </motion.div>
 
-      {/* PDF Viewer Area */}
+      {/* ── PDF viewer area ──────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="flex-1 overflow-auto p-8 flex items-start justify-center bg-[#2C2C2C]/30"
+        className="flex-1 overflow-auto p-4 sm:p-8 flex items-start justify-center bg-[#2C2C2C]/30"
       >
-        <div 
-          className="bg-[#F5F1E8] shadow-2xl"
-          style={{ 
+        <div
+          className="relative shadow-2xl transition-all duration-300"
+          style={{
             width: `${zoom}%`,
-            minWidth: '600px',
-            maxWidth: '1200px',
-            transition: 'width 0.3s ease'
+            minWidth: "320px",
+            maxWidth: "1200px",
           }}
         >
-          {/* PDF Content Placeholder - Simulated Document */}
-          <div className="p-12 space-y-8">
-            {/* Document Header */}
-            <div className="border-b-2 border-foreground pb-6">
-              <h1 
-                className="text-4xl mb-4"
-                style={{ fontFamily: "'Playfair Display', serif" }}
+          <AnimatePresence mode="wait">
+            {/* ── Embedded PDF (preferred) ── */}
+            {!embedFailed && (
+              <motion.div
+                key="embed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full"
+                style={{ minHeight: "80vh" }}
               >
-                Traditional Craft Techniques
-              </h1>
-              <p 
-                className="text-sm opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                Documentation of Kolhi Pottery and Textile Methods
-              </p>
-              <p 
-                className="text-sm opacity-60 mt-2"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                Compiled by Dr. Amina Shaikh · November 2024
-              </p>
-            </div>
-
-            {/* Document Content */}
-            <div className="space-y-6 leading-relaxed">
-              <section>
-                <h2 
-                  className="text-2xl mb-4"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                {/*
+                  <object> is more reliable than <iframe> for PDFs across
+                  browsers. Cloudinary serves PDFs with the correct MIME type
+                  so this works without extra query params.
+                */}
+                <object
+                  data={doc.pdf_cloudinary_url}
+                  type="application/pdf"
+                  className="w-full bg-[#F5F1E8]"
+                  style={{ minHeight: "80vh", height: "80vh" }}
+                  onError={() => setEmbedFailed(true)}
+                  aria-label={doc.title}
                 >
-                  Introduction
-                </h2>
-                <p className="mb-4">
-                  The Kolhi community of Tharparkar has preserved ancient craft traditions for generations, 
-                  passing down intricate techniques through oral instruction and hands-on apprenticeship. 
-                  This document serves as a comprehensive record of these traditional methods, capturing 
-                  the knowledge of master artisans and their time-honored practices.
-                </p>
-                <p className="mb-4">
-                  Through extensive fieldwork conducted between 2023-2024, we have documented the complete 
-                  lifecycle of traditional pottery-making, textile weaving, and natural dye preparation. 
-                  Each technique represents centuries of accumulated wisdom adapted to the harsh desert 
-                  environment of Sindh.
-                </p>
-              </section>
+                  {/* Inner fallback if object element itself isn't supported */}
+                  <FallbackView doc={doc} onOpenExternal={() => setEmbedFailed(true)} />
+                </object>
+              </motion.div>
+            )}
 
-              <section>
-                <h2 
-                  className="text-2xl mb-4"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
-                >
-                  Pottery Techniques
-                </h2>
-                <p className="mb-4">
-                  Traditional Kolhi pottery is characterized by its distinctive red clay sourced from 
-                  seasonal riverbeds in the Thar Desert. The clay is hand-mixed with fine sand to achieve 
-                  the proper consistency, a ratio carefully maintained through tactile experience rather 
-                  than precise measurement.
-                </p>
-                <p className="mb-4">
-                  The coiling method remains the primary construction technique, with potters building 
-                  vessels from the base upward using long clay ropes. Surface finishing is achieved 
-                  through polishing with smooth stones, creating a characteristic burnished appearance 
-                  before firing in outdoor pit kilns.
-                </p>
-              </section>
-
-              <section>
-                <h2 
-                  className="text-2xl mb-4"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
-                >
-                  Textile Traditions
-                </h2>
-                <p className="mb-4">
-                  Weaving patterns are passed down through maternal lines, with each family maintaining 
-                  distinctive motifs that serve as cultural signatures. The traditional pit loom remains 
-                  in use, constructed from locally sourced wood and requiring minimal metal components.
-                </p>
-                <p className="mb-4">
-                  Natural dyes extracted from indigenous plants provide the vibrant colors characteristic 
-                  of Kolhi textiles. Indigo, turmeric, madder root, and pomegranate rind are combined in 
-                  carefully guarded formulas to achieve specific hues and ensure colorfastness.
-                </p>
-              </section>
-            </div>
-
-            {/* Document Footer */}
-            <div className="border-t-2 border-foreground pt-6 mt-12">
-              <p 
-                className="text-xs opacity-40"
-                style={{ fontFamily: "'Space Mono', monospace" }}
+            {/* ── Fallback: can't embed ── */}
+            {embedFailed && (
+              <motion.div
+                key="fallback"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-[#F5F1E8] w-full"
               >
-                Page 1 of 8 · EthnoVerse · Kaavish Initiative © 2024
-              </p>
-            </div>
-          </div>
+                <FallbackView doc={doc} onOpenExternal={() => {}} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
 
-      {/* Bottom Metadata Bar */}
+      {/* ── Footer metadata bar ──────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="border-t border-[#F5F1E8]/20 p-4 bg-[#1A1A1A]/90 backdrop-blur-md"
+        className="border-t border-[#F5F1E8]/20 px-4 sm:px-6 py-3 sm:py-4 bg-[#1A1A1A]/90 backdrop-blur-md"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+            {doc.author && (
+              <>
+                <div>
+                  <p
+                    className="text-[#F5F1E8]/60 text-xs mb-1"
+                    style={{ fontFamily: "'Space Mono', monospace" }}
+                  >
+                    AUTHOR
+                  </p>
+                  <p className="text-[#F5F1E8] text-sm">{doc.author}</p>
+                </div>
+                <div className="h-8 w-px bg-[#F5F1E8]/20 hidden sm:block" />
+              </>
+            )}
             <div>
-              <p 
-                className="text-[#F5F1E8]/60 text-xs mb-1"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                FILE SIZE
-              </p>
-              <p className="text-[#F5F1E8] text-sm">2.4 MB</p>
-            </div>
-            <div className="h-8 w-px bg-[#F5F1E8]/20" />
-            <div>
-              <p 
-                className="text-[#F5F1E8]/60 text-xs mb-1"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                PAGES
-              </p>
-              <p className="text-[#F5F1E8] text-sm">8</p>
-            </div>
-            <div className="h-8 w-px bg-[#F5F1E8]/20" />
-            <div>
-              <p 
+              <p
                 className="text-[#F5F1E8]/60 text-xs mb-1"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 UPLOADED
               </p>
-              <p className="text-[#F5F1E8] text-sm">2024-11-15</p>
+              <p className="text-[#F5F1E8] text-sm">{fmtDate(doc.created_at)}</p>
             </div>
+            {community && (
+              <>
+                <div className="h-8 w-px bg-[#F5F1E8]/20 hidden sm:block" />
+                <div>
+                  <p
+                    className="text-[#F5F1E8]/60 text-xs mb-1"
+                    style={{ fontFamily: "'Space Mono', monospace" }}
+                  >
+                    COMMUNITY
+                  </p>
+                  <p className="text-[#F5F1E8] text-sm">{community}</p>
+                </div>
+              </>
+            )}
           </div>
           <button
-            onClick={() => onNavigate('community')}
-            className="text-[#F5F1E8]/60 hover:text-accent text-sm transition-colors"
+            onClick={() => onNavigate("back")}
+            className="text-[#F5F1E8]/60 hover:text-[#CC7722] text-sm transition-colors shrink-0"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ← BACK TO COLLECTION
           </button>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+// ─── Fallback view ────────────────────────────────────────────────────────────
+// Shown when the browser can't embed the PDF inline.
+// Renders the Figma document card layout (same cream background, same fonts).
+
+function FallbackView({
+  doc,
+  onOpenExternal,
+}: {
+  doc: Doc;
+  onOpenExternal: () => void;
+}) {
+  return (
+    <div className="p-8 sm:p-12 space-y-8 bg-[#F5F1E8]" style={{ minHeight: "70vh" }}>
+      {/* Document header — mirrors the Figma card exactly */}
+      <div className="border-b-2 border-[#1A1A1A] pb-6">
+        <h1
+          className="text-3xl sm:text-4xl mb-4 text-[#1A1A1A]"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          {doc.title}
+        </h1>
+        {doc.author && (
+          <p
+            className="text-sm opacity-60 text-[#1A1A1A]"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            Compiled by {doc.author}
+          </p>
+        )}
+        <p
+          className="text-sm opacity-60 mt-2 text-[#1A1A1A]"
+          style={{ fontFamily: "'Space Mono', monospace" }}
+        >
+          EthnoVerse Living Archives
+        </p>
+      </div>
+
+      {/* Embed unavailable notice */}
+      <div className="flex flex-col items-center gap-6 py-12 text-center">
+        <FileText className="w-16 h-16 text-[#1A1A1A]/20" />
+        <p
+          className="text-[#1A1A1A]/60"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          PDF preview is not available in this browser.
+        </p>
+        <p
+          className="text-xs text-[#1A1A1A]/40"
+          style={{ fontFamily: "'Space Mono', monospace" }}
+        >
+          Open or download the document using the buttons below.
+        </p>
+        <div className="flex items-center gap-4 mt-2">
+          <a
+            href={doc.pdf_cloudinary_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-3 bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#CC7722] transition-colors"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span className="text-sm">OPEN IN NEW TAB</span>
+          </a>
+          <a
+            href={doc.pdf_cloudinary_url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-3 border border-[#1A1A1A] hover:border-[#CC7722] hover:text-[#CC7722] transition-colors text-[#1A1A1A]"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            <Download className="w-4 h-4" />
+            <span className="text-sm">DOWNLOAD</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t-2 border-[#1A1A1A] pt-6 mt-12">
+        <p
+          className="text-xs opacity-40 text-[#1A1A1A]"
+          style={{ fontFamily: "'Space Mono', monospace" }}
+        >
+          EthnoVerse Living Archives · Kaavish Initiative © 2026
+        </p>
+      </div>
     </div>
   );
 }

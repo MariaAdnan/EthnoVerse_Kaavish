@@ -1,6 +1,6 @@
 // src/app/components/AdminDashboard.tsx
 import { motion } from "motion/react";
-import { Box, Upload, Edit2, Trash2, Users, Database, Plus, BookOpen } from "lucide-react";
+import { Box, Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { 
   getDashboardStats, 
@@ -190,18 +190,106 @@ setAllCommunities(commData || []);
           </button>
 
           <button
-            onClick={() => onNavigate('admin-3d-tour')}
-            className="w-full border-2 border-foreground bg-transparent hover:bg-foreground/10 transition-all p-6 group"
+  onClick={() => setShowTourPicker(true)}
+  className="w-full border-2 border-foreground bg-transparent hover:bg-foreground/10 transition-all p-6 group"
+>
+  <div className="flex items-center justify-center gap-4">
+    <Box className="w-5 h-5" />
+    <span style={{ fontFamily: "'Space Mono', monospace" }}>
+      OPEN 3D TOUR EDITOR
+    </span>
+  </div>
+</button>
+
+{showTourPicker && (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-8">
+    <div className="bg-background border border-border p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+      <h2 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+        Open Tour Editor
+      </h2>
+      <p className="text-xs opacity-60 mb-6" style={{ fontFamily: "'Space Mono', monospace" }}>
+        SELECT A COMMUNITY TO EDIT ITS TOUR
+      </p>
+
+      {allCommunities.map((c) => {
+        const isKolhi = c.community_id === '2c0e586a-3685-4135-8107-b442cdd22d73';
+        return (
+          <div
+            key={c.community_id}
+            className="border border-border p-4 mb-3 flex items-center justify-between gap-4"
           >
-            <div className="flex items-center justify-center gap-4">
-              <Box className="w-5 h-5" />
-              <span
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                OPEN 3D TOUR EDITOR
-              </span>
+            <div>
+              <p className="text-sm font-medium">{c.name}</p>
+              <p className="text-xs opacity-50" style={{ fontFamily: "'Space Mono', monospace" }}>
+                {isKolhi ? 'DEVELOPER BUILT · INSERT ONLY' : `TERRAIN: ${(c.terrain_type || 'not set').toUpperCase()}`}
+              </p>
             </div>
-          </button>
+
+            {/* Terrain selector — only for non-Kolhi communities */}
+            {!isKolhi && (
+  c.terrain_type ? (
+    // Already set — show as read-only
+    <span
+      className="text-xs px-2 py-1 border border-border opacity-60"
+      style={{ fontFamily: "'Space Mono', monospace" }}
+    >
+      {c.terrain_type.toUpperCase()}
+    </span>
+  ) : (
+    // Not set yet — show picker
+    <select
+      defaultValue=""
+      onChange={async (e) => {
+        if (!e.target.value) return;
+        await updateCommunityTerrain(c.community_id, e.target.value);
+        setAllCommunities(prev =>
+          prev.map(x => x.community_id === c.community_id
+            ? { ...x, terrain_type: e.target.value }
+            : x
+          )
+        );
+      }}
+      className="bg-background border border-accent text-xs px-2 py-1"
+      style={{ fontFamily: "'Space Mono', monospace" }}
+    >
+      <option value="" disabled>Pick terrain ▼</option>
+      <option value="desert">Desert</option>
+      <option value="grass">Grassland</option>
+      <option value="rocky">Rocky</option>
+      <option value="mountains">Mountains</option>
+    </select>
+  )
+)}
+
+            <button
+  onClick={() => {
+    setShowTourPicker(false);
+    onNavigate(`admin-3d-tour:${c.community_id}`);
+  }}
+  disabled={!isKolhi && !c.terrain_type}
+  className={`text-xs px-3 py-2 border shrink-0 ${
+    !isKolhi && !c.terrain_type
+      ? 'border-border opacity-30 cursor-not-allowed'
+      : 'border-accent text-accent hover:bg-accent/10'
+  }`}
+  style={{ fontFamily: "'Space Mono', monospace" }}
+>
+  {!isKolhi && !c.terrain_type ? 'SET TERRAIN FIRST' : 'OPEN →'}
+</button>
+          </div>
+        );
+      })}
+
+      <button
+        onClick={() => setShowTourPicker(false)}
+        className="mt-4 text-xs opacity-50 hover:opacity-100"
+        style={{ fontFamily: "'Space Mono', monospace" }}
+      >
+        CANCEL
+      </button>
+    </div>
+  </div>
+)}
         </motion.div>
 {/* 3D Tour Jobs */}
 {jobs.length > 0 && (
@@ -290,19 +378,17 @@ setAllCommunities(commData || []);
     </div>
   </motion.div>
 )}
-
-      </div>
-
-      {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
-        <button
-          onClick={() => onNavigate('home')}
-          className="text-foreground hover:text-accent transition-colors"
-          style={{ fontFamily: "'Space Mono', monospace" }}
-        >
-          <span className="text-sm">← HOME</span>
-        </button>
-      </div>
-    </div>
-  );
-}
+        {/* Recent Activity Table */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.6 }}
+                >
+                  <div className="mb-6 flex items-center justify-between">
+                    {/* Add the rest of the recent activity content here if needed */}
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          );
+        }

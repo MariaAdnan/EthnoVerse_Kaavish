@@ -138,7 +138,7 @@ const [searchQuery, setSearchQuery] = useState("");
         {currentView === 'video' && <VideoPlayer onNavigate={handleNavigate} />}
         {currentView === 'add-community' && <AddCommunity onNavigate={handleNavigate} />}
         {currentView === 'contact' && <ContactPage onNavigate={handleNavigate} />}
-        {currentView === 'pdf' && <PDFViewer onNavigate={handleNavigate} />}
+{currentView.startsWith('pdf') && <PDFViewer onNavigate={handleNavigate} view={currentView} />}
 
         {/* Media Routes */}
         {currentView === 'media-index' && <MediaIndex onNavigate={handleNavigate} initialFilter="ALL" />}

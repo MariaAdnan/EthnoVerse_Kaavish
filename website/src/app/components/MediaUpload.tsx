@@ -8,17 +8,18 @@ import { motion } from "motion/react";
   import { uploadToCloudinary, uploadZipToCloudinary } from "../../services/upload";
   import { supabase } from "../../lib/supabase";
   import { useEffect } from "react";
-
+import { createDocument } from "../../services/document";
 
   interface MediaUploadProps {
     onNavigate: (view: string) => void;
   }
 
-    type MediaType = "audio" | "image" | "3d-tour" | "";
+    type MediaType = "audio" | "image" | "document" | "3d-tour" | "";
   export function MediaUpload({ onNavigate }: MediaUploadProps) {
     const [mediaType, setMediaType] = useState<MediaType>("");
     const [dragActive, setDragActive] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [author, setAuthor] = useState("");
   const [communities, setCommunities] = useState<any[]>([]);
 
   useEffect(() => {
@@ -105,7 +106,16 @@ import { motion } from "motion/react";
 
         if (error) throw error;
       }
-
+if (mediaType === "document") {
+  const { error } = await createDocument({
+    title,
+    description: description || null,
+    community_id: community,
+    pdf_cloudinary_url: fileUrl,
+    author: author || null,
+  });
+  if (error) throw error;
+}
       if (mediaType === "image") {
         const { error } = await createMedia({
           title,
@@ -210,7 +220,9 @@ import { motion } from "motion/react";
                 <option value="">Select Media Type</option>
                 <option value="audio">Audio Interview</option>
                 <option value="image">Image / Visual Media</option>
+                <option value="document">Document / PDF</option>
                 <option value="3d-tour">3D Tour (Gaussian Splat)</option>
+                
               </select>
             </div>
 
@@ -242,6 +254,8 @@ import { motion } from "motion/react";
                     accept={
   mediaType === "audio" ? "audio/*" :
   mediaType === "3d-tour" ? ".zip" :
+    mediaType === "document" ? ".pdf" :
+
   "image/*"
 }
                     onChange={handleFileInput}
@@ -271,12 +285,14 @@ import { motion } from "motion/react";
                         DROP FILES
                       </p>
                       <p className="text-sm opacity-60 mb-4">
-                        {mediaType === "audio"
-                          ? "Audio Files"
-                          : mediaType === "3d-tour"
-                          ? "ZIP of Images"
-                          : "Image Files"}
-                      </p>
+  {mediaType === "audio"
+    ? "Audio Files"
+    : mediaType === "3d-tour"
+    ? "ZIP of Images"
+    : mediaType === "document"
+    ? "PDF Files"
+    : "Image Files"}
+</p>
                       <p className="text-xs opacity-40">
                         or click to browse
                       </p>
@@ -455,6 +471,34 @@ import { motion } from "motion/react";
                     />
                   </>
                 )}
+                {mediaType === "document" && (
+  <>
+    <div>
+      <label className="block text-xs mb-3 opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+        AUTHOR / COMPILER
+      </label>
+      <input
+        type="text"
+        value={author}
+        onChange={(e) => setAuthor(e.target.value)}
+        placeholder="e.g. Dr. Amina Shaikh"
+        className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+      />
+    </div>
+    <div>
+      <label className="block text-xs mb-3 opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+        DESCRIPTION
+      </label>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="What does this document contain?"
+        rows={4}
+        className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
+      />
+    </div>
+  </>
+)}
                 {mediaType === "3d-tour" && (
   <div>
     <label
