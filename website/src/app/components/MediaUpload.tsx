@@ -5,9 +5,10 @@ import { motion } from "motion/react";
   import { useState } from "react";
   import { createInterview } from "../../services/interviews";
   import { createMedia } from "../../services/media";
-  import { uploadToCloudinary } from "../../services/upload";
+  import { uploadToCloudinary, uploadZipToCloudinary } from "../../services/upload";
   import { supabase } from "../../lib/supabase";
   import { useEffect } from "react";
+
 
   interface MediaUploadProps {
     onNavigate: (view: string) => void;
@@ -121,8 +122,8 @@ import { motion } from "motion/react";
       if (mediaType === "3d-tour") {
   if (!objectName) return alert("Enter an object name");
 
-  // Upload zip to Cloudinary
-  const zipUrl = await uploadToCloudinary(uploadedFile);
+  // ✅ Use raw upload for zip — guarantees a public, directly downloadable URL
+  const zipUrl = await uploadZipToCloudinary(uploadedFile);
 
   const { error } = await supabase.from("model_jobs").insert([{
     id: crypto.randomUUID(),

@@ -178,7 +178,47 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
             "--output_path", str(UNDISTORTED_OUT),
             "--output_type", "COLMAP",
         ], capture_output=True, text=True)
+        # ── Step 7b: Convert sparse model to text format ──────────────────────────────
+        # Debug: print what image_undistorter actually created
+        print("=== UNDISTORTED_OUT contents ===")
+        for root, dirs, files in os.walk(str(UNDISTORTED_OUT)):
+            print(root, files)
 
+        # image_undistorter outputs sparse/ directly (no numbered subfolder)
+        # but model_converter needs the folder containing .bin files
+        sparse_bin_dir = UNDISTORTED_OUT / "sparse"
+        if (sparse_bin_dir / "cameras.bin").exists():
+            # Files are directly in sparse/ — convert in place
+            converter_input = str(sparse_bin_dir)
+            converter_output = str(sparse_bin_dir)
+        elif (sparse_bin_dir / "0" / "cameras.bin").exists():
+            # Files are in sparse/0/
+            converter_input = str(sparse_bin_dir / "0")
+            converter_output = str(sparse_bin_dir / "0")
+        else:
+            raise FileNotFoundError(f"Cannot find cameras.bin under {sparse_bin_dir}")
+
+        result_conv = subprocess.run([
+            "colmap", "model_converter",
+            "--input_path",  converter_input,
+            "--output_path", converter_output,
+            "--output_type", "TXT",
+        ], capture_output=True, text=True)
+
+        print("Converter STDOUT:", result_conv.stdout)
+        print("Converter STDERR:", result_conv.stderr)
+        if result_conv.returncode != 0:
+            raise RuntimeError(f"model_converter failed: {result_conv.stderr}")
+
+        # train.py always looks for sparse/0/images.txt — ensure that structure exists
+        target_sparse_0 = UNDISTORTED_OUT / "sparse" / "0"
+        if not target_sparse_0.exists() and (UNDISTORTED_OUT / "sparse" / "images.txt").exists():
+            # Files ended up directly in sparse/ — move them into sparse/0/
+            target_sparse_0.mkdir(parents=True, exist_ok=True)
+            for f in (UNDISTORTED_OUT / "sparse").iterdir():
+                if f.is_file():
+                    f.rename(target_sparse_0 / f.name)
+            print("Moved sparse/*.txt → sparse/0/")
         # ── Step 8: Train 3DGS (65%) ───────────────────────────────────────────
         # FIX #1: bumped iterations 7000 → 30000 (full training — pruning/densification complete)
         # FIX #3: explicit -s path pointing to undistorted output, not ambiguous cwd
