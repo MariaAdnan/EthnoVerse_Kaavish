@@ -17,13 +17,14 @@ import { ContactPage } from "./components/ContactPage";
 import {PDFViewer } from "./components/PDFviewer";
 import { MediaIndex } from "./components/MediaIndex";
 import { NavigationBar } from "./components/NavigationBar";
+import { AdminGuidelines } from "./components/AdminGuidelines";
 import ModelProcessingDemo from "./components/ModelProcessing";
 
 type View = 
   | 'home' | 'explore' | 'community' | '3d-tour' | 'admin-3d-tour' | 'audio' | 'admin' | 'search'
   | 'admin-login' | 'media-upload' | 'about' | 'image-detail' | 'video'
   | 'add-community' | 'contact' | 'pdf' | 'media-index'
-  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing';
+  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing' | 'admin-guidelines';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -146,6 +147,7 @@ const [searchQuery, setSearchQuery] = useState("");
         {currentView.startsWith('model-processing') && (
           <ModelProcessingDemo onNavigate={handleNavigate} view={currentView} />
         )}
+        {currentView === 'admin-guidelines' && <AdminGuidelines onNavigate={handleNavigate} />}
       </main>
     </div>
   );

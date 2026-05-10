@@ -1,6 +1,6 @@
 // src/app/components/AdminDashboard.tsx
 import { motion } from "motion/react";
-import { Box, Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
+import { Box, Upload, Edit2, Trash2, Users, Database, Plus, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { 
   getDashboardStats, 
@@ -191,6 +191,20 @@ useEffect(() => {
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 OPEN 3D TOUR EDITOR
+              </span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate('admin-guidelines')}
+            className="w-full border-2 border-foreground bg-transparent hover:bg-foreground/10 transition-all p-6 group"
+          >
+            <div className="flex items-center justify-center gap-4">
+              <BookOpen className="w-5 h-5" />
+              <span
+                style={{ fontFamily: "'Space Mono', monospace" }}
+              >
+                3D RECONSTRUCTION GUIDELINES
               </span>
             </div>
           </button>
