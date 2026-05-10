@@ -1,3 +1,4 @@
+// src/app/components/ThreeDTourViewer.tsx
 import { motion } from "motion/react";
 import { Move, RotateCw, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import React from "react";
@@ -10,11 +11,13 @@ interface ThreeDTourViewerProps {
 export function ThreeDTourViewer({ onNavigate, isAdmin = false }: ThreeDTourViewerProps) {
   return (
 <div className="min-h-screen bg-black relative">      {/* 3D TOUR */}
-      <iframe
-        src={isAdmin ? "/3d-tour/index.html?mode=admin" : "/3d-tour/index.html"}
-        className="w-full h-screen border-none"
-        allow="fullscreen"
-      />
+<iframe
+  src={isAdmin 
+    ? `/3d-tour/index.html?mode=admin&community=2c0e586a-3685-4135-8107-b442cdd22d73` 
+    : `/3d-tour/index.html`}
+  className="w-full h-screen border-none"
+  allow="fullscreen"
+/>
 
       {/* EXIT BUTTON */}
       <div className="fixed top-6 left-6 z-50">

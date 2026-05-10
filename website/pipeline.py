@@ -8,11 +8,6 @@ from pathlib import Path
 
 import modal
 
-# ── Modal image ────────────────────────────────────────────────────────────────
-# Key insight: diff-gaussian-rasterization is a CUDA extension that must be
-# compiled ON a GPU machine (not during image build which has no GPU/CUDA).
-# So we only pre-install system tools + pure-Python packages here.
-# The GS repo is cloned into the image so it's available at runtime.
 volume = modal.Volume.from_name("ethnoverse-ply-storage", create_if_missing=True)
 image = (
     modal.Image.from_registry(
@@ -21,8 +16,6 @@ image = (
     )
     .env({
         "CUDA_HOME": "/usr/local/cuda",
-        # Tell PyTorch exactly which GPU arch to compile for.
-        # T4 = 7.5. Without this, arch_list is empty at build time → crash.
         "TORCH_CUDA_ARCH_LIST": "7.5",
     })
     .apt_install(
@@ -43,15 +36,12 @@ image = (
         "git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
         "pip install setuptools>=68 wheel",
         "pip install numpy==1.26.4 supabase cloudinary requests pycolmap plyfile tqdm Pillow scipy fastapi opencv-python-headless",
-        # Pass arch explicitly here too, in case env isn't inherited by subprocess
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/diff-gaussian-rasterization",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/simple-knn",
     )
 )
 
 app = modal.App("ethnoverse-3dgs", image=image)
-
-# Secrets stored in Modal dashboard (created via `modal secret create`)
 secrets = [modal.Secret.from_name("ethnoverse-secrets")]
 
 
@@ -59,14 +49,12 @@ def update_job(supabase, job_id: str, **kwargs):
     supabase.table("model_jobs").update(kwargs).eq("id", job_id).execute()
 
 
-# ── GPU function ───────────────────────────────────────────────────────────────
-
 @app.function(
     gpu="T4",
-    timeout=60 * 90,
+    timeout=60 * 120,           # bumped to 120 min — 30k iterations takes longer
     secrets=secrets,
     ephemeral_disk=524288,
-    volumes={"/mnt/ply_storage": volume},   # ← mount the volume
+    volumes={"/mnt/ply_storage": volume},
 )
 def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: str):
     import shutil
@@ -76,7 +64,6 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
     import pycolmap
     from supabase import create_client
 
-    # Clients
     supabase = create_client(
         os.environ["SUPABASE_URL"],
         os.environ["SUPABASE_KEY"],
@@ -104,7 +91,8 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
             folder.mkdir(parents=True, exist_ok=True)
         if DB_PATH.exists():
             DB_PATH.unlink()
-        # ── Step 3: Download video (10%) ───────────────────────────────────────
+
+        # ── Step 2: Download video (10%) ───────────────────────────────────────
         update_job(supabase, job_id, progress=10, message="Downloading video")
 
         r = requests.get(video_url, stream=True)
@@ -114,12 +102,13 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
                 f.write(chunk)
         print(f"Downloaded video → {VIDEO_PATH}")
 
-        # ── Step 4: Extract frames (15%) ───────────────────────────────────────
+        # ── Step 3: Extract frames (15%) ───────────────────────────────────────
+        # FIX #2: bumped fps from 5 → 12 for better COLMAP overlap on handheld video
         update_job(supabase, job_id, progress=15, message="Extracting frames")
 
         subprocess.run([
             "ffmpeg", "-i", str(VIDEO_PATH),
-            "-vf", "fps=12",
+            "-vf", "fps=12",                    # was fps=5 — too sparse for handheld rotation
             str(FRAMES / "frame_%04d.jpg"),
         ], check=True)
 
@@ -131,15 +120,15 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
         if not input_path.exists():
             shutil.copytree(str(FRAMES), str(input_path))
 
-        # ── Step 5: COLMAP feature extraction (25%) ────────────────────────────
+        # ── Step 4: COLMAP feature extraction (25%) ────────────────────────────
         update_job(supabase, job_id, progress=25, message="Running COLMAP feature extraction")
         pycolmap.extract_features(database_path=DB_PATH, image_path=FRAMES)
 
-        # ── Step 6: Match features (40%) ──────────────────────────────────────
+        # ── Step 5: Match features (40%) ──────────────────────────────────────
         update_job(supabase, job_id, progress=40, message="Matching features")
         pycolmap.match_exhaustive(database_path=DB_PATH)
 
-        # ── Step 7: Sparse reconstruction (55%) ───────────────────────────────
+        # ── Step 6: Sparse reconstruction (55%) ───────────────────────────────
         update_job(supabase, job_id, progress=55, message="Sparse reconstruction")
         maps = pycolmap.incremental_mapping(
             database_path=DB_PATH,
@@ -148,7 +137,27 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
         )
         print(f"Reconstructed {len(maps)} model(s)")
 
-        # ── Step 8: Undistort images (60%) ────────────────────────────────────
+        # FIX #4: validate COLMAP actually registered enough images
+        if not maps:
+            raise RuntimeError("COLMAP produced no reconstructions")
+
+        best_map = max(maps.values(), key=lambda m: len(m.images))
+        registered = len(best_map.images)
+        print(f"COLMAP registered {registered} images (best reconstruction)")
+
+        if registered < 10:
+            raise RuntimeError(
+                f"COLMAP only registered {registered} images — "
+                "reconstruction too sparse to train. Try better lighting or slower camera movement."
+            )
+        print(f"COLMAP registered {registered} images")
+        if not maps or registered < 10:
+            raise RuntimeError(
+                f"COLMAP only registered {registered} images — "
+                "reconstruction too sparse to train. Try better lighting or slower camera movement."
+            )
+
+        # ── Step 7: Undistort images (60%) ────────────────────────────────────
         update_job(supabase, job_id, progress=60, message="Converting COLMAP output")
 
         UNDISTORTED_OUT = BASE / "undistorted"
@@ -167,9 +176,8 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
         if result.returncode != 0:
             raise Exception(f"image_undistorter failed: {result.stderr[-500:]}")
 
-        # Fix sparse/0/ layout that train.py expects: copy bins + convert to TXT
-        UNDIST_SPARSE    = UNDISTORTED_OUT / "sparse"
-        UNDIST_SPARSE_0  = UNDIST_SPARSE / "0"
+        UNDIST_SPARSE   = UNDISTORTED_OUT / "sparse"
+        UNDIST_SPARSE_0 = UNDIST_SPARSE / "0"
         UNDIST_SPARSE_0.mkdir(parents=True, exist_ok=True)
 
         for f in ["cameras.bin", "images.bin", "points3D.bin"]:
@@ -186,14 +194,16 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
             "--output_type", "TXT",
         ], check=True)
 
-        # ── Step 9: Train 3DGS (65%) ───────────────────────────────────────────
-        update_job(supabase, job_id, progress=65, message="Training 3DGS (~4 min)")
+        # ── Step 8: Train 3DGS (65%) ───────────────────────────────────────────
+        # FIX #1: bumped iterations 7000 → 30000 (full training — pruning/densification complete)
+        # FIX #3: explicit -s path pointing to undistorted output, not ambiguous cwd
+        update_job(supabase, job_id, progress=65, message="Training 3DGS (~15-20 min)")
 
         result = subprocess.run([
             "python", str(GS_REPO / "train.py"),
-            "-s", str(UNDISTORTED_OUT),
+            "-s", str(UNDISTORTED_OUT),         # FIX #3: explicit, correct source path
             "-m", str(MODEL_OUT),
-            "--iterations", "7000",
+            "--iterations", "30000",             # FIX #1: was 7000 — floaters never pruned at 7k
         ], capture_output=True, text=True)
 
         print("STDOUT:", result.stdout[-2000:])
@@ -203,27 +213,30 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
 
         print("✅ Training complete!")
 
-        # ── Step 10: Save .ply to Modal Volume (90%) ──────────────────────────
+        # ── Step 9: Save .ply to Modal Volume (90%) ───────────────────────────
         update_job(supabase, job_id, progress=90, message="Saving model to storage")
 
-        ply_path = MODEL_OUT / "point_cloud" / "iteration_7000" / "point_cloud.ply"
+        ply_path = MODEL_OUT / "point_cloud" / "iteration_30000" / "point_cloud.ply"
         if not ply_path.exists():
-            raise FileNotFoundError(f".ply not found at {ply_path}")
+            # fallback: find whatever iteration folder was created
+            candidates = list((MODEL_OUT / "point_cloud").glob("iteration_*/*.ply"))
+            if not candidates:
+                raise FileNotFoundError(f"No .ply found under {MODEL_OUT / 'point_cloud'}")
+            ply_path = sorted(candidates)[-1]   # take highest iteration
+            print(f"Using fallback ply: {ply_path}")
 
-        # Copy into the volume
         dest_dir = Path(f"/mnt/ply_storage/{object_name}")
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_path = dest_dir / "point_cloud.ply"
         shutil.copy(str(ply_path), str(dest_path))
-        volume.commit()   # flush writes to the volume
+        volume.commit()
 
-        # Store the volume path in Supabase so we can serve it later
         model_path = f"{object_name}/point_cloud.ply"
 
-        # ── Step 11: Mark done (100%) ──────────────────────────────────────────
+        # ── Step 10: Mark done (100%) ──────────────────────────────────────────
         update_job(supabase, job_id,
-                status="done", progress=100,
-                message="Complete", model_url=model_path)   # store path, not URL
+                   status="done", progress=100,
+                   message="Complete", model_url=model_path)
 
         supabase.table("communities").update({
             "tour_url": model_path
@@ -255,17 +268,15 @@ def download_ply(object_name: str):
         media_type="application/octet-stream",
         headers={
             "Content-Disposition": f'attachment; filename="{object_name}_point_cloud.ply"',
-            "Access-Control-Allow-Origin": "*",   # ← add this
+            "Access-Control-Allow-Origin": "*",
         }
     )
+
+
 # ── Webhook endpoint ───────────────────────────────────────────────────────────
 @app.function(secrets=secrets)
 @modal.web_endpoint(method="POST")
 def webhook(payload: dict):
-    """
-    Supabase Database Webhook calls this on every model_jobs INSERT.
-    Payload: { "type": "INSERT", "record": { ...row... } }
-    """
     record = payload.get("record", {})
 
     job_id       = record.get("id")
@@ -280,7 +291,6 @@ def webhook(payload: dict):
     if not all([job_id, video_url, object_name, community_id]):
         return {"ok": False, "error": "Missing required fields", "record": record}
 
-    # Spawn GPU job — webhook returns immediately, pipeline runs in background
     run_pipeline.spawn(
         job_id=job_id,
         video_url=video_url,
