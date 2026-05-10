@@ -200,8 +200,10 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
       </div>
     );
   }
-
-  // ── Completed view ─────────────────────────────────────────────────────────
+// ── Completed view ─────────────────────────────────────────────────────────
+const downloadUrl = job.model_url
+  ? `https://afifah-uzair-19--ethnoverse-3dgs-download-ply.modal.run?object_name=${job.object_name}`
+  : null;
   return (
     <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
       <div className="fixed top-8 left-8 z-50">
@@ -266,28 +268,18 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center flex-wrap">
-          {job.model_url && (
-            <>
-              <a
-                href={job.model_url}
-                download
-                className="px-8 py-3 bg-[#1A1A1A] text-[#F5F1E8] rounded hover:bg-[#1A1A1A]/90 transition-colors"
-                style={{ fontFamily: 'Space Mono, monospace' }}
-              >
-                DOWNLOAD .PLY FILE
-              </a>
-              <a
-                href={job.model_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-8 py-3 bg-transparent text-[#1A1A1A] border-2 border-[#1A1A1A] rounded hover:bg-[#1A1A1A]/5 transition-colors"
-                style={{ fontFamily: 'Space Mono, monospace' }}
-              >
-                VIEW IN 3D SPACE
-              </a>
-            </>
-          )}
-        </div>
+  {downloadUrl && (
+    <a
+      href={downloadUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-8 py-3 bg-[#1A1A1A] text-[#F5F1E8] rounded hover:bg-[#1A1A1A]/90 transition-colors"
+      style={{ fontFamily: 'Space Mono, monospace' }}
+    >
+      DOWNLOAD .PLY FILE
+    </a>
+  )}
+</div>
       </div>
     </div>
   );
