@@ -19,7 +19,6 @@ image = (
         "TORCH_CUDA_ARCH_LIST": "7.5",
     })
     .apt_install(
-        "ffmpeg",
         "colmap",
         "git",
         "build-essential",
@@ -56,8 +55,9 @@ def update_job(supabase, job_id: str, **kwargs):
     ephemeral_disk=524288,
     volumes={"/mnt/ply_storage": volume},
 )
-def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: str):
+def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_id: str):
     import shutil
+    import zipfile
     import requests
     import cloudinary
     import cloudinary.uploader
@@ -85,37 +85,51 @@ def run_pipeline(job_id: str, video_url: str, object_name: str, community_id: st
         SPARSE_OUT = BASE / "sparse"
         DB_PATH    = BASE / f"colmap/{object_name}/database.db"
         MODEL_OUT  = Path(f"/tmp/output/{object_name}")
-        VIDEO_PATH = BASE / f"{object_name}.mp4"
+        ZIP_PATH   = BASE / f"{object_name}.zip"
 
         for folder in [FRAMES, SPARSE_OUT, DB_PATH.parent, MODEL_OUT]:
             folder.mkdir(parents=True, exist_ok=True)
         if DB_PATH.exists():
             DB_PATH.unlink()
 
-        # ── Step 2: Download video (10%) ───────────────────────────────────────
-        update_job(supabase, job_id, progress=10, message="Downloading video")
+        # ── Step 2: Download zip (10%) ─────────────────────────────────────────
+        update_job(supabase, job_id, progress=10, message="Downloading images zip")
 
-        r = requests.get(video_url, stream=True)
+        r = requests.get(images_zip_url, stream=True)
         r.raise_for_status()
-        with open(VIDEO_PATH, "wb") as f:
+        with open(ZIP_PATH, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-        print(f"Downloaded video → {VIDEO_PATH}")
+        print(f"Downloaded zip → {ZIP_PATH}")
 
-        # ── Step 3: Extract frames (15%) ───────────────────────────────────────
-        # FIX #2: bumped fps from 5 → 12 for better COLMAP overlap on handheld video
-        update_job(supabase, job_id, progress=15, message="Extracting frames")
+        # ── Step 3: Extract images (15%) ───────────────────────────────────────
+        update_job(supabase, job_id, progress=15, message="Extracting images")
 
-        subprocess.run([
-            "ffmpeg", "-i", str(VIDEO_PATH),
-            "-vf", "fps=12",                    # was fps=5 — too sparse for handheld rotation
-            str(FRAMES / "frame_%04d.jpg"),
-        ], check=True)
+        with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+            for member in zf.namelist():
+                # Skip macOS metadata and non-image files
+                if '__MACOSX' in member or member.startswith('.'):
+                    continue
+                lower = member.lower()
+                if not any(lower.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']):
+                    continue
+                # Flatten — strip any subdirectory, write directly into FRAMES
+                filename = Path(member).name
+                if not filename:
+                    continue
+                dest = FRAMES / filename
+                with zf.open(member) as src, open(dest, 'wb') as dst:
+                    dst.write(src.read())
 
-        frame_count = len(list(FRAMES.glob("*.jpg")))
-        print(f"Extracted {frame_count} frames")
+        frame_count = len(list(FRAMES.glob("*")))
+        print(f"Extracted {frame_count} images")
 
-        # Copy frames to input/ (gaussian-splatting expects this layout)
+        if frame_count < 10:
+            raise RuntimeError(
+                f"Only {frame_count} images found in zip — need at least 10 for a good reconstruction."
+            )
+
+        # Copy images to input/ (gaussian-splatting expects this layout)
         input_path = BASE / "input"
         if not input_path.exists():
             shutil.copytree(str(FRAMES), str(input_path))
@@ -279,21 +293,21 @@ def download_ply(object_name: str):
 def webhook(payload: dict):
     record = payload.get("record", {})
 
-    job_id       = record.get("id")
-    video_url    = record.get("video_url")
-    object_name  = record.get("object_name")
-    community_id = record.get("community_id")
-    status       = record.get("status")
+    job_id          = record.get("id")
+    images_zip_url  = record.get("images_zip_url")
+    object_name     = record.get("object_name")
+    community_id    = record.get("community_id")
+    status          = record.get("status")
 
     if status != "queued":
         return {"ok": True, "skipped": True, "reason": f"status={status}"}
 
-    if not all([job_id, video_url, object_name, community_id]):
+    if not all([job_id, images_zip_url, object_name, community_id]):
         return {"ok": False, "error": "Missing required fields", "record": record}
 
     run_pipeline.spawn(
         job_id=job_id,
-        video_url=video_url,
+        images_zip_url=images_zip_url,
         object_name=object_name,
         community_id=community_id,
     )

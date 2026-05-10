@@ -121,13 +121,13 @@ import { motion } from "motion/react";
       if (mediaType === "3d-tour") {
   if (!objectName) return alert("Enter an object name");
 
-  // Upload video to Cloudinary first
-  const videoUrl = await uploadToCloudinary(uploadedFile);
+  // Upload zip to Cloudinary
+  const zipUrl = await uploadToCloudinary(uploadedFile);
 
   const { error } = await supabase.from("model_jobs").insert([{
     id: crypto.randomUUID(),
     community_id: community,
-    video_url: videoUrl,
+    images_zip_url: zipUrl,
     object_name: objectName,
     status: "queued",
     progress: 0,
@@ -240,7 +240,7 @@ import { motion } from "motion/react";
                     type="file"
                     accept={
   mediaType === "audio" ? "audio/*" :
-  mediaType === "3d-tour" ? "video/*" :
+  mediaType === "3d-tour" ? ".zip" :
   "image/*"
 }
                     onChange={handleFileInput}
@@ -272,6 +272,8 @@ import { motion } from "motion/react";
                       <p className="text-sm opacity-60 mb-4">
                         {mediaType === "audio"
                           ? "Audio Files"
+                          : mediaType === "3d-tour"
+                          ? "ZIP of Images"
                           : "Image Files"}
                       </p>
                       <p className="text-xs opacity-40">
@@ -468,7 +470,7 @@ import { motion } from "motion/react";
       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
     />
     <p className="text-xs opacity-40 mt-2" style={{ fontFamily: "'Space Mono', monospace" }}>
-      Used as the folder name in the pipeline output
+      Used as the folder name in the pipeline output. Upload a .zip of your images above.
     </p>
   </div>
 )}
