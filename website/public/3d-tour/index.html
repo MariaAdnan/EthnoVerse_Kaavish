@@ -8,21 +8,52 @@
             html, body { width: 100%; height: 100%; overflow: hidden; background: #e8d4b0; }
             #container3D { width: 100%; height: 100%; }
             canvas { display: block; }
+
+            /* CSS2D label styles */
+            .label3d {
+                color: white;
+                font-family: sans-serif;
+                background: rgba(0, 0, 0, 0.65);
+                padding: 8px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(255,255,255,0.15);
+                pointer-events: none;
+                max-width: 340px;
+                min-width: 220px;
+                backdrop-filter: blur(6px);
+                transition: opacity 0.3s ease;
+            }
+            .label3d strong {
+                display: block;
+                font-size: 13px;
+                font-weight: 600;
+                margin-bottom: 4px;
+                color: #f0c97a;
+            }
+            .label3d p {
+                font-size: 11px;
+                line-height: 1.4;
+                opacity: 0.85;
+                margin: 0;
+            }
         </style>
     </head>
     <body>
         <main>
-            <div id="container3D"> <button id="timeSwitch" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 10px 20px; cursor: pointer; border-radius: 20px; border: none; background: #333; color: white; font-family: sans-serif;">
-  Switch to Night
-</button></div>
+            <div id="container3D">
+                <button id="timeSwitch" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 10px 20px; cursor: pointer; border-radius: 20px; border: none; background: #333; color: white; font-family: sans-serif;">
+                    Switch to Night
+                </button>
+            </div>
         </main>
-        
+
         <script type="importmap">
         {
             "imports": {
-            "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.178.0/three.module.js",
-            "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/loaders/GLTFLoader.js",
-            "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js"
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.178.0/three.module.js",
+                "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/loaders/GLTFLoader.js",
+                "three/examples/jsm/renderers/CSS2DRenderer.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/renderers/CSS2DRenderer.js",
+                "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js"
             }
         }
         </script>

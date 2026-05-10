@@ -1,6 +1,7 @@
 // to maria and afifah: watch this: https://youtu.be/lGokKxJ8D2c?si=Ye0FsN33LdLfcbYM
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { SplatMesh } from "@sparkjsdev/spark";
 
 const raycaster = new THREE.Raycaster();
@@ -11,6 +12,39 @@ scene.fog = new THREE.Fog(0xe8d4b0, 30, 50);
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 let object;
 const loader = new GLTFLoader();
+
+// ── CSS2D label renderer ───────────────────────────────────────────────────
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+document.getElementById('container3D').appendChild(labelRenderer.domElement);
+
+const LABEL_DISTANCE = 2.5;
+const allLabels = [];
+
+function makeLabel(title, description, worldX, worldY, worldZ, offsetX = 0, offsetY = 0, offsetZ = 0) {
+  if (!title) return null;
+  const div = document.createElement('div');
+  div.className = 'label3d';
+  div.innerHTML = `<strong>${title}</strong>${description ? `<p>${description}</p>` : ''}`;
+  div.style.opacity = '0';
+  const anchor = new THREE.Object3D();
+  anchor.position.set(worldX + offsetX, worldY + offsetY, worldZ + offsetZ);
+  scene.add(anchor);
+  const obj = new CSS2DObject(div);
+  obj.position.set(0, 0, 0);
+  anchor.add(obj);
+  // proximityPos is the group world position (no offset) used for distance check
+  const proximityPos = new THREE.Vector3(worldX, worldY, worldZ);
+  allLabels.push({ obj, div, anchor, proximityPos });
+  return anchor;
+}
+
+function updateLabelHeights() {
+  for (const { obj, anchor } of allLabels) {
+    obj.position.y = camera.position.y - anchor.position.y;
+  }
+}
 
 loader.load(`desert-v1.glb`, function (gltf) {
   object = gltf.scene;
@@ -26,18 +60,17 @@ loader.load(`desert-v1.glb`, function (gltf) {
   });
   scene.add(object);
 
-  const testBox = new SplatMesh({ url: "box.ply" });
-testBox.position.set(0, -1, -3); // right in front of spawn point
-testBox.scale.set(1, 1, 1);
-testBox.rotation.set(Math.PI, 0, 0, 'XYZ');
-scene.add(testBox);
-
   const matkaRotation = [Math.PI, 0, 0];
   const matka = new SplatMesh({ url: "matka.ply" });
   matka.position.set(1.5, -3.7, -2.8);
   matka.scale.set(2, 2, 2);
   matka.rotation.set(...matkaRotation, 'XYZ');
   scene.add(matka);
+  makeLabel(
+    'Matka (Clay Pot)',
+    'A handcrafted earthen pot used primarily for storing and cooling water through natural evaporation. Reflects sustainable living practices and indigenous pottery techniques.',
+    1.2, -3.3, -2.5
+  );
 
   const matka2 = new SplatMesh({ url: "matka.ply" });
   matka2.position.set(1, -3.3, -2.5);
@@ -114,6 +147,13 @@ loader.load(`hut.glb`, function (gltf) {
       }
     });
     scene.add(hut);
+    // No label for hut 1 (contains the outfit — labelled separately)
+    if (pos.x === 5 && pos.z === -5) return;
+    makeLabel(
+      'Tribal Hut',
+      'A traditional dwelling constructed using locally sourced materials such as mud, thatch, and wooden branches. Reflects indigenous architectural knowledge, emphasizing sustainability and thermal comfort.',
+      pos.x, pos.y, pos.z
+    );
   });
 
   // Outfit centered in hut 1
@@ -122,39 +162,36 @@ loader.load(`hut.glb`, function (gltf) {
   outfit.scale.set(0.3, 0.3, 0.3);
   outfit.rotation.set(0.354, -0.4, 0, 'ZYX');
   scene.add(outfit);
+  makeLabel(
+    'Traditional Kameez',
+    'A loose, long tunic worn by women, typically paired with shalwar or trousers. Varies in fabric, embroidery, and style, representing cultural identity, regional aesthetics, and social customs.',
+    5.5, -0.4, -5
+  );
 
-  // Bangles — both types placed together inside hut 4 (x:-5, z:8)
-  const bangles2 = new SplatMesh({ url: "bangles2-2.ply" });
-  bangles2.position.set(-5.0, -2, 8.2);
-  bangles2.scale.set(0.4, 0.4, 0.4);
-  bangles2.rotation.set(0, 0, Math.PI / 2, 'XYZ'); // lay flat
-  scene.add(bangles2);
-
-  const bangles1 = new SplatMesh({ url: "bangles1__1_-2.ply" });
-  bangles1.position.set(-4.0, 3, 8.2);
-  bangles1.scale.set(0.4, 0.4, 0.4);
-  bangles1.rotation.set(0, 0.3, Math.PI / 2, 'XYZ'); // lay flat, slightly rotated
-  scene.add(bangles1);
-
-  // Charpai outside hut 2 — darkened and rotated left
+  // Charpai outside hut 2
   const charpaiLoader = new GLTFLoader();
   charpaiLoader.load('char_pai.glb', (gltf) => {
     const charpai = gltf.scene;
     charpai.position.set(0, -1.5, -8.5);
-    charpai.rotation.y = Math.PI / 2;  // rotated left
+    charpai.rotation.y = Math.PI / 2;
     charpai.scale.set(1.5, 1.5, 1.5);
     charpai.traverse((child) => {
       if (child.isMesh) {
         child.material = child.material.clone();
-        child.material.color.multiplyScalar(0.45); // darken
+        child.material.color.multiplyScalar(0.45);
         child.material.roughness = 1.0;
         child.material.metalness = 0.0;
       }
     });
     scene.add(charpai);
+    makeLabel(
+      "Chaarpa'i",
+      'A traditional woven bed made from a wooden frame and interlaced ropes or fibers. Used for sleeping, sitting, and social gatherings, often placed outdoors in open spaces.',
+      0, -1.5, -8.5
+    );
   });
 
-  // Oak trees — 2 clusters in different areas
+  // Oak trees
   const treeLoader = new GLTFLoader();
   const treePositions = [
     { x: -15, y: -2.0, z: 2,   scale: 0.04,  rot: 0 },
@@ -172,7 +209,7 @@ loader.load(`hut.glb`, function (gltf) {
         if (child.isMesh) {
           child.material = child.material.clone();
           const sandyTint = new THREE.Color(0xe8d4b0);
-          child.material.color.lerp(sandyTint, 0.45); // sandy desert tint
+          child.material.color.lerp(sandyTint, 0.45);
           child.material.roughness = 1.0;
           child.material.metalness = 0.0;
         }
@@ -181,7 +218,7 @@ loader.load(`hut.glb`, function (gltf) {
     });
   });
 
-  // Bushes — scattered in several spots at varying sizes
+  // Bushes
   const bushLoader = new GLTFLoader();
   const bushPositions = [
     { x: 8,   y: -2.0, z: 2,   scale: 0.28, rot: 0 },
@@ -203,7 +240,7 @@ loader.load(`hut.glb`, function (gltf) {
         if (child.isMesh) {
           child.material = child.material.clone();
           const sandyTint = new THREE.Color(0xe8d4b0);
-          child.material.color.lerp(sandyTint, 0.4); // sandy desert tint
+          child.material.color.lerp(sandyTint, 0.4);
           child.material.roughness = 1.0;
           child.material.metalness = 0.0;
         }
@@ -295,12 +332,27 @@ function animate() {
   if (moveW || moveS || moveA || moveD) {
     console.log(`My Position - X: ${camera.position.x.toFixed(2)}, Z: ${camera.position.z.toFixed(2)}`);
   }
+
+  updateLabelHeights();
+  const camPos = camera.position;
+  for (const { obj, div, anchor, proximityPos } of allLabels) {
+    const worldPos = proximityPos ?? anchor.position;
+    const dx = camPos.x - worldPos.x;
+    const dz = camPos.z - worldPos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const opacity = dist < LABEL_DISTANCE ? Math.min(1, (LABEL_DISTANCE - dist) / 0.5) : 0;
+    div.style.opacity = opacity.toFixed(3);
+  }
+
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
 }
+
 window.addEventListener("resize", function () {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 let isNight = false;
@@ -345,12 +397,12 @@ const SUPABASE_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
 
 const urlParams = new URLSearchParams(window.location.search);
 const isAdmin = urlParams.get('mode') === 'admin';
-const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE'; // fill in fallback UUID
+const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
 
 // ── Load saved objects on startup ──────────────────────────────────────────
 async function loadSavedObjects() {
   if (!COMMUNITY_ID || COMMUNITY_ID === 'YOUR_ACTUAL_UUID_HERE') {
-    console.warn('[loadSavedObjects] No community_id in URL — skipping. Add ?community=YOUR_UUID to the URL.');
+    console.warn('[loadSavedObjects] No community_id in URL — skipping.');
     return;
   }
 
@@ -383,6 +435,14 @@ async function loadSavedObjects() {
       group.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
       group.add(mesh);
       scene.add(group);
+
+      if (row.label_title) {
+        makeLabel(
+          row.label_title,
+          row.label_description ?? '',
+          row.position_x, row.position_y, row.position_z
+        );
+      }
     } else {
       const gltfLoader = new GLTFLoader();
       gltfLoader.load(row.object_url, (gltf) => {
@@ -398,7 +458,7 @@ async function loadSavedObjects() {
 loadSavedObjects();
 
 // ── Save a placed object to Supabase ──────────────────────────────────────
-async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0, offsetX = 0, offsetY = 0, offsetZ = 0 }) {
+async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0, offsetX = 0, offsetY = 0, offsetZ = 0, labelTitle = '', labelDescription = '' }) {
   const body = {
     community_id: COMMUNITY_ID,
     object_name: objectName,
@@ -414,6 +474,8 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
     offset_x: offsetX,
     offset_y: offsetY,
     offset_z: offsetZ,
+    label_title: labelTitle || null,
+    label_description: labelDescription || null,
   };
   console.log('[saveObjectToSupabase] saving:', body);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/tour_objects`, {
@@ -433,7 +495,7 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
 // ── Admin UI (only shown when ?mode=admin) ─────────────────────────────────
 if (isAdmin) {
   let awaitingPlacement = false;
-  let pendingObject = null; // { type, url, scene? }
+  let pendingObject = null;
 
   const insertBtn = document.createElement('button');
   insertBtn.innerText = '+ Insert Object';
@@ -452,7 +514,6 @@ if (isAdmin) {
   document.body.appendChild(fileInput);
 
   const banner = document.createElement('div');
-  banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
   banner.style.cssText = `
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     z-index: 999; padding: 12px 24px; background: rgba(0,0,0,0.7); color: white;
@@ -462,48 +523,107 @@ if (isAdmin) {
 
   insertBtn.addEventListener('click', () => fileInput.click());
 
-fileInput.addEventListener('change', async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  async function computePlyCentroid(file) {
+    const buffer = await file.arrayBuffer();
+    const text = new TextDecoder().decode(buffer.slice(0, 2048));
+    const headerEnd = text.indexOf('end_header');
+    if (headerEnd === -1) return { x: 0, y: 0, z: 0 };
+    const header = text.slice(0, headerEnd);
+    const isBinary = header.includes('binary_little_endian') || header.includes('binary_big_endian');
+    const isBigEndian = header.includes('binary_big_endian');
+    const vertexMatch = header.match(/element vertex (\d+)/);
+    if (!vertexMatch) return { x: 0, y: 0, z: 0 };
+    const vertexCount = parseInt(vertexMatch[1]);
+    const props = [];
+    for (const line of header.split('\n')) {
+      const m = line.trim().match(/^property (\w+) (\w+)/);
+      if (m) props.push({ type: m[1], name: m[2] });
+    }
+    const typeSizes = { float: 4, double: 8, int: 4, uint: 4, short: 2, ushort: 2, uchar: 1, char: 1 };
+    let stride = 0, xOff = -1, yOff = -1, zOff = -1;
+    for (const p of props) {
+      const sz = typeSizes[p.type] ?? 4;
+      if (p.name === 'x') xOff = stride;
+      if (p.name === 'y') yOff = stride;
+      if (p.name === 'z') zOff = stride;
+      stride += sz;
+    }
+    if (xOff === -1 || yOff === -1 || zOff === -1) return { x: 0, y: 0, z: 0 };
+    if (isBinary) {
+      const dataStart = headerEnd + 'end_header'.length + 1;
+      const data = new DataView(buffer, dataStart);
+      let sumX = 0, sumY = 0, sumZ = 0, count = 0;
+      const step = Math.max(1, Math.floor(vertexCount / 5000));
+      for (let i = 0; i < vertexCount; i += step) {
+        const base = i * stride;
+        sumX += data.getFloat32(base + xOff, !isBigEndian);
+        sumY += data.getFloat32(base + yOff, !isBigEndian);
+        sumZ += data.getFloat32(base + zOff, !isBigEndian);
+        count++;
+      }
+      return { x: sumX / count, y: sumY / count, z: sumZ / count };
+    } else {
+      const lines = new TextDecoder().decode(buffer).split('\n');
+      const dataIdx = lines.findIndex(l => l.trim() === 'end_header') + 1;
+      let sumX = 0, sumY = 0, sumZ = 0, count = 0;
+      const step = Math.max(1, Math.floor(vertexCount / 5000));
+      for (let i = 0; i < vertexCount; i += step) {
+        const parts = lines[dataIdx + i]?.trim().split(/\s+/);
+        if (!parts || parts.length < 3) continue;
+        sumX += parseFloat(parts[0]);
+        sumY += parseFloat(parts[1]);
+        sumZ += parseFloat(parts[2]);
+        count++;
+      }
+      return count > 0 ? { x: sumX / count, y: sumY / count, z: sumZ / count } : { x: 0, y: 0, z: 0 };
+    }
+  }
 
-  const objectName = file.name.replace(/\.ply$/i, '');
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const objectName = file.name.replace(/\.ply$/i, '');
+    banner.innerText = '⏳ Reading file...';
+    banner.style.display = 'block';
+    insertBtn.style.opacity = '0.5';
+    const centroid = await computePlyCentroid(file);
+    const localUrl = URL.createObjectURL(file);
+    pendingObject = {
+      type: 'ply',
+      url: localUrl,
+      name: objectName,
+      file,
+      autoOffset: { x: -centroid.x, y: -centroid.y, z: -centroid.z },
+    };
+    awaitingPlacement = true;
+    banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
+    insertBtn.innerText = '(click on world to place...)';
+    insertBtn.style.opacity = '1';
+    fileInput.value = '';
+  });
 
-  // Load immediately from local blob — no upload wait
-  const localUrl = URL.createObjectURL(file);
-  pendingObject = { type: 'ply', url: localUrl, name: objectName, file };
-  awaitingPlacement = true;
-  banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
-  banner.style.display = 'block';
-  insertBtn.innerText = '(click on world to place...)';
-  fileInput.value = '';
-});
-
-  // ── Adjustment panel (shown after initial placement) ──────────────────────
+  // ── Adjustment panel ──────────────────────────────────────────────────────
   const panel = document.createElement('div');
   panel.style.cssText = `
-    position: fixed; right: 20px; top: 150px; z-index: 999;
+    position: fixed; right: 20px; top: 80px; z-index: 999;
     background: rgba(10,10,10,0.85); color: white;
     border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
     padding: 18px 20px; width: 260px; display: none;
     font-family: sans-serif; font-size: 13px; backdrop-filter: blur(6px);
+    max-height: 90vh; overflow-y: auto;
   `;
 
   function makeSlider({ label, min, max, step, value, onChange }) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-bottom: 14px;';
-
     const header = document.createElement('div');
     header.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 4px; opacity: 0.75;';
-
     const lbl = document.createElement('span');
     lbl.innerText = label;
-
     const val = document.createElement('span');
     val.innerText = Number(value).toFixed(2);
-
     header.appendChild(lbl);
     header.appendChild(val);
-
     const slider = document.createElement('input');
     slider.type = 'range';
     slider.min = min;
@@ -511,21 +631,39 @@ fileInput.addEventListener('change', async (event) => {
     slider.step = step;
     slider.value = value;
     slider.style.cssText = 'width: 100%; accent-color: #c8a96e; cursor: pointer;';
-
     slider.addEventListener('input', () => {
       val.innerText = Number(slider.value).toFixed(2);
       onChange(Number(slider.value));
     });
-
     wrap.appendChild(header);
     wrap.appendChild(slider);
     return { wrap, slider, val };
   }
 
-  // Sliders state
+  function makeTextInput({ placeholder, multiline = false }) {
+    const el = multiline ? document.createElement('textarea') : document.createElement('input');
+    if (!multiline) el.type = 'text';
+    el.placeholder = placeholder;
+    el.style.cssText = `
+      width: 100%; background: rgba(255,255,255,0.08); color: white;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: 7px 9px; font-size: 12px; font-family: sans-serif;
+      resize: ${multiline ? 'vertical' : 'none'};
+      ${multiline ? 'min-height: 70px;' : ''}
+      box-sizing: border-box; margin-bottom: 12px;
+      outline: none;
+    `;
+    // Stop keyboard events from triggering movement controls
+    el.addEventListener('keydown', (e) => e.stopPropagation());
+    el.addEventListener('keyup', (e) => e.stopPropagation());
+    return el;
+  }
+
   const sliders = {};
-  let activeMesh = null;   // the SplatMesh inside the group
-  let activeGroup = null;  // the Group that gets positioned/rotated/scaled
+  let activeMesh = null;
+  let activeGroup = null;
+  let labelTitleInput = null;
+  let labelDescInput = null;
 
   function buildPanel(pos) {
     panel.innerHTML = '';
@@ -535,7 +673,6 @@ fileInput.addEventListener('change', async (event) => {
     title.style.cssText = 'font-weight: 600; margin-bottom: 16px; font-size: 14px; letter-spacing: 0.03em;';
     panel.appendChild(title);
 
-    // Section label helper
     function sectionLabel(text) {
       const lbl = document.createElement('div');
       lbl.innerText = text;
@@ -544,35 +681,34 @@ fileInput.addEventListener('change', async (event) => {
     }
 
     sectionLabel('Position');
-    const posDefs = [
+    const defs = [
       { key: 'x', label: 'X', min: -30, max: 30, step: 0.05, value: pos.x },
       { key: 'y', label: 'Y', min: -10, max: 10, step: 0.05, value: pos.y },
       { key: 'z', label: 'Z', min: -30, max: 30, step: 0.05, value: pos.z },
     ];
-
-    sectionLabel('Scale & Rotation');
-    const transformDefs = [
-      { key: 'scale', label: 'Scale',      min: 0.01, max: 5,          step: 0.01, value: 1 },
-      { key: 'rotY',  label: 'Rotation Y', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
-      { key: 'rotX',  label: 'Rotation X', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
-    ];
-
-    sectionLabel('Origin Offset (center the object)');
-    const offsetDefs = [
-      { key: 'offX', label: 'Offset X', min: -10, max: 10, step: 0.05, value: 0 },
-      { key: 'offY', label: 'Offset Y', min: -10, max: 10, step: 0.05, value: 0 },
-      { key: 'offZ', label: 'Offset Z', min: -10, max: 10, step: 0.05, value: 0 },
-    ];
-
-    [...posDefs, ...transformDefs, ...offsetDefs].forEach(({ key, label, min, max, step, value }) => {
-      if (['x','y','z','scale','rotY','rotX'].includes(key) && key === posDefs[0]?.key) sectionLabel('Position');
-      const { wrap } = makeSlider({
-        label, min, max, step, value,
-        onChange: (v) => { sliders[key] = v; applyToMesh(); },
-      });
+    defs.forEach(({ key, label, min, max, step, value }) => {
+      const { wrap } = makeSlider({ label, min, max, step, value, onChange: (v) => { sliders[key] = v; applyToMesh(); } });
       sliders[key] = value;
       panel.appendChild(wrap);
     });
+
+    sectionLabel('Scale & Rotation');
+    const transformDefs = [
+      { key: 'scale', label: 'Scale',      min: 0.01,     max: 5,       step: 0.01, value: 1 },
+      { key: 'rotY',  label: 'Rotation Y', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
+      { key: 'rotX',  label: 'Rotation X', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
+    ];
+    transformDefs.forEach(({ key, label, min, max, step, value }) => {
+      const { wrap } = makeSlider({ label, min, max, step, value, onChange: (v) => { sliders[key] = v; applyToMesh(); } });
+      sliders[key] = value;
+      panel.appendChild(wrap);
+    });
+
+    sectionLabel('Label (optional)');
+    labelTitleInput = makeTextInput({ placeholder: 'Title e.g. Traditional Bangles' });
+    panel.appendChild(labelTitleInput);
+    labelDescInput = makeTextInput({ placeholder: 'Description (optional)', multiline: true });
+    panel.appendChild(labelDescInput);
 
     const hr = document.createElement('div');
     hr.style.cssText = 'border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;';
@@ -603,7 +739,6 @@ fileInput.addEventListener('change', async (event) => {
       cancelBtn.disabled = true;
 
       let permanentUrl = pendingObject.url;
-
       if (pendingObject.file) {
         const fileName = `${Date.now()}-${pendingObject.file.name}`;
         const uploadRes = await fetch(
@@ -619,7 +754,6 @@ fileInput.addEventListener('change', async (event) => {
             body: pendingObject.file,
           }
         );
-
         if (!uploadRes.ok) {
           console.error('Upload failed:', await uploadRes.text());
           confirmBtn.innerText = '❌ Upload failed';
@@ -627,25 +761,26 @@ fileInput.addEventListener('change', async (event) => {
           cancelBtn.disabled = false;
           return;
         }
-
         permanentUrl = `${SUPABASE_URL}/storage/v1/object/public/tour-objects/${fileName}`;
       }
 
       confirmBtn.innerText = 'Saving…';
       await saveObjectToSupabase({
-        objectUrl:  permanentUrl,
-        objectName: pendingObject.name,
-        type:       pendingObject.type,
-        x:          sliders.x,
-        y:          sliders.y,
-        z:          sliders.z,
-        scale:      sliders.scale,
-        rotationX:  sliders.rotX,
-        rotationY:  sliders.rotY,
-        rotationZ:  0,
-        offsetX:    sliders.offX,
-        offsetY:    sliders.offY,
-        offsetZ:    sliders.offZ,
+        objectUrl:        permanentUrl,
+        objectName:       pendingObject.name,
+        type:             pendingObject.type,
+        x:                sliders.x,
+        y:                sliders.y,
+        z:                sliders.z,
+        scale:            sliders.scale,
+        rotationX:        sliders.rotX,
+        rotationY:        sliders.rotY,
+        rotationZ:        0,
+        offsetX:          pendingObject.autoOffset?.x ?? 0,
+        offsetY:          pendingObject.autoOffset?.y ?? 0,
+        offsetZ:          pendingObject.autoOffset?.z ?? 0,
+        labelTitle:       labelTitleInput?.value.trim() ?? '',
+        labelDescription: labelDescInput?.value.trim() ?? '',
       });
 
       if (pendingObject.file) URL.revokeObjectURL(pendingObject.url);
@@ -664,12 +799,9 @@ fileInput.addEventListener('change', async (event) => {
 
   function applyToMesh() {
     if (!activeGroup || !activeMesh) return;
-    // Group handles world position, rotation, scale — this is the pivot point
     activeGroup.position.set(sliders.x, sliders.y, sliders.z);
     activeGroup.scale.set(sliders.scale, sliders.scale, sliders.scale);
     activeGroup.rotation.set(sliders.rotX, sliders.rotY, 0, 'XYZ');
-    // Mesh offset within group — shifts the splat so its visual center aligns with the group origin
-    activeMesh.position.set(sliders.offX, sliders.offY, sliders.offZ);
     activeGroup.matrixWorldNeedsUpdate = true;
     activeGroup.updateMatrixWorld(true);
   }
@@ -679,6 +811,8 @@ fileInput.addEventListener('change', async (event) => {
     activeGroup = null;
     pendingObject = null;
     awaitingPlacement = false;
+    labelTitleInput = null;
+    labelDescInput = null;
     panel.style.display = 'none';
     banner.style.display = 'none';
     insertBtn.innerText = '+ Insert Object';
@@ -686,16 +820,14 @@ fileInput.addEventListener('change', async (event) => {
   }
 
   document.body.appendChild(panel);
-  panel.addEventListener('click',     (e) => e.stopPropagation());
+  panel.addEventListener('click',      (e) => e.stopPropagation());
   panel.addEventListener('mousedown',  (e) => e.stopPropagation());
   panel.addEventListener('pointerdown',(e) => e.stopPropagation());
 
-  // Re-apply transforms every frame so Spark's internal renderer always picks them up
   scene.onBeforeRender = () => { if (activeGroup) applyToMesh(); };
 
   window.addEventListener('click', (event) => {
     if (!awaitingPlacement || !pendingObject) return;
-    // Ignore clicks on the panel itself
     if (panel.contains(event.target)) return;
 
     const mouse = new THREE.Vector2(
@@ -707,10 +839,9 @@ fileInput.addEventListener('change', async (event) => {
 
     if (intersects.length > 0) {
       const point = intersects[0].point;
-
-      console.log('[placement] placing at', point);
       activeMesh = new SplatMesh({ url: pendingObject.url });
-      activeMesh.position.set(0, 0, 0); // offset controlled separately
+      const ao = pendingObject.autoOffset ?? { x: 0, y: 0, z: 0 };
+      activeMesh.position.set(ao.x, ao.y, ao.z);
       activeGroup = new THREE.Group();
       activeGroup.position.set(point.x, point.y, point.z);
       activeGroup.add(activeMesh);
