@@ -348,13 +348,17 @@ async function loadSavedObjects() {
     { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
   );
   const rows = await res.json();
+  console.log('[loadSavedObjects] community_id:', COMMUNITY_ID);
+  console.log('[loadSavedObjects] rows returned:', rows);
 
   for (const row of rows) {
+    console.log('[loadSavedObjects] loading row:', row);
     if (row.type === 'ply') {
+      console.log('[loadSavedObjects] creating SplatMesh from:', row.object_url);
       const mesh = new SplatMesh({ url: row.object_url });
       mesh.position.set(row.position_x, row.position_y, row.position_z);
       mesh.scale.setScalar(row.scale);
-      mesh.rotation.set(row.rotation_x, row.rotation_y, row.rotation_z, 'XYZ');
+      mesh.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
       scene.add(mesh);
     } else {
       const gltfLoader = new GLTFLoader();
@@ -362,7 +366,7 @@ async function loadSavedObjects() {
         const obj = gltf.scene;
         obj.position.set(row.position_x, row.position_y, row.position_z);
         obj.scale.setScalar(row.scale);
-        obj.rotation.set(row.rotation_x, row.rotation_y, row.rotation_z, 'XYZ');
+        obj.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
         scene.add(obj);
       });
     }
@@ -371,17 +375,21 @@ async function loadSavedObjects() {
 loadSavedObjects();
 
 // ── Save a placed object to Supabase ──────────────────────────────────────
-async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1 }) {
+async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0 }) {
   const body = {
     community_id: COMMUNITY_ID,
-    object_name: objectName, // ← use this instead of splitting the URL
+    object_name: objectName,
     object_url: objectUrl,
     type,
     position_x: x,
     position_y: y,
     position_z: z,
     scale,
+    rotation_x: rotationX,
+    rotation_y: rotationY,
+    rotation_z: rotationZ,
   };
+  console.log('[saveObjectToSupabase] saving:', body);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/tour_objects`, {
     method: 'POST',
     headers: {
@@ -393,6 +401,7 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
     body: JSON.stringify(body),
   });
   if (!res.ok) console.error('Failed to save object', await res.text());
+  else console.log('[saveObjectToSupabase] saved OK');
 }
 
 // ── Admin UI (only shown when ?mode=admin) ─────────────────────────────────
@@ -412,7 +421,7 @@ if (isAdmin) {
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
-  fileInput.accept = '.glb,.ply';
+  fileInput.accept = '.ply';
   fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
 
@@ -431,14 +440,12 @@ fileInput.addEventListener('change', async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  const cleanName = file.name.replace(/\.[^/.]+$/, '');
-  const isPly = file.name.toLowerCase().endsWith('.ply');
+  const objectName = file.name.replace(/\.ply$/i, '');
 
   banner.innerText = '⏳ Uploading... please wait';
   banner.style.display = 'block';
   insertBtn.style.opacity = '0.5';
 
-  // Upload to Supabase Storage instead of Cloudinary
   const fileName = `${Date.now()}-${file.name}`;
   const uploadRes = await fetch(
     `${SUPABASE_URL}/storage/v1/object/tour-objects/${fileName}`,
@@ -459,33 +466,184 @@ fileInput.addEventListener('change', async (event) => {
     console.error('Upload failed', err);
     banner.innerText = '❌ Upload failed — check console';
     insertBtn.style.opacity = '1';
+    fileInput.value = '';
     return;
   }
 
   const permanentUrl = `${SUPABASE_URL}/storage/v1/object/public/tour-objects/${fileName}`;
 
-  if (isPly) {
-    pendingObject = { type: 'ply', url: permanentUrl, name: cleanName };
-    awaitingPlacement = true;
-    banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
-    insertBtn.innerText = '(click on world to place...)';
-  } else {
-    const localUrl = URL.createObjectURL(file);
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.load(localUrl, (gltf) => {
-      pendingObject = { type: 'glb', url: permanentUrl, scene: gltf.scene, name: cleanName };
-      awaitingPlacement = true;
-      banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
-      insertBtn.innerText = '(click on world to place...)';
-    });
-    return;
-  }
-
+  pendingObject = { type: 'ply', url: permanentUrl, name: objectName };
+  awaitingPlacement = true;
+  banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
+  insertBtn.innerText = '(click on world to place...)';
+  insertBtn.style.opacity = '1';
   fileInput.value = '';
 });
 
-  window.addEventListener('click', async (event) => {
+  // ── Adjustment panel (shown after initial placement) ──────────────────────
+  let activeMesh = null;
+
+  const panel = document.createElement('div');
+  panel.style.cssText = `
+    position: fixed; right: 20px; top: 150px; z-index: 999;
+    background: rgba(10,10,10,0.85); color: white;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    padding: 18px 20px; width: 260px; display: none;
+    font-family: sans-serif; font-size: 13px; backdrop-filter: blur(6px);
+  `;
+
+  function makeSlider({ label, min, max, step, value, onChange }) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom: 14px;';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display: flex; justify-content: space-between; margin-bottom: 4px; opacity: 0.75;';
+
+    const lbl = document.createElement('span');
+    lbl.innerText = label;
+
+    const val = document.createElement('span');
+    val.innerText = Number(value).toFixed(2);
+
+    header.appendChild(lbl);
+    header.appendChild(val);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = min;
+    slider.max = max;
+    slider.step = step;
+    slider.value = value;
+    slider.style.cssText = 'width: 100%; accent-color: #c8a96e; cursor: pointer;';
+
+    slider.addEventListener('input', () => {
+      val.innerText = Number(slider.value).toFixed(2);
+      onChange(Number(slider.value));
+    });
+
+    wrap.appendChild(header);
+    wrap.appendChild(slider);
+    return { wrap, slider, val };
+  }
+
+  // Sliders state
+  const sliders = {};
+
+  function buildPanel(pos) {
+    panel.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.innerText = '⚙️ Adjust Object';
+    title.style.cssText = 'font-weight: 600; margin-bottom: 16px; font-size: 14px; letter-spacing: 0.03em;';
+    panel.appendChild(title);
+
+    const defs = [
+      { key: 'x',     label: 'Position X', min: -30,  max: 30,  step: 0.05, value: pos.x },
+      { key: 'y',     label: 'Position Y', min: -10,  max: 10,  step: 0.05, value: pos.y },
+      { key: 'z',     label: 'Position Z', min: -30,  max: 30,  step: 0.05, value: pos.z },
+      { key: 'scale', label: 'Scale',      min: 0.01, max: 5,   step: 0.01, value: 1    },
+      { key: 'rotY',  label: 'Rotation Y', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
+      { key: 'rotX',  label: 'Rotation X', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
+    ];
+
+    defs.forEach(({ key, label, min, max, step, value }) => {
+      const { wrap, slider } = makeSlider({
+        label, min, max, step, value,
+        onChange: (v) => {
+          sliders[key] = v;
+          applyToMesh();
+        },
+      });
+      sliders[key] = value;
+      panel.appendChild(wrap);
+    });
+
+    // Divider
+    const hr = document.createElement('div');
+    hr.style.cssText = 'border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;';
+    panel.appendChild(hr);
+
+    // Buttons row
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display: flex; gap: 8px;';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.innerText = '✓ Save';
+    confirmBtn.style.cssText = `
+      flex: 1; padding: 9px; border-radius: 8px; border: none; cursor: pointer;
+      background: #c8a96e; color: #111; font-weight: 600; font-size: 13px;
+    `;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.innerText = 'Cancel';
+    cancelBtn.style.cssText = `
+      flex: 1; padding: 9px; border-radius: 8px; cursor: pointer;
+      background: transparent; color: white; font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.25);
+    `;
+
+    confirmBtn.addEventListener('click', async () => {
+      if (!activeMesh || !pendingObject) return;
+      confirmBtn.innerText = 'Saving…';
+      confirmBtn.disabled = true;
+
+      await saveObjectToSupabase({
+        objectUrl:  pendingObject.url,
+        objectName: pendingObject.name,
+        type:       pendingObject.type,
+        x:          sliders.x,
+        y:          sliders.y,
+        z:          sliders.z,
+        scale:      sliders.scale,
+        rotationX:  sliders.rotX,
+        rotationY:  sliders.rotY,
+        rotationZ:  0,
+      });
+
+      resetAdminState();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      if (activeMesh) scene.remove(activeMesh);
+      resetAdminState();
+    });
+
+    btnRow.appendChild(confirmBtn);
+    btnRow.appendChild(cancelBtn);
+    panel.appendChild(btnRow);
+  }
+
+  function applyToMesh() {
+    if (!activeMesh) return;
+    activeMesh.position.set(sliders.x, sliders.y, sliders.z);
+    activeMesh.scale.setScalar(sliders.scale);
+    activeMesh.rotation.set(sliders.rotX, sliders.rotY, 0, 'XYZ');
+    activeMesh.matrixWorldNeedsUpdate = true;
+    activeMesh.updateMatrixWorld(true);
+  }
+
+  function resetAdminState() {
+    activeMesh = null;
+    pendingObject = null;
+    awaitingPlacement = false;
+    panel.style.display = 'none';
+    banner.style.display = 'none';
+    insertBtn.innerText = '+ Insert Object';
+    insertBtn.style.opacity = '1';
+  }
+
+  document.body.appendChild(panel);
+  panel.addEventListener('click',     (e) => e.stopPropagation());
+  panel.addEventListener('mousedown',  (e) => e.stopPropagation());
+  panel.addEventListener('pointerdown',(e) => e.stopPropagation());
+
+  // Re-apply transforms every frame so Spark's internal renderer always picks them up
+  scene.onBeforeRender = () => { if (activeMesh) applyToMesh(); };
+
+  window.addEventListener('click', (event) => {
     if (!awaitingPlacement || !pendingObject) return;
+    // Ignore clicks on the panel itself
+    if (panel.contains(event.target)) return;
 
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
@@ -497,44 +655,35 @@ fileInput.addEventListener('change', async (event) => {
     if (intersects.length > 0) {
       const point = intersects[0].point;
 
-      // Place visually
-      if (pendingObject.type === 'ply') {
-        const mesh = new SplatMesh({ url: pendingObject.url });
-        mesh.position.set(point.x, point.y, point.z);
-        mesh.scale.setScalar(1);
-        scene.add(mesh);
-      } else {
-        const clone = pendingObject.scene.clone();
-        clone.position.set(point.x, point.y, point.z);
-        clone.scale.setScalar(0.01);
-        scene.add(clone);
-      }
-
-      // Persist to Supabase
-await saveObjectToSupabase({
-  objectUrl: pendingObject.url,
-  objectName: pendingObject.name, // ← add this
-  type: pendingObject.type,
-  x: point.x,
-  y: point.y,
-  z: point.z,
-});
+      console.log('[placement] placing at', point);
+      activeMesh = new SplatMesh({ url: pendingObject.url });
+      console.log('[placement] SplatMesh url:', pendingObject.url);
+      activeMesh.position.set(point.x, point.y, point.z);
+      activeMesh.scale.setScalar(1);
+      scene.add(activeMesh);
 
       awaitingPlacement = false;
-      pendingObject = null;
       banner.style.display = 'none';
       insertBtn.innerText = '+ Insert Object';
       insertBtn.style.opacity = '1';
+
+      buildPanel(point);
+      panel.style.display = 'block';
     }
   });
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && awaitingPlacement) {
-      awaitingPlacement = false;
-      pendingObject = null;
-      banner.style.display = 'none';
-      insertBtn.innerText = '+ Insert Object';
-      insertBtn.style.opacity = '1';
+    if (e.key === 'Escape') {
+      if (awaitingPlacement) {
+        awaitingPlacement = false;
+        pendingObject = null;
+        banner.style.display = 'none';
+        insertBtn.innerText = '+ Insert Object';
+        insertBtn.style.opacity = '1';
+      } else if (activeMesh) {
+        scene.remove(activeMesh);
+        resetAdminState();
+      }
     }
   });
 }
