@@ -343,29 +343,46 @@ const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE'; // f
 
 // ── Load saved objects on startup ──────────────────────────────────────────
 async function loadSavedObjects() {
+  if (!COMMUNITY_ID || COMMUNITY_ID === 'YOUR_ACTUAL_UUID_HERE') {
+    console.warn('[loadSavedObjects] No community_id in URL — skipping. Add ?community=YOUR_UUID to the URL.');
+    return;
+  }
+
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/tour_objects?community_id=eq.${COMMUNITY_ID}&select=*`,
     { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
   );
+
+  if (!res.ok) {
+    console.error('[loadSavedObjects] Supabase error:', res.status, await res.text());
+    return;
+  }
+
   const rows = await res.json();
-  console.log('[loadSavedObjects] community_id:', COMMUNITY_ID);
-  console.log('[loadSavedObjects] rows returned:', rows);
+  console.log('[loadSavedObjects] community_id:', COMMUNITY_ID, '| rows:', rows.length);
+
+  if (!Array.isArray(rows)) {
+    console.error('[loadSavedObjects] Unexpected response:', rows);
+    return;
+  }
 
   for (const row of rows) {
-    console.log('[loadSavedObjects] loading row:', row);
+    console.log('[loadSavedObjects] loading:', row.object_name, row.object_url);
     if (row.type === 'ply') {
-      console.log('[loadSavedObjects] creating SplatMesh from:', row.object_url);
       const mesh = new SplatMesh({ url: row.object_url });
-      mesh.position.set(row.position_x, row.position_y, row.position_z);
-      mesh.scale.setScalar(row.scale);
-      mesh.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
-      scene.add(mesh);
+      mesh.position.set(row.offset_x ?? 0, row.offset_y ?? 0, row.offset_z ?? 0);
+      const group = new THREE.Group();
+      group.position.set(row.position_x, row.position_y, row.position_z);
+      group.scale.set(row.scale ?? 1, row.scale ?? 1, row.scale ?? 1);
+      group.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
+      group.add(mesh);
+      scene.add(group);
     } else {
       const gltfLoader = new GLTFLoader();
       gltfLoader.load(row.object_url, (gltf) => {
         const obj = gltf.scene;
         obj.position.set(row.position_x, row.position_y, row.position_z);
-        obj.scale.setScalar(row.scale);
+        obj.scale.setScalar(row.scale ?? 1);
         obj.rotation.set(row.rotation_x ?? 0, row.rotation_y ?? 0, row.rotation_z ?? 0, 'XYZ');
         scene.add(obj);
       });
@@ -375,7 +392,7 @@ async function loadSavedObjects() {
 loadSavedObjects();
 
 // ── Save a placed object to Supabase ──────────────────────────────────────
-async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0 }) {
+async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0, offsetX = 0, offsetY = 0, offsetZ = 0 }) {
   const body = {
     community_id: COMMUNITY_ID,
     object_name: objectName,
@@ -388,6 +405,9 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
     rotation_x: rotationX,
     rotation_y: rotationY,
     rotation_z: rotationZ,
+    offset_x: offsetX,
+    offset_y: offsetY,
+    offset_z: offsetZ,
   };
   console.log('[saveObjectToSupabase] saving:', body);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/tour_objects`, {
@@ -442,47 +462,17 @@ fileInput.addEventListener('change', async (event) => {
 
   const objectName = file.name.replace(/\.ply$/i, '');
 
-  banner.innerText = '⏳ Uploading... please wait';
-  banner.style.display = 'block';
-  insertBtn.style.opacity = '0.5';
-
-  const fileName = `${Date.now()}-${file.name}`;
-  const uploadRes = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/tour-objects/${fileName}`,
-    {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/octet-stream',
-        'x-upsert': 'true',
-      },
-      body: file,
-    }
-  );
-
-  if (!uploadRes.ok) {
-    const err = await uploadRes.text();
-    console.error('Upload failed', err);
-    banner.innerText = '❌ Upload failed — check console';
-    insertBtn.style.opacity = '1';
-    fileInput.value = '';
-    return;
-  }
-
-  const permanentUrl = `${SUPABASE_URL}/storage/v1/object/public/tour-objects/${fileName}`;
-
-  pendingObject = { type: 'ply', url: permanentUrl, name: objectName };
+  // Load immediately from local blob — no upload wait
+  const localUrl = URL.createObjectURL(file);
+  pendingObject = { type: 'ply', url: localUrl, name: objectName, file };
   awaitingPlacement = true;
   banner.innerText = '🖱️ Click on the world to place. Esc to cancel.';
+  banner.style.display = 'block';
   insertBtn.innerText = '(click on world to place...)';
-  insertBtn.style.opacity = '1';
   fileInput.value = '';
 });
 
   // ── Adjustment panel (shown after initial placement) ──────────────────────
-  let activeMesh = null;
-
   const panel = document.createElement('div');
   panel.style.cssText = `
     position: fixed; right: 20px; top: 150px; z-index: 999;
@@ -528,6 +518,8 @@ fileInput.addEventListener('change', async (event) => {
 
   // Sliders state
   const sliders = {};
+  let activeMesh = null;   // the SplatMesh inside the group
+  let activeGroup = null;  // the Group that gets positioned/rotated/scaled
 
   function buildPanel(pos) {
     panel.innerHTML = '';
@@ -537,33 +529,49 @@ fileInput.addEventListener('change', async (event) => {
     title.style.cssText = 'font-weight: 600; margin-bottom: 16px; font-size: 14px; letter-spacing: 0.03em;';
     panel.appendChild(title);
 
-    const defs = [
-      { key: 'x',     label: 'Position X', min: -30,  max: 30,  step: 0.05, value: pos.x },
-      { key: 'y',     label: 'Position Y', min: -10,  max: 10,  step: 0.05, value: pos.y },
-      { key: 'z',     label: 'Position Z', min: -30,  max: 30,  step: 0.05, value: pos.z },
-      { key: 'scale', label: 'Scale',      min: 0.01, max: 5,   step: 0.01, value: 1    },
+    // Section label helper
+    function sectionLabel(text) {
+      const lbl = document.createElement('div');
+      lbl.innerText = text;
+      lbl.style.cssText = 'font-size: 11px; opacity: 0.45; letter-spacing: 0.08em; text-transform: uppercase; margin: 10px 0 6px;';
+      panel.appendChild(lbl);
+    }
+
+    sectionLabel('Position');
+    const posDefs = [
+      { key: 'x', label: 'X', min: -30, max: 30, step: 0.05, value: pos.x },
+      { key: 'y', label: 'Y', min: -10, max: 10, step: 0.05, value: pos.y },
+      { key: 'z', label: 'Z', min: -30, max: 30, step: 0.05, value: pos.z },
+    ];
+
+    sectionLabel('Scale & Rotation');
+    const transformDefs = [
+      { key: 'scale', label: 'Scale',      min: 0.01, max: 5,          step: 0.01, value: 1 },
       { key: 'rotY',  label: 'Rotation Y', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
       { key: 'rotX',  label: 'Rotation X', min: -Math.PI, max: Math.PI, step: 0.01, value: 0 },
     ];
 
-    defs.forEach(({ key, label, min, max, step, value }) => {
-      const { wrap, slider } = makeSlider({
+    sectionLabel('Origin Offset (center the object)');
+    const offsetDefs = [
+      { key: 'offX', label: 'Offset X', min: -10, max: 10, step: 0.05, value: 0 },
+      { key: 'offY', label: 'Offset Y', min: -10, max: 10, step: 0.05, value: 0 },
+      { key: 'offZ', label: 'Offset Z', min: -10, max: 10, step: 0.05, value: 0 },
+    ];
+
+    [...posDefs, ...transformDefs, ...offsetDefs].forEach(({ key, label, min, max, step, value }) => {
+      if (['x','y','z','scale','rotY','rotX'].includes(key) && key === posDefs[0]?.key) sectionLabel('Position');
+      const { wrap } = makeSlider({
         label, min, max, step, value,
-        onChange: (v) => {
-          sliders[key] = v;
-          applyToMesh();
-        },
+        onChange: (v) => { sliders[key] = v; applyToMesh(); },
       });
       sliders[key] = value;
       panel.appendChild(wrap);
     });
 
-    // Divider
     const hr = document.createElement('div');
     hr.style.cssText = 'border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0;';
     panel.appendChild(hr);
 
-    // Buttons row
     const btnRow = document.createElement('div');
     btnRow.style.cssText = 'display: flex; gap: 8px;';
 
@@ -583,12 +591,43 @@ fileInput.addEventListener('change', async (event) => {
     `;
 
     confirmBtn.addEventListener('click', async () => {
-      if (!activeMesh || !pendingObject) return;
-      confirmBtn.innerText = 'Saving…';
+      if (!activeGroup || !pendingObject) return;
+      confirmBtn.innerText = 'Uploading…';
       confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
 
+      let permanentUrl = pendingObject.url;
+
+      if (pendingObject.file) {
+        const fileName = `${Date.now()}-${pendingObject.file.name}`;
+        const uploadRes = await fetch(
+          `${SUPABASE_URL}/storage/v1/object/tour-objects/${fileName}`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/octet-stream',
+              'x-upsert': 'true',
+            },
+            body: pendingObject.file,
+          }
+        );
+
+        if (!uploadRes.ok) {
+          console.error('Upload failed:', await uploadRes.text());
+          confirmBtn.innerText = '❌ Upload failed';
+          confirmBtn.disabled = false;
+          cancelBtn.disabled = false;
+          return;
+        }
+
+        permanentUrl = `${SUPABASE_URL}/storage/v1/object/public/tour-objects/${fileName}`;
+      }
+
+      confirmBtn.innerText = 'Saving…';
       await saveObjectToSupabase({
-        objectUrl:  pendingObject.url,
+        objectUrl:  permanentUrl,
         objectName: pendingObject.name,
         type:       pendingObject.type,
         x:          sliders.x,
@@ -598,13 +637,17 @@ fileInput.addEventListener('change', async (event) => {
         rotationX:  sliders.rotX,
         rotationY:  sliders.rotY,
         rotationZ:  0,
+        offsetX:    sliders.offX,
+        offsetY:    sliders.offY,
+        offsetZ:    sliders.offZ,
       });
 
+      if (pendingObject.file) URL.revokeObjectURL(pendingObject.url);
       resetAdminState();
     });
 
     cancelBtn.addEventListener('click', () => {
-      if (activeMesh) scene.remove(activeMesh);
+      if (activeGroup) scene.remove(activeGroup);
       resetAdminState();
     });
 
@@ -614,16 +657,20 @@ fileInput.addEventListener('change', async (event) => {
   }
 
   function applyToMesh() {
-    if (!activeMesh) return;
-    activeMesh.position.set(sliders.x, sliders.y, sliders.z);
-    activeMesh.scale.setScalar(sliders.scale);
-    activeMesh.rotation.set(sliders.rotX, sliders.rotY, 0, 'XYZ');
-    activeMesh.matrixWorldNeedsUpdate = true;
-    activeMesh.updateMatrixWorld(true);
+    if (!activeGroup || !activeMesh) return;
+    // Group handles world position, rotation, scale — this is the pivot point
+    activeGroup.position.set(sliders.x, sliders.y, sliders.z);
+    activeGroup.scale.set(sliders.scale, sliders.scale, sliders.scale);
+    activeGroup.rotation.set(sliders.rotX, sliders.rotY, 0, 'XYZ');
+    // Mesh offset within group — shifts the splat so its visual center aligns with the group origin
+    activeMesh.position.set(sliders.offX, sliders.offY, sliders.offZ);
+    activeGroup.matrixWorldNeedsUpdate = true;
+    activeGroup.updateMatrixWorld(true);
   }
 
   function resetAdminState() {
     activeMesh = null;
+    activeGroup = null;
     pendingObject = null;
     awaitingPlacement = false;
     panel.style.display = 'none';
@@ -638,7 +685,7 @@ fileInput.addEventListener('change', async (event) => {
   panel.addEventListener('pointerdown',(e) => e.stopPropagation());
 
   // Re-apply transforms every frame so Spark's internal renderer always picks them up
-  scene.onBeforeRender = () => { if (activeMesh) applyToMesh(); };
+  scene.onBeforeRender = () => { if (activeGroup) applyToMesh(); };
 
   window.addEventListener('click', (event) => {
     if (!awaitingPlacement || !pendingObject) return;
@@ -657,10 +704,11 @@ fileInput.addEventListener('change', async (event) => {
 
       console.log('[placement] placing at', point);
       activeMesh = new SplatMesh({ url: pendingObject.url });
-      console.log('[placement] SplatMesh url:', pendingObject.url);
-      activeMesh.position.set(point.x, point.y, point.z);
-      activeMesh.scale.setScalar(1);
-      scene.add(activeMesh);
+      activeMesh.position.set(0, 0, 0); // offset controlled separately
+      activeGroup = new THREE.Group();
+      activeGroup.position.set(point.x, point.y, point.z);
+      activeGroup.add(activeMesh);
+      scene.add(activeGroup);
 
       awaitingPlacement = false;
       banner.style.display = 'none';
@@ -680,8 +728,8 @@ fileInput.addEventListener('change', async (event) => {
         banner.style.display = 'none';
         insertBtn.innerText = '+ Insert Object';
         insertBtn.style.opacity = '1';
-      } else if (activeMesh) {
-        scene.remove(activeMesh);
+      } else if (activeGroup) {
+        scene.remove(activeGroup);
         resetAdminState();
       }
     }
