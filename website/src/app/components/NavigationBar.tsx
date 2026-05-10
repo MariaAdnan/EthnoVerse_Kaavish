@@ -38,7 +38,7 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             <span className="text-lg md:text-xl font-bold text-[#1A1A1A]">
-              LIVING ARCHIVES
+              ETHNOVERSE
             </span>
           </button>
 

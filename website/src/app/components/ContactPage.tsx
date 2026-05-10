@@ -18,12 +18,6 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
         transition={{ duration: 0.8 }}
         className="border-b border-border p-12 pt-32 text-center"
       >
-        <p
-          className="text-sm mb-3 opacity-60"
-          style={{ fontFamily: "'Space Mono', monospace" }}
-        >
-          SRS FIGURE 3.9
-        </p>
 
         <h1
           className="text-7xl"
@@ -55,7 +49,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
               className="text-3xl hover:text-accent transition-colors"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              hello@ethnoverse.pk
+              ma08439@st.habib.edu.pk
             </a>
           </div>
 
