@@ -26,6 +26,12 @@ loader.load(`desert-v1.glb`, function (gltf) {
   });
   scene.add(object);
 
+  const testBox = new SplatMesh({ url: "box.ply" });
+testBox.position.set(0, -1, -3); // right in front of spawn point
+testBox.scale.set(1, 1, 1);
+testBox.rotation.set(Math.PI, 0, 0, 'XYZ');
+scene.add(testBox);
+
   const matkaRotation = [Math.PI, 0, 0];
   const matka = new SplatMesh({ url: "matka.ply" });
   matka.position.set(1.5, -3.7, -2.8);

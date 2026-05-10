@@ -142,7 +142,7 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
         update_job(supabase, job_id, progress=40, message="Matching features")
         pycolmap.match_exhaustive(database_path=DB_PATH)
 
-        # ── Step 6: Sparse reconstruction (55%) ───────────────────────────────
+        # ── Step 6: Sparse reconstruction (55%) ───────────────────────────────────────
         update_job(supabase, job_id, progress=55, message="Sparse reconstruction")
         maps = pycolmap.incremental_mapping(
             database_path=DB_PATH,
@@ -151,27 +151,21 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
         )
         print(f"Reconstructed {len(maps)} model(s)")
 
-        # FIX #4: validate COLMAP actually registered enough images
         if not maps:
             raise RuntimeError("COLMAP produced no reconstructions")
 
-        best_map = max(maps.values(), key=lambda m: len(m.images))
+        best_key = max(maps.keys(), key=lambda k: len(maps[k].images))
+        best_map = maps[best_key]
         registered = len(best_map.images)
-        print(f"COLMAP registered {registered} images (best reconstruction)")
+        print(f"Best reconstruction: key={best_key}, registered={registered} images")
 
         if registered < 10:
             raise RuntimeError(
                 f"COLMAP only registered {registered} images — "
                 "reconstruction too sparse to train. Try better lighting or slower camera movement."
             )
-        print(f"COLMAP registered {registered} images")
-        if not maps or registered < 10:
-            raise RuntimeError(
-                f"COLMAP only registered {registered} images — "
-                "reconstruction too sparse to train. Try better lighting or slower camera movement."
-            )
 
-        # ── Step 7: Undistort images (60%) ────────────────────────────────────
+        # ── Step 7: Undistort images (60%) ────────────────────────────────────────────
         update_job(supabase, job_id, progress=60, message="Converting COLMAP output")
 
         UNDISTORTED_OUT = BASE / "undistorted"
@@ -180,33 +174,10 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
         result = subprocess.run([
             "colmap", "image_undistorter",
             "--image_path",  str(input_path),
-            "--input_path",  str(SPARSE_OUT / "0"),
+            "--input_path",  str(SPARSE_OUT / str(best_key)),  # ← uses best reconstruction
             "--output_path", str(UNDISTORTED_OUT),
             "--output_type", "COLMAP",
         ], capture_output=True, text=True)
-
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr[-1000:])
-        if result.returncode != 0:
-            raise Exception(f"image_undistorter failed: {result.stderr[-500:]}")
-
-        UNDIST_SPARSE   = UNDISTORTED_OUT / "sparse"
-        UNDIST_SPARSE_0 = UNDIST_SPARSE / "0"
-        UNDIST_SPARSE_0.mkdir(parents=True, exist_ok=True)
-
-        for f in ["cameras.bin", "images.bin", "points3D.bin"]:
-            src = UNDIST_SPARSE / f
-            dst = UNDIST_SPARSE_0 / f
-            if src.exists() and not dst.exists():
-                shutil.copy(str(src), str(dst))
-                print(f"Copied {f} → sparse/0/")
-
-        subprocess.run([
-            "colmap", "model_converter",
-            "--input_path",  str(UNDIST_SPARSE_0),
-            "--output_path", str(UNDIST_SPARSE_0),
-            "--output_type", "TXT",
-        ], check=True)
 
         # ── Step 8: Train 3DGS (65%) ───────────────────────────────────────────
         # FIX #1: bumped iterations 7000 → 30000 (full training — pruning/densification complete)

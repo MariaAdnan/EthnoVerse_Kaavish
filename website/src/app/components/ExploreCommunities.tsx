@@ -1,175 +1,292 @@
 // src/app/components/ExploreCommunities.tsx
 import { motion } from "motion/react";
 import Masonry from "react-responsive-masonry";
-import React, { useEffect, useState } from "react";
+import ResponsiveMasonry from "react-responsive-masonry";
+import { useEffect, useState, useCallback } from "react";
 import { getAllCommunities } from "../../services/communities";
-import { NavigationBar } from "./NavigationBar.tsx";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Community {
+  community_id: string;
+  name: string;
+  location: string;
+  language?: string;
+  short_description?: string;
+  picture_cloudinary_url?: string | null;
+  created_at: string;
+}
 
 interface ExploreCommunitiesProps {
   onNavigate: (view: string) => void;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Vary image height naturally across the masonry grid.
+ * Uses the item index so heights are deterministic (no layout shift on re-render).
+ */
+function cardHeight(index: number): number {
+  const heights = [400, 500, 440, 480, 420, 460, 510, 390, 470, 430];
+  return heights[index % heights.length];
+}
+
+/**
+ * Fallback placeholder when a community has no Cloudinary image.
+ * Uses a neutral Unsplash image so the grid never shows broken imgs.
+ */
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "https://images.unsplash.com/photo-1619328147198-aa1477637a21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "https://images.unsplash.com/photo-1669365415484-0b247a295659?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "https://images.unsplash.com/photo-1677153224313-7b009d1b33e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  "https://images.unsplash.com/photo-1689770429297-bb8488af924c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+];
+
+function getImage(community: Community, index: number): string {
+  return (
+    community.picture_cloudinary_url ||
+    FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+/** Masonry skeleton shown while data loads */
+function MasonrySkeleton() {
+  // 6 placeholder cards with the same height variance as real cards
+  const placeholders = [0, 1, 2, 3, 4, 5];
+  return (
+    <ResponsiveMasonry columnsCountBreakPoints={{ 0: 1, 640: 2, 1024: 3 }}>
+      <Masonry gutter="24px">
+        {placeholders.map((i) => (
+          <div
+            key={i}
+            className="animate-pulse rounded-sm bg-[#1A1A1A]/10"
+            style={{ height: `${cardHeight(i)}px` }}
+            aria-hidden="true"
+          />
+        ))}
+      </Masonry>
+    </ResponsiveMasonry>
+  );
+}
+
+/** Single community card in the masonry grid */
+function CommunityCard({
+  community,
+  index,
+  onNavigate,
+}: {
+  community: Community;
+  index: number;
+  onNavigate: (view: string) => void;
+}) {
+  const height = cardHeight(index);
+  const imageSrc = getImage(community, index);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.08 * Math.min(index, 8) }}
+    >
+      <button
+        onClick={() => onNavigate(`community:${community.community_id}`)}
+        className="group relative overflow-hidden block w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CC7722]"
+        aria-label={`Explore ${community.name}`}
+      >
+        {/* Image */}
+        <img
+          src={imageSrc}
+          alt={community.name}
+          className="w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          style={{ height: `${height}px` }}
+          loading={index < 3 ? "eager" : "lazy"}
+        />
+
+        {/* Dark overlay on hover */}
+        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-500" />
+
+        {/* Text overlay — visible on hover */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-[#F5F1E8] p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <h2
+            className="text-[clamp(1.8rem,4vw,3rem)] mb-3 tracking-wider text-center leading-tight"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            {community.name}
+          </h2>
+          {community.location && (
+            <p
+              className="text-sm mb-1 opacity-90"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {community.location}
+            </p>
+          )}
+          {community.language && (
+            <p
+              className="text-xs opacity-70 mt-1"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              {community.language.toUpperCase()}
+            </p>
+          )}
+          <p
+            className="text-xs opacity-60 mt-4 tracking-wide"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            VIEW COLLECTION →
+          </p>
+        </div>
+
+        {/* Always-visible subtle name tag at bottom (for accessibility / discoverability) */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent group-hover:opacity-0 transition-opacity duration-300">
+          <p
+            className="text-[#F5F1E8] text-sm tracking-wider truncate"
+            style={{ fontFamily: "'Space Mono', monospace" }}
+          >
+            {community.name.toUpperCase()}
+          </p>
+        </div>
+      </button>
+    </motion.div>
+  );
+}
+
+/** Error state with retry */
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-32 gap-6">
+      <p
+        className="text-sm opacity-50"
+        style={{ fontFamily: "'Space Mono', monospace" }}
+      >
+        {message}
+      </p>
+      <button
+        onClick={onRetry}
+        className="text-sm text-[#CC7722] hover:underline"
+        style={{ fontFamily: "'Space Mono', monospace" }}
+      >
+        RETRY →
+      </button>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
-  const [communities, setCommunities] = useState<any[]>([]);
-  // const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // const communities = [
-  //   {
-  //     name: "KOLHI",
-  //     location: "Tharparkar",
-  //     coordinates: "25.3232° N, 69.7597° E",
-  //     image: "https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaW5kaCUyMGN1bHR1cmUlMjB0cmFkaXRpb25hbHxlbnwxfHx8fDE3NjU3NTcxNDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 400,
-  //   },
-  //   {
-  //     name: "BHEEL",
-  //     location: "Kohistan",
-  //     coordinates: "26.1235° N, 68.4521° E",
-  //     image: "https://images.unsplash.com/photo-1619328147198-aa1477637a21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmFkaXRpb25hbCUyMGVtYnJvaWRlcnklMjBwYXR0ZXJuc3xlbnwxfHx8fDE3NjU3NTcxNDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 500,
-  //   },
-  //   {
-  //     name: "MEGHWAR",
-  //     location: "Badin",
-  //     coordinates: "24.6560° N, 68.8390° E",
-  //     image: "https://images.unsplash.com/photo-1669365415484-0b247a295659?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmFkaXRpb25hbCUyMHBvdHRlcnklMjBjbGF5fGVufDF8fHx8MTc2NTc1NzE0NHww&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 450,
-  //   },
-  //   {
-  //     name: "PARKARI",
-  //     location: "Umerkot",
-  //     coordinates: "25.3549° N, 69.7364° E",
-  //     image: "https://images.unsplash.com/photo-1760328715296-9714daa8a737?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjdWx0dXJhbCUyMHRleHRpbGUlMjB3ZWF2aW5nfGVufDF8fHx8MTc2NTc1NzE0NHww&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 480,
-  //   },
-  //   {
-  //     name: "SAMA",
-  //     location: "Khairpur",
-  //     coordinates: "27.5295° N, 68.7590° E",
-  //     image: "https://images.unsplash.com/photo-1677153224313-7b009d1b33e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0aGFyJTIwZGVzZXJ0JTIwbGFuZHNjYXBlfGVufDF8fHx8MTc2NTc1NzE0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 420,
-  //   },
-  //   {
-  //     name: "KOLI",
-  //     location: "Karachi",
-  //     coordinates: "24.8607° N, 67.0011° E",
-  //     image: "https://images.unsplash.com/photo-1689770429297-bb8488af924c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNlcnQlMjBkdW5lcyUyMGFlcmlhbHxlbnwxfHx8fDE3NjU3NTcxNDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  //     height: 440,
-  //   },
-  // ];
-  useEffect(() => {
-    const fetchCommunities = async () => {
-      // setLoading(true);
+  const fetchCommunities = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      const { data, error } = await getAllCommunities();
+    try {
+      const { data, error: sbError } = await getAllCommunities();
 
-      // if (error) {
-      //   setError("Failed to load communities");
-      //   setLoading(false);
-      //   return;
-      // }
-
-      setCommunities(data || []);
-      // setLoading(false);
-    };
-
-    fetchCommunities();
+      if (sbError) {
+        console.error("[ExploreCommunities] Supabase error:", sbError.message);
+        setError("Failed to load communities. Please try again.");
+        setCommunities([]);
+      } else {
+        setCommunities(data ?? []);
+      }
+    } catch (err) {
+      console.error("[ExploreCommunities] Unexpected error:", err);
+      setError("Something went wrong. Please try again.");
+      setCommunities([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchCommunities();
+  }, [fetchCommunities]);
+
+  const communityCount = loading
+    ? "—"
+    : `${communities.length} INDIGENOUS ${communities.length === 1 ? "GROUP" : "GROUPS"}`;
 
   return (
     <div className="min-h-screen">
-      {/* Back Navigation */}
-      
-      {/* Navigation Bar */}
-      <NavigationBar onNavigate={onNavigate} />
-<div className="fixed top-8 left-8 z-50">
+      {/* Back button — sits below the fixed global NavBar (NavBar is ~64px tall) */}
+      <div className="fixed top-[72px] left-6 z-40">
         <button
-          onClick={() => onNavigate('home')}
+          onClick={() => onNavigate("home")}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← HOME</span>
         </button>
       </div>
-      {/* Header */}
+
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="p-12 pt-32 text-center"
+        className="pt-28 pb-12 px-4 sm:px-12 text-center"
       >
-        <h1 
-          className="text-7xl mb-4"
+        <h1
+          className="text-[clamp(3rem,10vw,6rem)] mb-4 leading-tight"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
           Communities
         </h1>
-        <p 
+        <p
           className="text-sm opacity-60"
           style={{ fontFamily: "'Space Mono', monospace" }}
+          aria-live="polite"
+          aria-label={communityCount}
         >
-          12 INDIGENOUS GROUPS · SINDH PROVINCE
+          {communityCount} · SINDH PROVINCE
         </p>
-      </motion.div>      
+      </motion.div>
 
-      {/* Masonry Grid - "The Mosaic" */}
-      <div className="px-12 pb-12">
-        <Masonry columnsCount={3} gutter="24px">
-          {communities.map((community, index) => (
-            <motion.div
-              key={community.community_id}
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 * index }}
+      {/* ── Masonry Grid ────────────────────────────────────────────────── */}
+      <div className="px-4 sm:px-12 pb-16">
+        {loading ? (
+          <MasonrySkeleton />
+        ) : error ? (
+          <ErrorState message={error} onRetry={fetchCommunities} />
+        ) : communities.length === 0 ? (
+          <div className="text-center py-32">
+            <p
+              className="text-sm opacity-40"
+              style={{ fontFamily: "'Space Mono', monospace" }}
             >
-              <button
-                onClick={() => onNavigate(`community:${community.community_id}`)}
-                className="group relative overflow-hidden block w-full"
-                // style={{ height: `${community.height}px` }}
-              >
-                {/* Image */}
-                <img
-  src={
-    community.picture_cloudinary_url
-      ? community.picture_cloudinary_url
-      : "/placeholder-community.jpg"
-  }
-  alt={community.name}
-  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-  style={{ height: `${350 + (index % 3) * 80}px` }}
-/>
-
-                
-                {/* Dark Overlay on Hover */}
-                <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-500" />
-                
-                {/* Text Overlay */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center text-white p-6"
-                >
-                  <h2 
-                    className="text-5xl mb-3 tracking-wider"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
-                  >
-                    {community.name}
-                  </h2>
-                  <p className="text-sm mb-1">{community.location}</p>
-                  <p 
-                    className="text-xs opacity-70"
-                    style={{ fontFamily: "'Space Mono', monospace" }}
-                  >
-                    {community.coordinates}
-                  </p>
-                </motion.div>
-              </button>
-            </motion.div>
-          ))}
-        </Masonry>
+              NO COMMUNITIES FOUND
+            </p>
+          </div>
+        ) : (
+          <ResponsiveMasonry
+            columnsCountBreakPoints={{ 0: 1, 640: 2, 1024: 3 }}
+          >
+            <Masonry gutter="24px">
+              {communities.map((community, index) => (
+                <CommunityCard
+                  key={community.community_id}
+                  community={community}
+                  index={index}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </Masonry>
+          </ResponsiveMasonry>
+        )}
       </div>
     </div>
   );

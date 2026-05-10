@@ -1,3 +1,4 @@
+// src/services/search.ts
 import { supabase } from "../lib/supabase";
 
 export interface SearchArchiveResponse {
