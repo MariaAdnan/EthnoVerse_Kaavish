@@ -1,3 +1,4 @@
+// src/app/components/SearchView.tsx
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
