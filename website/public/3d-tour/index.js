@@ -3,6 +3,12 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { SplatMesh } from "@sparkjsdev/spark";
+// ── URL params — must be first, everything reads from these ──
+const urlParams = new URLSearchParams(window.location.search);
+const isAdmin = urlParams.get('mode') === 'admin';
+const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
+const terrainParam = urlParams.get('terrain');
+const isKolhi = !terrainParam;
 
 const raycaster = new THREE.Raycaster();
 const downVector = new THREE.Vector3(0, -1, 0);
@@ -21,7 +27,46 @@ document.getElementById('container3D').appendChild(labelRenderer.domElement);
 
 const LABEL_DISTANCE = 2.5;
 const allLabels = [];
+// const terrainParam = urlParams.get('terrain'); 
+// null means Kolhi (no param), otherwise it's a new community terrain
 
+const TERRAIN_FILES = {
+  desert:    'desert-v1.glb',
+  grass:     'grass.glb',
+  rocky:     'rocky.glb',
+  mountains: 'mountains.glb',
+};
+
+const terrainFile = isKolhi ? 'desert-v1.glb' : (TERRAIN_FILES[terrainParam] || 'terrains/grass.glb');
+
+loader.load(terrainFile, function (gltf) {
+  object = gltf.scene;
+
+  if (isKolhi) {
+    object.position.set(70, -4.5, -70);
+    object.scale.set(0.07, 0.07, 0.07);
+    object.traverse((child) => {
+      if (child.isMesh) {
+        const siltColor = new THREE.Color(0xffffff);
+        child.material.color.lerp(siltColor, 0.7);
+        child.material.roughness = 1.0;
+        child.material.metalness = 0.0;
+      }
+    });
+    scene.add(object);
+    loadKolhiObjects(); // loads matka, huts, charpai, trees, bushes only
+  } else {
+    object.position.set(0, -2, 0);
+    object.scale.set(1, 1, 1);
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material.roughness = 1.0;
+        child.material.metalness = 0.0;
+      }
+    });
+    scene.add(object);
+  }
+});
 function makeLabel(title, description, worldX, worldY, worldZ, offsetX = 0, offsetY = 0, offsetZ = 0) {
   if (!title) return null;
   const div = document.createElement('div');
@@ -45,20 +90,8 @@ function updateLabelHeights() {
     obj.position.y = camera.position.y - anchor.position.y;
   }
 }
+function loadKolhiObjects() {
 
-loader.load(`desert-v1.glb`, function (gltf) {
-  object = gltf.scene;
-  object.position.set(70, -4.5, -70); 
-  object.scale.set(0.07, 0.07, 0.07); 
-  object.traverse((child) => {
-    if (child.isMesh) {
-      const siltColor = new THREE.Color(0xffffff); 
-      child.material.color.lerp(siltColor, 0.7);
-      child.material.roughness = 1.0;
-      child.material.metalness = 0.0;
-    }
-  });
-  scene.add(object);
 
   const matkaRotation = [Math.PI, 0, 0];
   const matka = new SplatMesh({ url: "matka.ply" });
@@ -83,7 +116,7 @@ loader.load(`desert-v1.glb`, function (gltf) {
   matka3.scale.set(1.5, 1.5, 1.5);
   matka3.rotation.set(...matkaRotation, 'XYZ');
   scene.add(matka3);
-});
+
 
 loader.load(`hut.glb`, function (gltf) {
   const masterHut = gltf.scene;
@@ -249,7 +282,7 @@ loader.load(`hut.glb`, function (gltf) {
     });
   });
 });
-
+}
 const renderer = new THREE.WebGLRenderer({ alpha: true }); 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding; 
@@ -380,9 +413,9 @@ if (btn) {
 const SUPABASE_URL = 'https://dstropmznqaadsyhojvb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
 
-const urlParams = new URLSearchParams(window.location.search);
-const isAdmin = urlParams.get('mode') === 'admin';
-const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
+// const urlParams = new URLSearchParams(window.location.search);
+// const isAdmin = urlParams.get('mode') === 'admin';
+// const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
 
 // ── Load saved objects on startup ──────────────────────────────────────────
 async function loadSavedObjects() {

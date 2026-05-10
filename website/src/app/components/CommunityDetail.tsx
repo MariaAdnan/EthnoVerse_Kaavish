@@ -343,12 +343,12 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
               </button>
 
               <button
-                onClick={() => onNavigate(`media-visual`)}
-                className="px-8 py-3 border border-[#1A1A1A] text-[#1A1A1A] rounded-sm hover:bg-[#1A1A1A]/5 transition-colors w-full sm:w-auto"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                VIEW FULL ARCHIVE
-              </button>
+  onClick={() => onNavigate(`community:${communityId}:visual`)}
+  className="px-8 py-3 border border-[#1A1A1A] text-[#1A1A1A] rounded-sm hover:bg-[#1A1A1A]/5 transition-colors w-full sm:w-auto"
+  style={{ fontFamily: "'Space Mono', monospace" }}
+>
+  VIEW FULL ARCHIVE
+</button>
             </div>
           </motion.div>
         )}

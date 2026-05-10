@@ -78,7 +78,7 @@ const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
-{currentView !== '3d-tour' && currentView !== 'admin-3d-tour' && (
+{currentView !== '3d-tour' && !currentView.startsWith('admin-3d-tour') && (
   <NavigationBar onNavigate={handleNavigate} />
 )}
       <main>
@@ -112,8 +112,9 @@ const [searchQuery, setSearchQuery] = useState("");
   />
 )}
         {currentView === '3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} />}
-        {currentView === 'admin-3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} isAdmin />}
-        
+{currentView.startsWith('admin-3d-tour') && (
+  <ThreeDTourViewer onNavigate={handleNavigate} isAdmin view={currentView} />
+)}        
         {currentView.startsWith('audio:') && (
           <AudioPlayer
             onNavigate={handleNavigate}

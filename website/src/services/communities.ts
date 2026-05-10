@@ -36,3 +36,9 @@ export const createCommunity = async (data: {
     .select()
     .single();
 };
+export async function updateCommunityTerrain(communityId: string, terrainType: string) {
+  return await supabase
+    .from("communities")
+    .update({ terrain_type: terrainType })
+    .eq("community_id", communityId);
+}
