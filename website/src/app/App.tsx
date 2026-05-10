@@ -90,7 +90,6 @@ const [searchQuery, setSearchQuery] = useState("");
             view={currentView}
           />
         )}
-        // ADD these three — after the existing community: block:
 {currentView.startsWith('community:') && currentView.endsWith(':visual') && (
   <MediaIndex
     onNavigate={handleNavigate}
