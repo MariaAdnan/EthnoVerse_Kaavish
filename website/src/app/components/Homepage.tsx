@@ -245,11 +245,11 @@ export function Homepage({ onNavigate }: HomepageProps) {
             {/* clamp() ensures the text scales between mobile and desktop
                 without ever overflowing or getting clipped */}
             <span className="block text-[clamp(2.5rem,12vw,10rem)] leading-[0.9] tracking-tight">
-              LIVING
+              ETHNOVERSE
             </span>
-            <span className="block text-[clamp(2.5rem,12vw,10rem)] leading-[0.9] tracking-tight">
+            {/* <span className="block text-[clamp(2.5rem,12vw,10rem)] leading-[0.9] tracking-tight">
               ARCHIVES
-            </span>
+            </span> */}
           </motion.h1>
 
           <motion.div
@@ -327,14 +327,10 @@ export function Homepage({ onNavigate }: HomepageProps) {
             className="text-sm mb-4 opacity-60"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
-            TECHNICAL ARCHITECTURE
+            ABOUT ETHNOVERSE
           </p>
           <p className="text-lg leading-relaxed text-muted-foreground">
-            EthnoVerse is built on the MERN stack (MongoDB, Express, React,
-            Node.js) with advanced 3D rendering capabilities using NeRF and
-            Gaussian Splatting technologies. The platform combines
-            cutting-edge computational methods with cultural preservation
-            methodologies.
+            This project began during a Summer Tehqiq II research, where a group of Habib University students engaged with indigenous communities in Sindh. Through interviews, they encountered rich traditions that exist almost entirely outside formal archives. What stayed with them was the realization that these narratives are undocumented and at risk of disappearing. EthnoVerse emerged from this moment, as an attempt to preserve cultural memory.
           </p>
           <div className="mt-8 flex flex-wrap gap-4 justify-center">
             <button

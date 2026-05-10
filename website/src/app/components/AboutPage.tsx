@@ -18,12 +18,12 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className="border-b border-border p-12 pt-32 text-center">
-        <p 
+        {/* <p 
           className="text-sm mb-3 opacity-60"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           SRS FIGURE 3.8
-        </p>
+        </p> */}
         <h1 
           className="text-7xl"
           style={{ fontFamily: "'Playfair Display', serif" }}
@@ -50,7 +50,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             </h2>
             <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
-                EthnoVerse (Living Archives) is a digital cultural preservation initiative 
+                EthnoVerse is a digital cultural preservation initiative 
                 documenting the indigenous communities of Sindh, Pakistan. Through immersive 
                 multimedia experiences, we create permanent records of oral histories, traditional 
                 practices, and cultural knowledge.
@@ -78,125 +78,22 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
               className="text-3xl mb-6"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-              MERN Stack & NeRF
+              Technology Stack & 3D Reconstruction
             </h2>
             <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
-                The platform is built on the MERN stack (MongoDB, Express, React, Node.js), 
-                providing a robust and scalable foundation for managing large multimedia datasets 
-                and serving content to researchers worldwide.
+                The platform is built using a modern web architecture with React and Node.js, supported by PostgreSQL (via Supabase) for structured data management. This enables efficient handling of multimedia content, metadata, and scalable access for both administrators and public users.
               </p>
               <p>
-                Our 3D virtual tours leverage Neural Radiance Fields (NeRF) and Gaussian Splatting—
-                advanced computational photography techniques that reconstruct physical spaces from 
-                multiple photographs into fully navigable 3D environments.
+                Our 3D reconstruction pipeline is based on 3D Gaussian Splatting (3DGS), a state-of-the-art technique for real-time scene rendering. Unlike traditional methods, 3DGS represents scenes using optimized Gaussian primitives, enabling fast, high-quality reconstruction from multi-view images with minimal manual intervention.
               </p>
               <p>
-                This approach allows users to virtually "walk through" traditional dwellings, 
-                ceremonial sites, and craft workshops, experiencing spatial and material dimensions 
-                that photographs alone cannot convey.
+                This approach allows users to explore cultural environments as immersive, interactive 3D spaces, capturing spatial context and material detail beyond static media.
               </p>
               <p>
-                All media files are stored with standardized metadata schemas, ensuring 
-                long-term accessibility and interoperability with international archival standards 
-                such as Dublin Core and METS.
+                All media is stored externally (e.g., Cloudinary) and linked with structured metadata, ensuring long-term accessibility, efficient retrieval, and compatibility with archival standards.
               </p>
             </div>
-
-            <div 
-              className="mt-8 p-6 bg-secondary/30 border-l-4 border-accent"
-            >
-              <p 
-                className="text-xs mb-2 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                TECHNICAL SPECIFICATIONS
-              </p>
-              <ul 
-                className="text-sm space-y-1"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                <li>• MongoDB Atlas (Cloud Database)</li>
-                <li>• Express.js (REST API)</li>
-                <li>• React 18 + TypeScript</li>
-                <li>• Node.js Runtime</li>
-                <li>• NeRF + Gaussian Splatting (3D)</li>
-                <li>• WCAG 2.1 AA Compliant</li>
-              </ul>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Credits Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="border-t border-border pt-12"
-        >
-          <h2 
-            className="text-3xl mb-8 text-center"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Credits
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-12 max-w-5xl mx-auto">
-            {/* Team */}
-            <div>
-              <p 
-                className="text-xs mb-4 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                PROJECT TEAM
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li>Dr. Amina Shaikh</li>
-                <li>Rashid Baloch</li>
-                <li>Sara Pathan</li>
-                <li>Kamil Hussain</li>
-              </ul>
-            </div>
-
-            {/* Supervisor */}
-            <div>
-              <p 
-                className="text-xs mb-4 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                ACADEMIC SUPERVISION
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li>Dr. Hassan Ahmed</li>
-                <li>Department of Anthropology</li>
-                <li>University of Sindh</li>
-              </ul>
-            </div>
-
-            {/* Partners */}
-            <div>
-              <p 
-                className="text-xs mb-4 opacity-60"
-                style={{ fontFamily: "'Space Mono', monospace" }}
-              >
-                PARTNERS
-              </p>
-              <ul className="space-y-2 text-sm">
-                <li>Kaavish Initiative</li>
-                <li>Sindh Cultural Heritage Society</li>
-                <li>Tharparkar Development Authority</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-12 text-center">
-            <p 
-              className="text-xs opacity-40"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            >
-              © 2024 EthnoVerse · Kaavish Initiative · All Rights Reserved
-            </p>
           </div>
         </motion.div>
       </div>
