@@ -371,21 +371,6 @@ if (btn) {
     scene.fog.far = s.fogFar;
     ambientLight.intensity = s.ambient;
     topLight.intensity = s.directional;
-    const nightTint = new THREE.Color(0x2a2d4a);
-    const dayTint = new THREE.Color(0xffffff);
-    const targetTint = isNight ? nightTint : dayTint;
-    if (object) {
-      object.traverse((child) => {
-        if (child.isMesh) child.material.color.lerp(targetTint, 0.15); 
-      });
-    }
-    scene.traverse((node) => {
-      if (node.name === "hut" || (node.parent && node.parent.name === "hut")) {
-        node.traverse((child) => {
-          if (child.isMesh) child.material.color.lerp(targetTint, 0.3); 
-        });
-      }
-    });
   });
 }
 
