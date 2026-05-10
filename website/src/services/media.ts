@@ -72,7 +72,7 @@ export async function createMedia(payload: {
 export async function getMediaIndexItems(communityId?: string) {
   let mediaQuery = supabase
     .from("visual_media")
-    .select("id, title, created_at, community_id, picture_cloudinary_url")
+    .select("id, title, created_at, community_id, picture_cloudinary_url, tags")
     .order("created_at", { ascending: false });
 
   // ⭐ filter ONLY if communityId exists
@@ -84,7 +84,7 @@ export async function getMediaIndexItems(communityId?: string) {
 
   let interviewQuery = supabase
     .from("interviews")
-    .select("id, title, date, community_id")
+    .select("id, title, date, community_id, summary_text  ")
     .order("date", { ascending: false });
 
   if (communityId && communityId !== "ALL") {

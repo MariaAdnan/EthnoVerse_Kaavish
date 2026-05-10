@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { getMediaIndexItems } from "../../services/media";
+import { searchArchive } from "../../services/search";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ interface MediaItem {
   title: string;
   date?: string;
   imageUrl?: string;
+  tags?: string[]; 
+  summaryText?: string;
 }
 
 const ICON_MAP: Record<MediaType, React.ElementType> = {
@@ -50,6 +53,7 @@ export function MediaIndex({
   const [allItems, setAllItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -67,15 +71,17 @@ export function MediaIndex({
           type: "AUDIO" as MediaType,
           title: item.title ?? "Untitled Interview",
           date: item.date,
+          summaryText: item.summary_text ?? "",  
         }));
 
         const imageItems: MediaItem[] = (data.media ?? []).map((item: any) => ({
-          id: String(item.id),
-          type: "IMAGE" as MediaType,
-          title: item.title ?? "Untitled Image",
-          date: item.created_at,
-          imageUrl: item.picture_cloudinary_url,
-        }));
+  id: String(item.id),
+  type: "IMAGE" as MediaType,
+  title: item.title ?? "Untitled Image",
+  date: item.created_at,
+  imageUrl: item.picture_cloudinary_url,
+  tags: item.tags ?? [],   // ← add this
+}));
 
         // Newest first
         const merged = [...audioItems, ...imageItems].sort(
@@ -90,23 +96,28 @@ export function MediaIndex({
   }, [communityId]);
 
   // ── Filter + Search ────────────────────────────────────────────────────────
-  const filteredItems = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return allItems.filter((item) => {
-      const matchesSearch =
-        !q ||
-        item.title.toLowerCase().includes(q) ||
-        `archive-${item.id}`.includes(q);
+const filteredItems = useMemo(() => {
+  const q = searchQuery.toLowerCase().trim();
+  const hasQuery = q.length >= 2;
 
-      const matchesFilter =
-        filterType === "ALL" ||
-        (filterType === "VISUAL" && (item.type === "IMAGE" || item.type === "VIDEO")) ||
-        (filterType === "TEXT" && item.type === "PDF") ||
-        item.type === filterType;
+  return allItems.filter((item) => {
+    const matchesFilter =
+      filterType === "ALL" ||
+      (filterType === "VISUAL" && (item.type === "IMAGE" || item.type === "VIDEO")) ||
+      (filterType === "TEXT" && item.type === "PDF") ||
+      item.type === filterType;
 
-      return matchesSearch && matchesFilter;
-    });
-  }, [allItems, filterType, searchQuery]);
+    if (!hasQuery) return matchesFilter;
+
+    const matchesSearch =
+  item.title.toLowerCase().includes(q) ||
+  `archive-${item.id}`.includes(q) ||
+  item.tags?.some((t) => t.toLowerCase().includes(q)) ||
+  item.summaryText?.toLowerCase().includes(q);
+
+    return matchesSearch && matchesFilter;
+  });
+}, [allItems, filterType, searchQuery]);
 
   // IDs of visible images — sent to ImageDetail for prev/next navigation
   const visibleImageIds = useMemo(
@@ -176,6 +187,17 @@ export function MediaIndex({
               {getTitle()}
             </span>
           </h1>
+          <div className="mt-6 relative max-w-xl">
+  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
+  <input
+    type="text"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    placeholder="Search this community's archive..."
+    className="w-full bg-white/60 border border-[#1A1A1A]/20 rounded-lg pl-10 pr-4 py-3 focus:border-[#CC7722] outline-none transition-colors text-sm"
+    style={{ fontFamily: "'Space Mono', monospace" }}
+  />
+</div>
         </motion.div>
       </div>
 
@@ -183,18 +205,7 @@ export function MediaIndex({
       <div className="px-6 sm:px-12 py-8 border-b border-[#1A1A1A]/10 bg-[#1A1A1A]/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 items-center">
 
-          {/* Search */}
-          <div className="flex-1 relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by title or archive ID..."
-              className="w-full bg-[#F5F1E8] border border-[#1A1A1A]/20 rounded-lg pl-12 pr-4 py-3 focus:border-[#CC7722] outline-none transition-colors"
-              style={{ fontFamily: "'Space Mono', monospace" }}
-            />
-          </div>
+          
 
           {/* Filter tabs */}
           <div className="flex gap-2 flex-wrap justify-center">

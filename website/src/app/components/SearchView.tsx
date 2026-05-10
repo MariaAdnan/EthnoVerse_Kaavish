@@ -8,6 +8,8 @@ import { getArchiveStats } from "../../services/archivestats";
 
 interface SearchViewProps {
   onNavigate: (view: string) => void;
+  persistedQuery: string;
+  onQueryChange: (q: string) => void;
 }
 interface SearchArchiveResponse {
   interviews: any[];
@@ -79,8 +81,7 @@ function extractSnippet(
 
 
 
-export function SearchView({ onNavigate }: SearchViewProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function SearchView({ onNavigate, persistedQuery, onQueryChange }: SearchViewProps) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 const [stats, setStats] = useState({
   totalItems: 0,
@@ -98,12 +99,12 @@ useEffect(() => {
 
   useEffect(() => {
     const runSearch = async () => {
-      if (searchQuery.length === 0) {
+if (persistedQuery.length === 0) {
         setSearchResults([]);
         return;
       }
 
-      const data = await searchArchive(searchQuery);
+const data = await searchArchive(persistedQuery);
 
       // interviews → AUDIO
       const audioResults: SearchResult[] = data.interviews.map((item: any) => {
@@ -111,7 +112,7 @@ useEffect(() => {
 
 
   const snippet =
-  extractSnippet(summaryText, searchQuery) ??
+extractSnippet(summaryText, persistedQuery) ??
   summaryText.slice(0, 180);
 // console.log("SUMMARY:", item.id, item.summary_html);
 
@@ -144,7 +145,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
     community: item.communities?.name || "Unknown",
     date: "",
     summary: description || tagsText,       // ⭐ FIX
-    snippet: extractSnippet(description || tagsText, searchQuery),
+    snippet: extractSnippet(description || tagsText, persistedQuery),
   };
 });
 
@@ -155,7 +156,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
     };
 
     runSearch();
-  }, [searchQuery]);
+  }, [persistedQuery]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
@@ -203,8 +204,8 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
           <div className="relative">
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={persistedQuery}
+              onChange={(e) => onQueryChange(e.target.value)}
               placeholder="SEARCH THE ARCHIVE..."
               className="w-full bg-transparent border-b-2 border-foreground focus:border-accent outline-none py-6 pr-12 transition-colors"
               style={{
@@ -275,12 +276,12 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
                     </div>
                     <div className="col-span-5">
   <div className="group-hover:text-accent transition-colors">
-    {highlight(result.title, searchQuery)}
+    {highlight(result.title, persistedQuery)}
   </div>
 
   {result.snippet && (
     <p className="mt-2 text-sm opacity-60 leading-relaxed">
-      {highlight(result.snippet, searchQuery)}
+      {highlight(result.snippet, persistedQuery)}
     </p>
   )}
 </div>
@@ -305,7 +306,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
         )}
 
         {/* Empty State */}
-        {searchQuery.length === 0 && (
+        {persistedQuery.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

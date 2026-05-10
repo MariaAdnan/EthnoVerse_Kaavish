@@ -595,7 +595,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             className="text-sm opacity-70"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
-            EthnoVerse Living Archives · Preserving the Cultural Heritage of Sindh
+            EthnoVerse · Preserving the Cultural Heritage of Sindh
           </p>
           <p className="text-xs opacity-50 mt-2">
             © 2026 EthnoVerse Project · All oral histories recorded with informed consent

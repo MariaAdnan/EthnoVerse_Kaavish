@@ -28,7 +28,7 @@ type View =
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [history, setHistory] = useState<View[]>(['home']);
-
+const [searchQuery, setSearchQuery] = useState("");
   const handleNavigate = (view: string) => {
     // 1. Special "Parent Back" for Community Detail
     // If we are on 'community' and hit 'back', we want to go to 'explore' or 'home',
@@ -84,12 +84,34 @@ export default function App() {
       <main>
         {currentView === 'home' && <Homepage onNavigate={handleNavigate} />}
         {currentView === 'explore' && <ExploreCommunities onNavigate={handleNavigate} />}
-        {currentView.startsWith('community:') && (
+{currentView.startsWith('community:') && currentView.split(':').length === 2 && (
           <CommunityDetail
             onNavigate={handleNavigate}
             view={currentView}
           />
         )}
+        // ADD these three — after the existing community: block:
+{currentView.startsWith('community:') && currentView.endsWith(':visual') && (
+  <MediaIndex
+    onNavigate={handleNavigate}
+    initialFilter="VISUAL"
+    communityId={currentView.split(':')[1]}
+  />
+)}
+{currentView.startsWith('community:') && currentView.endsWith(':audio') && (
+  <MediaIndex
+    onNavigate={handleNavigate}
+    initialFilter="AUDIO"
+    communityId={currentView.split(':')[1]}
+  />
+)}
+{currentView.startsWith('community:') && currentView.endsWith(':text') && (
+  <MediaIndex
+    onNavigate={handleNavigate}
+    initialFilter="TEXT"
+    communityId={currentView.split(':')[1]}
+  />
+)}
         {currentView === '3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} />}
         {currentView === 'admin-3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} isAdmin />}
         
@@ -100,8 +122,13 @@ export default function App() {
           />
         )}
         {currentView === 'admin' && <AdminDashboard onNavigate={handleNavigate} />}
-        {currentView === 'search' && <SearchView onNavigate={handleNavigate} />}
-        {currentView === 'admin-login' && <AdminLogin onNavigate={handleNavigate} />}
+{currentView === 'search' && (
+  <SearchView 
+    onNavigate={handleNavigate}
+    persistedQuery={searchQuery}
+    onQueryChange={setSearchQuery}
+  />
+)}        {currentView === 'admin-login' && <AdminLogin onNavigate={handleNavigate} />}
         {currentView === 'media-upload' && <MediaUpload onNavigate={handleNavigate} />}
         {currentView === 'about' && <AboutPage onNavigate={handleNavigate} />}
 {currentView.startsWith('image-detail:') && (

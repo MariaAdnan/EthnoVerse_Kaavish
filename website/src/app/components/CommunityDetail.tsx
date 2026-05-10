@@ -360,7 +360,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
           className="text-[clamp(1.8rem,4vw,3rem)] mb-12 text-center"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
-          Glimpse Oral Histories
+          A Glimpse of Oral Histories
         </h2>
 
         {loadingInterviews ? (

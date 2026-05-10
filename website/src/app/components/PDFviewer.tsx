@@ -198,7 +198,7 @@ export function PDFViewer({ onNavigate }: PDFViewerProps) {
                 className="text-xs opacity-40"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
-                Page 1 of 8 · EthnoVerse Living Archives · Kaavish Initiative © 2024
+                Page 1 of 8 · EthnoVerse · Kaavish Initiative © 2024
               </p>
             </div>
           </div>
