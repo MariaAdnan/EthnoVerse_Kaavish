@@ -248,7 +248,7 @@ const downloadUrl = job.model_url
             </div>
             <div className="flex justify-between">
               <span className="text-[#1A1A1A]/60">ITERATIONS:</span>
-              <span>7,000</span>
+              <span>30,000</span>
             </div>
             {job.model_url && (
               <div className="flex justify-between gap-4">
