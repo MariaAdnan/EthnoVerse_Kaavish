@@ -9,6 +9,7 @@ const isAdmin = urlParams.get('mode') === 'admin';
 const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
 const terrainParam = urlParams.get('terrain');
 const isKolhi = !terrainParam;
+const isCustomTerrain = terrainParam === 'custom';
 
 const raycaster = new THREE.Raycaster();
 const downVector = new THREE.Vector3(0, -1, 0);
@@ -37,36 +38,73 @@ const TERRAIN_FILES = {
   mountains: 'mountains.glb',
 };
 
-const terrainFile = isKolhi ? 'desert-v1.glb' : (TERRAIN_FILES[terrainParam] || 'terrains/grass.glb');
+const terrainFile = isKolhi ? 'desert-v1.glb' : (TERRAIN_FILES[terrainParam] || 'grass.glb');
 
-loader.load(terrainFile, function (gltf) {
-  object = gltf.scene;
+async function loadTerrain() {
+  if (isCustomTerrain) {
+    const SB_URL = 'https://dstropmznqaadsyhojvb.supabase.co';
+    const SB_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
+    let t = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const rows = await res.json();
+      if (rows?.[0]?.terrain_transform) {
+        try { t = JSON.parse(rows[0].terrain_transform); } catch (_) {}
+      }
+    } catch (e) { console.warn('Could not fetch terrain transform:', e); }
 
-  if (isKolhi) {
-    object.position.set(70, -4.5, -70);
-    object.scale.set(0.07, 0.07, 0.07);
-    object.traverse((child) => {
-      if (child.isMesh) {
-        const siltColor = new THREE.Color(0xffffff);
-        child.material.color.lerp(siltColor, 0.7);
-        child.material.roughness = 1.0;
-        child.material.metalness = 0.0;
-      }
+    const glbUrl = `${SB_URL}/storage/v1/object/public/terrain-files/${COMMUNITY_ID}-terrain.glb`;
+    loader.load(glbUrl, function (gltf) {
+      object = gltf.scene;
+      object.position.set(t.posX ?? 0, t.posY ?? -2, t.posZ ?? 0);
+      const s = t.scale ?? 1;
+      object.scale.set(s, s, s);
+      object.rotation.set(t.rotX ?? 0, t.rotY ?? 0, t.rotZ ?? 0, 'XYZ');
+      object.traverse((child) => {
+        if (child.isMesh) { child.material.roughness = 1.0; child.material.metalness = 0.0; }
+      });
+      scene.add(object);
+    }, undefined, (err) => {
+      console.error('Custom terrain GLB failed:', err);
+      loader.load('grass.glb', (gltf) => {
+        object = gltf.scene;
+        object.position.set(0, -2, 0);
+        object.scale.set(1, 1, 1);
+        scene.add(object);
+      });
     });
-    scene.add(object);
-    loadKolhiObjects(); // loads matka, huts, charpai, trees, bushes only
-  } else {
-    object.position.set(0, -2, 0);
-    object.scale.set(1, 1, 1);
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.material.roughness = 1.0;
-        child.material.metalness = 0.0;
-      }
-    });
-    scene.add(object);
+    return;
   }
-});
+
+  loader.load(terrainFile, function (gltf) {
+    object = gltf.scene;
+    if (isKolhi) {
+      object.position.set(70, -4.5, -70);
+      object.scale.set(0.07, 0.07, 0.07);
+      object.traverse((child) => {
+        if (child.isMesh) {
+          const siltColor = new THREE.Color(0xffffff);
+          child.material.color.lerp(siltColor, 0.7);
+          child.material.roughness = 1.0;
+          child.material.metalness = 0.0;
+        }
+      });
+      scene.add(object);
+      loadKolhiObjects();
+    } else {
+      object.position.set(0, -2, 0);
+      object.scale.set(1, 1, 1);
+      object.traverse((child) => {
+        if (child.isMesh) { child.material.roughness = 1.0; child.material.metalness = 0.0; }
+      });
+      scene.add(object);
+    }
+  });
+}
+loadTerrain();
 function makeLabel(title, description, worldX, worldY, worldZ, offsetX = 0, offsetY = 0, offsetZ = 0) {
   if (!title) return null;
   const div = document.createElement('div');
@@ -412,6 +450,214 @@ if (btn) {
 
 const SUPABASE_URL = 'https://dstropmznqaadsyhojvb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
+
+// ── Terrain Transform Panel (admin only, non-Kolhi) ─────────────────────────
+if (isAdmin && !isKolhi) {
+  const SB_URL = SUPABASE_URL;
+  const SB_KEY = SUPABASE_KEY;
+
+  // Current slider values — initialised from DB on load
+  const terrainT = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
+
+  // ── Panel DOM ──────────────────────────────────────────────────────────────
+  const tPanel = document.createElement('div');
+  tPanel.id = 'terrain-panel';
+  tPanel.style.cssText = `
+    position: fixed; left: 20px; top: 80px; z-index: 998;
+    background: rgba(10,10,10,0.88); color: white;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+    padding: 18px 20px; width: 280px; display: none;
+    font-family: sans-serif; font-size: 13px; backdrop-filter: blur(8px);
+  `;
+
+  // Toggle button — always visible
+  const tToggleBtn = document.createElement('button');
+  tToggleBtn.id = 'terrain-toggle';
+  tToggleBtn.style.cssText = `
+    position: fixed; left: 20px; top: 160px; z-index: 998;
+    padding: 8px 16px; background: rgba(10,10,10,0.75); color: white;
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+    font-size: 13px; cursor: pointer; font-family: sans-serif;
+    display: none;
+  `;
+  tToggleBtn.innerText = '⚙ Adjust Terrain';
+  tToggleBtn.addEventListener('click', () => {
+    tPanel.style.display = tPanel.style.display === 'none' ? 'block' : 'none';
+  });
+  document.body.appendChild(tToggleBtn);
+
+  // ── Build slider helper ────────────────────────────────────────────────────
+  function makeTerrainSlider({ label, min, max, step, value, key }) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom: 12px;';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; justify-content:space-between; margin-bottom:4px; opacity:0.65; font-size:11px;';
+    const lbl = document.createElement('span');
+    lbl.innerText = label;
+    const val = document.createElement('span');
+    val.innerText = Number(value).toFixed(2);
+    header.appendChild(lbl);
+    header.appendChild(val);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = min;
+    slider.max = max;
+    slider.step = step;
+    slider.value = value;
+    slider.style.cssText = 'width:100%; accent-color:#c8a96e; cursor:pointer;';
+
+    slider.addEventListener('input', () => {
+      const v = Number(slider.value);
+      val.innerText = v.toFixed(2);
+      terrainT[key] = v;
+      applyTerrainTransform();
+    });
+
+    wrap.appendChild(header);
+    wrap.appendChild(slider);
+    return { wrap, slider, val };
+  }
+
+  function sectionLabel(text) {
+    const el = document.createElement('div');
+    el.innerText = text;
+    el.style.cssText = 'font-size:10px; opacity:0.35; letter-spacing:0.1em; text-transform:uppercase; margin: 10px 0 6px;';
+    tPanel.appendChild(el);
+  }
+
+  // ── Apply transform to terrain object ─────────────────────────────────────
+  function applyTerrainTransform() {
+    if (!object) return;
+    object.position.set(terrainT.posX, terrainT.posY, terrainT.posZ);
+    object.scale.set(terrainT.scale, terrainT.scale, terrainT.scale);
+    object.rotation.set(terrainT.rotX, terrainT.rotY, terrainT.rotZ, 'XYZ');
+  }
+
+  // ── Build panel contents ───────────────────────────────────────────────────
+  function buildTerrainPanel() {
+    tPanel.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.innerText = '🏔 Terrain Transform';
+    title.style.cssText = 'font-weight:600; font-size:14px; margin-bottom:14px; letter-spacing:0.02em;';
+    tPanel.appendChild(title);
+
+    const sliderDefs = [
+      { section: 'Position', sliders: [
+        { label: 'X', key: 'posX', min: -30, max: 30, step: 0.1 },
+        { label: 'Y', key: 'posY', min: -10, max: 10, step: 0.1 },
+        { label: 'Z', key: 'posZ', min: -30, max: 30, step: 0.1 },
+      ]},
+      { section: 'Scale', sliders: [
+        { label: 'Scale', key: 'scale', min: 0.01, max: 5, step: 0.01 },
+      ]},
+      { section: 'Rotation', sliders: [
+        { label: 'Rot X', key: 'rotX', min: -Math.PI, max: Math.PI, step: 0.01 },
+        { label: 'Rot Y', key: 'rotY', min: -Math.PI, max: Math.PI, step: 0.01 },
+        { label: 'Rot Z', key: 'rotZ', min: -Math.PI, max: Math.PI, step: 0.01 },
+      ]},
+    ];
+
+    for (const { section, sliders } of sliderDefs) {
+      sectionLabel(section);
+      for (const def of sliders) {
+        const { wrap } = makeTerrainSlider({ ...def, value: terrainT[def.key] });
+        tPanel.appendChild(wrap);
+      }
+    }
+
+    // Divider
+    const hr = document.createElement('div');
+    hr.style.cssText = 'border-top: 1px solid rgba(255,255,255,0.1); margin: 14px 0 10px;';
+    tPanel.appendChild(hr);
+
+    // Save button
+    const saveBtn = document.createElement('button');
+    saveBtn.innerText = '✓ Save Transform';
+    saveBtn.style.cssText = `
+      width:100%; padding:9px; border-radius:8px; border:none; cursor:pointer;
+      background:#c8a96e; color:#111; font-weight:600; font-size:13px; font-family:sans-serif;
+    `;
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.innerText = 'Saving…';
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch(
+          `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}`,
+          {
+            method: 'PATCH',
+            headers: {
+              apikey: SB_KEY,
+              Authorization: `Bearer ${SB_KEY}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal',
+            },
+            body: JSON.stringify({ terrain_transform: JSON.stringify(terrainT) }),
+          }
+        );
+        if (!res.ok) throw new Error(await res.text());
+        saveBtn.innerText = '✓ Saved!';
+        setTimeout(() => {
+          saveBtn.innerText = '✓ Save Transform';
+          saveBtn.disabled = false;
+          // collapse panel, show toggle button
+          tPanel.style.display = 'none';
+          tToggleBtn.style.display = 'block';
+          tToggleBtn.style.top = '60px'; // move up now insertBtn is visible
+        }, 1200);
+      } catch (err) {
+        console.error('Save terrain transform failed:', err);
+        saveBtn.innerText = '❌ Failed — retry';
+        saveBtn.disabled = false;
+      }
+    });
+    tPanel.appendChild(saveBtn);
+  }
+
+  // ── On load: fetch existing transform, then show panel ────────────────────
+  async function initTerrainPanel() {
+    let isFirstTime = true;
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      const rows = await res.json();
+      const saved = rows?.[0]?.terrain_transform;
+      if (saved) {
+        isFirstTime = false;
+        try {
+          const t = JSON.parse(saved);
+          Object.assign(terrainT, t);
+          applyTerrainTransform();
+        } catch (_) {}
+      }
+    } catch (e) { console.warn('Could not fetch terrain_transform:', e); }
+
+    buildTerrainPanel();
+    document.body.appendChild(tPanel);
+
+    if (isFirstTime) {
+      // First time — auto-open so admin sees sliders immediately
+      tPanel.style.display = 'block';
+      tToggleBtn.style.display = 'none';
+    } else {
+      // Already saved before — show toggle button only
+      tPanel.style.display = 'none';
+      tToggleBtn.style.display = 'block';
+    }
+  }
+
+  // Stop click/keyboard events from leaking through the panel
+  tPanel.addEventListener('click',      (e) => e.stopPropagation());
+  tPanel.addEventListener('mousedown',  (e) => e.stopPropagation());
+  tPanel.addEventListener('keydown',    (e) => e.stopPropagation());
+  tPanel.addEventListener('keyup',      (e) => e.stopPropagation());
+
+  initTerrainPanel();
+}
 
 // const urlParams = new URLSearchParams(window.location.search);
 // const isAdmin = urlParams.get('mode') === 'admin';

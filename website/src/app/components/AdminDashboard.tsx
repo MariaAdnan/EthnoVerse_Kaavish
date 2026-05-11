@@ -253,7 +253,6 @@ setAllCommunities(commData || []);
       style={{ fontFamily: "'Space Mono', monospace" }}
     >
       <option value="" disabled>Pick terrain ▼</option>
-      <option value="desert">Desert</option>
       <option value="grass">Grassland</option>
       <option value="rocky">Rocky</option>
       <option value="mountains">Mountains</option>
