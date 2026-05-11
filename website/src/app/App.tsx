@@ -79,7 +79,7 @@ const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
-{currentView !== '3d-tour' && !currentView.startsWith('admin-3d-tour') && (
+{!currentView.startsWith('3d-tour') && !currentView.startsWith('admin-3d-tour') && (
   <NavigationBar onNavigate={handleNavigate} />
 )}
       <main>
@@ -112,7 +112,9 @@ const [searchQuery, setSearchQuery] = useState("");
     communityId={currentView.split(':')[1]}
   />
 )}
-        {currentView === '3d-tour' && <ThreeDTourViewer onNavigate={handleNavigate} />}
+{currentView.startsWith('3d-tour') && (
+  <ThreeDTourViewer onNavigate={handleNavigate} view={currentView} />
+)}
 {currentView.startsWith('admin-3d-tour') && (
   <ThreeDTourViewer onNavigate={handleNavigate} isAdmin view={currentView} />
 )}        
