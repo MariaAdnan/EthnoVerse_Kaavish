@@ -334,7 +334,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={() => onNavigate(`3d-tour`)}
+onClick={() => onNavigate(`3d-tour:${communityId}`)}
                 className="px-8 py-3 bg-[#1A1A1A] text-[#F5F1E8] rounded-sm flex items-center gap-3 hover:bg-[#333] transition-colors w-full sm:w-auto justify-center"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
