@@ -280,7 +280,7 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
     volumes={"/mnt/ply_storage": volume},
     secrets=secrets,
 )
-@modal.web_endpoint(method="GET")
+@modal.fastapi_endpoint(method="GET")
 def download_ply(object_name: str):
     from fastapi import Response
     ply_path = Path(f"/mnt/ply_storage/{object_name}/point_cloud.ply")
@@ -300,7 +300,7 @@ def download_ply(object_name: str):
 
 # ── Webhook endpoint ───────────────────────────────────────────────────────────
 @app.function(secrets=secrets)
-@modal.web_endpoint(method="POST")
+@modal.fastapi_endpoint(method="POST")
 def webhook(payload: dict):
     record = payload.get("record", {})
 
