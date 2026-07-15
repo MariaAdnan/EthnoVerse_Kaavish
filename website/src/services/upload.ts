@@ -9,12 +9,19 @@ export async function uploadZipToCloudinary(file: File) {
 }
 
 async function uploadWithResourceType(file: File, resourceType: "auto" | "raw" | "image" | "video") {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error("Cloudinary upload configuration is missing");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "ethnoverse_unsigned");
+  formData.append("upload_preset", uploadPreset);
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/dve5xqucs/${resourceType}/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     {
       method: "POST",
       body: formData,

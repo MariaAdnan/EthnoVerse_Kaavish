@@ -2,7 +2,7 @@
 import { motion } from "motion/react";
 import { Move, RotateCw, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabase";
 
 interface ThreeDTourViewerProps {
@@ -15,6 +15,47 @@ const KOLHI_ID = '2c0e586a-3685-4135-8107-b442cdd22d73';
 
 export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTourViewerProps) {
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const buildTourUrl = (communityId: string, terrain?: string) => {
+    const params = new URLSearchParams({
+      community: communityId,
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+      supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    });
+
+    if (isAdmin) params.set("mode", "admin");
+    if (terrain) params.set("terrain", terrain);
+
+    return `/3d-tour/index.html?${params.toString()}`;
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const sendAdminToken = async (event: MessageEvent) => {
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== iframeRef.current?.contentWindow ||
+        event.data?.type !== "ethnoverse:request-admin-token"
+      ) {
+        return;
+      }
+
+      const { data } = await supabase.auth.getSession();
+      iframeRef.current?.contentWindow?.postMessage(
+        {
+          type: "ethnoverse:admin-token",
+          requestId: event.data.requestId,
+          accessToken: data.session?.access_token ?? null,
+        },
+        event.origin,
+      );
+    };
+
+    window.addEventListener("message", sendAdminToken);
+    return () => window.removeEventListener("message", sendAdminToken);
+  }, [isAdmin]);
 
   useEffect(() => {
     // Extract communityId from "admin-3d-tour:uuid" or fall back to Kolhi
@@ -23,10 +64,7 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
 
     if (isKolhi) {
       // Kolhi tour: hardcoded, no terrain param needed
-      const src = isAdmin
-        ? `/3d-tour/index.html?mode=admin&community=${KOLHI_ID}`
-        : `/3d-tour/index.html`;
-      setIframeSrc(src);
+      setIframeSrc(buildTourUrl(KOLHI_ID));
       return;
     }
 
@@ -38,10 +76,7 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
       .single()
       .then(({ data }) => {
         const terrain = data?.terrain_type || 'grass';
-        const src = isAdmin
-          ? `/3d-tour/index.html?mode=admin&community=${communityId}&terrain=${terrain}`
-          : `/3d-tour/index.html?community=${communityId}&terrain=${terrain}`;
-        setIframeSrc(src);
+        setIframeSrc(buildTourUrl(communityId, terrain));
       });
   }, [view, isAdmin]);
 
@@ -49,6 +84,7 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
     <div className="min-h-screen bg-black relative">
       {iframeSrc && (
         <iframe
+          ref={iframeRef}
           src={iframeSrc}
           className="w-full h-screen border-none"
           allow="fullscreen"
