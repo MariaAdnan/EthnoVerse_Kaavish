@@ -29,7 +29,6 @@ alter table public.model_jobs enable row level security;
 alter table public.tour_objects enable row level security;
 alter table public.users enable row level security;
 alter table public.visual_media enable row level security;
-alter table storage.objects enable row level security;
 
 drop policy if exists "Public read communities" on public.communities;
 drop policy if exists "Public read interviews" on public.interviews;
@@ -134,18 +133,18 @@ create policy archive_storage_public_read
 on storage.objects
 for select
 to anon, authenticated
-using (bucket_id in ('3d-models', 'terrain-files', 'tour-objects'));
+using (bucket_id in ('terrain-files', 'tour-objects'));
 
 create policy archive_storage_admin_all
 on storage.objects
 for all
 to authenticated
 using (
-  bucket_id in ('3d-models', 'terrain-files', 'tour-objects')
+  bucket_id in ('terrain-files', 'tour-objects')
   and public.is_admin()
 )
 with check (
-  bucket_id in ('3d-models', 'terrain-files', 'tour-objects')
+  bucket_id in ('terrain-files', 'tour-objects')
   and public.is_admin()
 );
 
