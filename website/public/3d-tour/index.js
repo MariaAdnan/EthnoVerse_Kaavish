@@ -10,6 +10,67 @@ const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
 const terrainParam = urlParams.get('terrain');
 const isKolhi = !terrainParam;
 const isCustomTerrain = terrainParam === 'custom';
+const SUPABASE_URL = urlParams.get('supabaseUrl');
+const SUPABASE_KEY = urlParams.get('supabaseKey');
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('Supabase configuration is missing from the tour URL');
+}
+
+const pendingAdminTokenRequests = new Map();
+
+window.addEventListener('message', (event) => {
+  if (
+    event.origin !== window.location.origin ||
+    event.data?.type !== 'ethnoverse:admin-token'
+  ) {
+    return;
+  }
+
+  const pending = pendingAdminTokenRequests.get(event.data.requestId);
+  if (!pending) return;
+
+  pendingAdminTokenRequests.delete(event.data.requestId);
+  window.clearTimeout(pending.timeoutId);
+
+  if (event.data.accessToken) {
+    pending.resolve(event.data.accessToken);
+  } else {
+    pending.reject(new Error('An authenticated admin session is required'));
+  }
+});
+
+function requestAdminAccessToken() {
+  return new Promise((resolve, reject) => {
+    if (!isAdmin || window.parent === window) {
+      reject(new Error('An authenticated admin session is required'));
+      return;
+    }
+
+    const requestId = crypto.randomUUID();
+    const timeoutId = window.setTimeout(() => {
+      pendingAdminTokenRequests.delete(requestId);
+      reject(new Error('Timed out while checking the admin session'));
+    }, 3000);
+
+    pendingAdminTokenRequests.set(requestId, { resolve, reject, timeoutId });
+    window.parent.postMessage(
+      { type: 'ethnoverse:request-admin-token', requestId },
+      window.location.origin,
+    );
+  });
+}
+
+async function supabaseHeaders(requireAdmin = false) {
+  const accessToken = requireAdmin
+    ? await requestAdminAccessToken()
+    : SUPABASE_KEY;
+
+  return {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
 
 const raycaster = new THREE.Raycaster();
 const downVector = new THREE.Vector3(0, -1, 0);
@@ -42,13 +103,11 @@ const terrainFile = isKolhi ? 'desert-v1.glb' : (TERRAIN_FILES[terrainParam] || 
 
 async function loadTerrain() {
   if (isCustomTerrain) {
-    const SB_URL = 'https://dstropmznqaadsyhojvb.supabase.co';
-    const SB_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
     let t = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
     try {
       const res = await fetch(
-        `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+        `${SUPABASE_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
+        { headers: await supabaseHeaders() }
       );
       const rows = await res.json();
       if (rows?.[0]?.terrain_transform) {
@@ -56,7 +115,7 @@ async function loadTerrain() {
       }
     } catch (e) { console.warn('Could not fetch terrain transform:', e); }
 
-    const glbUrl = `${SB_URL}/storage/v1/object/public/terrain-files/${COMMUNITY_ID}-terrain.glb`;
+    const glbUrl = `${SUPABASE_URL}/storage/v1/object/public/terrain-files/${COMMUNITY_ID}-terrain.glb`;
     loader.load(glbUrl, function (gltf) {
       object = gltf.scene;
       object.position.set(t.posX ?? 0, t.posY ?? -2, t.posZ ?? 0);
@@ -448,14 +507,8 @@ if (btn) {
 // MARIAS CODE STARTS
 // ─── PERSISTENT OBJECT PLACEMENT (ADMIN) ────────────────────────────────────
 
-const SUPABASE_URL = 'https://dstropmznqaadsyhojvb.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_AGrCkBwAKYjrIv9vuacRBQ__huW2bEi';
-
 // ── Terrain Transform Panel (admin only, non-Kolhi) ─────────────────────────
 if (isAdmin && !isKolhi) {
-  const SB_URL = SUPABASE_URL;
-  const SB_KEY = SUPABASE_KEY;
-
   // Current slider values — initialised from DB on load
   const terrainT = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
 
@@ -585,12 +638,11 @@ if (isAdmin && !isKolhi) {
       saveBtn.disabled = true;
       try {
         const res = await fetch(
-          `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}`,
+          `${SUPABASE_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}`,
           {
             method: 'PATCH',
             headers: {
-              apikey: SB_KEY,
-              Authorization: `Bearer ${SB_KEY}`,
+              ...(await supabaseHeaders(true)),
               'Content-Type': 'application/json',
               Prefer: 'return=minimal',
             },
@@ -621,8 +673,8 @@ if (isAdmin && !isKolhi) {
     let isFirstTime = true;
     try {
       const res = await fetch(
-        `${SB_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+        `${SUPABASE_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
+        { headers: await supabaseHeaders() }
       );
       const rows = await res.json();
       const saved = rows?.[0]?.terrain_transform;
@@ -672,7 +724,7 @@ async function loadSavedObjects() {
 
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/tour_objects?community_id=eq.${COMMUNITY_ID}&select=*`,
-    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    { headers: await supabaseHeaders() }
   );
 
   if (!res.ok) {
@@ -745,15 +797,14 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
   const res = await fetch(`${SUPABASE_URL}/rest/v1/tour_objects`, {
     method: 'POST',
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      ...(await supabaseHeaders(true)),
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) console.error('Failed to save object', await res.text());
-  else console.log('[saveObjectToSupabase] saved OK');
+  if (!res.ok) throw new Error(`Failed to save object: ${await res.text()}`);
+  console.log('[saveObjectToSupabase] saved OK');
 }
 
 // ── Admin UI (only shown when ?mode=admin) ─────────────────────────────────
@@ -1010,8 +1061,7 @@ if (isAdmin) {
           {
             method: 'POST',
             headers: {
-              apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${SUPABASE_KEY}`,
+              ...(await supabaseHeaders(true)),
               'Content-Type': 'application/octet-stream',
               'x-upsert': 'true',
             },

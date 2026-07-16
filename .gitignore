@@ -3,11 +3,15 @@ node_modules/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # Build output
 dist/
 build/
 
+__pycache__/
+*.py[cod]
 # OS files
 .DS_Store
 Thumbs.db
