@@ -99,9 +99,11 @@ function FeaturedCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          community.community_id === "fallback-001"
-            ? onNavigate("explore")
-            : onNavigate(`community:${community.community_id}`);
+          if (community.community_id === "fallback-001") {
+            onNavigate("explore");
+          } else {
+            onNavigate(`community:${community.community_id}`);
+          }
         }
       }}
     >

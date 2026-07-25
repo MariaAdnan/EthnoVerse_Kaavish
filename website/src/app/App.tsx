@@ -11,7 +11,6 @@ import { AdminLogin } from "./components/AdminLogin";
 import { MediaUpload } from "./components/MediaUpload";
 import { AboutPage } from "./components/AboutPage";
 import { ImageDetail } from "./components/ImageDetail";
-import { VideoPlayer } from "./components/VideoPlayer";
 import { AddCommunity } from "./components/AddCommunity";
 import { ContactPage } from "./components/ContactPage";
 import {PDFViewer } from "./components/PDFviewer";
@@ -22,19 +21,21 @@ import ModelProcessingDemo from "./components/ModelProcessing";
 
 type View = 
   | 'home' | 'explore' | 'community' | '3d-tour' | 'admin-3d-tour' | 'audio' | 'admin' | 'search'
-  | 'admin-login' | 'media-upload' | 'about' | 'image-detail' | 'video'
+  | 'admin-login' | 'media-upload' | 'about' | 'image-detail'
   | 'add-community' | 'contact' | 'pdf' | 'media-index'
   | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing' | 'admin-guidelines';
 
+type Route = View | `community:${string}` | `audio:${string}` | `image-detail:${string}` | `pdf:${string}` | `model-processing:${string}` | `3d-tour:${string}` | `admin-3d-tour:${string}`;
+
 export default function App() {
-  const [currentView, setCurrentView] = useState<View>('home');
-  const [history, setHistory] = useState<View[]>(['home']);
+  const [currentView, setCurrentView] = useState<Route>('home');
+  const [history, setHistory] = useState<Route[]>(['home']);
 const [searchQuery, setSearchQuery] = useState("");
   const handleNavigate = (view: string) => {
     // 1. Special "Parent Back" for Community Detail
     // If we are on 'community' and hit 'back', we want to go to 'explore' or 'home',
     // NOT 'audio' or '3d-tour' even if we just visited them.
-    if (view === 'back' && currentView === 'community') {
+    if (view === 'back' && currentView.startsWith('community:')) {
       // Find the last instance of 'explore' or 'home' in history
       const parentView = [...history].reverse().find(v => v === 'explore' || v === 'home') || 'home';
       
@@ -43,7 +44,7 @@ const [searchQuery, setSearchQuery] = useState("");
       const newHistory = history.slice(0, newHistoryIndex + 1);
       
       setHistory(newHistory);
-      setCurrentView(parentView);
+      setCurrentView(parentView as Route);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -71,8 +72,8 @@ const [searchQuery, setSearchQuery] = useState("");
 
     // 4. Normal Navigation
     if (view !== currentView) {
-      setHistory(prev => [...prev, view as View]);
-      setCurrentView(view as View);
+      setHistory(prev => [...prev, view as Route]);
+      setCurrentView(view as Route);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -137,7 +138,6 @@ const [searchQuery, setSearchQuery] = useState("");
 {currentView.startsWith('image-detail:') && (
   <ImageDetail onNavigate={handleNavigate} view={currentView} />
 )}
-        {currentView === 'video' && <VideoPlayer onNavigate={handleNavigate} />}
         {currentView === 'add-community' && <AddCommunity onNavigate={handleNavigate} />}
         {currentView === 'contact' && <ContactPage onNavigate={handleNavigate} />}
 {currentView.startsWith('pdf') && <PDFViewer onNavigate={handleNavigate} view={currentView} />}

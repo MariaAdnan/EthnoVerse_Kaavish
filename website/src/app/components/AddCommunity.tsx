@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { createCommunity } from "../../services/communities";
-import { useEffect } from "react";
 import { uploadToCloudinary } from "../../lib/cloudinary";
 
 

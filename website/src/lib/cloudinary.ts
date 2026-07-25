@@ -1,11 +1,6 @@
 // src/lib/cloudinary.ts
 
 export async function uploadToCloudinary(file: File) {
-    console.log("Cloudinary config:", {
-  cloud: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
-  preset: import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET,
-});
-
   const formData = new FormData();
   
   formData.append("file", file);

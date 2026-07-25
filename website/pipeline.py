@@ -302,7 +302,10 @@ def download_ply(object_name: str):
 @app.function(secrets=secrets)
 @modal.fastapi_endpoint(method="POST")
 def webhook(payload: dict):
-    record = payload.get("record", {})
+    # Supabase sends `record: null` for DELETE webhooks.  Treat that exactly
+    # like an absent record so this endpoint returns a useful validation error
+    # rather than crashing while accessing `.get` below.
+    record = payload.get("record") or {}
 
     job_id          = record.get("id")
     images_zip_url  = record.get("images_zip_url")

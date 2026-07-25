@@ -45,7 +45,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
             </h2>
 
             <a
-              href="mailto:hello@ethnoverse.pk"
+              href="mailto:ma08439@st.habib.edu.pk"
               className="text-3xl hover:text-accent transition-colors"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >

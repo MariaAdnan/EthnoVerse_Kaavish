@@ -1,6 +1,7 @@
 // src/app/components/ModelProcessing.tsx
 import React, { useEffect, useState } from 'react';
 import { getJobById, subscribeToJobUpdates, ModelJob } from '../../services/jobs';
+import { getModelDownloadUrl } from '../../lib/modal';
 
 interface ModelProcessingProps {
   onNavigate: (view: string) => void;
@@ -201,9 +202,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
     );
   }
 // ── Completed view ─────────────────────────────────────────────────────────
-const downloadUrl = job.model_url
-  ? `https://afifah-uzair-19--ethnoverse-3dgs-download-ply.modal.run?object_name=${job.object_name}`
-  : null;
+const downloadUrl = getModelDownloadUrl(job.object_name);
   return (
     <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
       <div className="fixed top-8 left-8 z-50">
@@ -250,16 +249,16 @@ const downloadUrl = job.model_url
               <span className="text-[#1A1A1A]/60">ITERATIONS:</span>
               <span>30,000</span>
             </div>
-            {job.model_url && (
+            {downloadUrl && (
               <div className="flex justify-between gap-4">
                 <span className="text-[#1A1A1A]/60 shrink-0">MODEL URL:</span>
                 <a
-                  href={job.model_url}
+                  href={downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#8B4513] hover:underline text-xs truncate text-right"
                 >
-                  {job.model_url}
+                  {downloadUrl}
                 </a>
               </div>
             )}
