@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { getMediaIndexItems } from "../../services/media";
-import { searchArchive } from "../../services/search";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,8 +137,6 @@ const filteredItems = useMemo(() => {
       onNavigate(`image-detail:${item.id}:${visibleImageIds.join(",")}`);
     } else if (item.type === "AUDIO") {
       onNavigate(`audio:${item.id}`);
-    } else if (item.type === "VIDEO") {
-      onNavigate("video");
     } else if (item.type === "PDF") {
   onNavigate(`pdf:${item.id}`);
 }

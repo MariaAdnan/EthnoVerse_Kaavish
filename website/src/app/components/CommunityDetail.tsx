@@ -193,30 +193,14 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
   const [loadingInterviews, setLoadingInterviews] = useState(true);
   const [communityError, setCommunityError] = useState<string | null>(null);
 
-  // Guard: malformed route
-  if (!communityId) {
-    return (
-      <div className="min-h-screen pt-32 flex items-center justify-center">
-        <div className="text-center">
-          <p
-            className="text-sm opacity-50 mb-4"
-            style={{ fontFamily: "'Space Mono', monospace" }}
-          >
-            INVALID COMMUNITY
-          </p>
-          <button
-            onClick={() => onNavigate("explore")}
-            className="text-sm text-[#CC7722] hover:underline"
-            style={{ fontFamily: "'Space Mono', monospace" }}
-          >
-            ← BACK TO EXPLORE
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!communityId) {
+      setLoadingCommunity(false);
+      setLoadingInterviews(false);
+      setCommunityError("Invalid community.");
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchAll() {

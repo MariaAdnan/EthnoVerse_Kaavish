@@ -15,13 +15,6 @@ export const getCommunityById = async (id: string) => {
     .single();
 };
 
-export const getMediaByCommunity = async (id: string) => {
-  return supabase
-    .from("media_items")
-    .select("*")
-    .eq("community_id", id)
-    .order("created_at");
-};
 export const createCommunity = async (data: {
   name: string;
   location: string;
@@ -30,6 +23,10 @@ export const createCommunity = async (data: {
   long_description: string;
   picture_cloudinary_url?: string | null;
 }) => {
+  if (!data.name.trim() || !data.location.trim() || !data.language.trim()) {
+    throw new Error("Name, location, and language are required.");
+  }
+
   return supabase
     .from("communities")
     .insert([data])

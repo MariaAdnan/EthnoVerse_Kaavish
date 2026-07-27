@@ -29,9 +29,10 @@ function highlight(text: string | null | undefined, query: string) {
   if (!text) return "";      // ⭐ THIS FIX PREVENTS CRASH
   if (!query) return text;
 
-  const regex = new RegExp(`(${query})`, "gi");
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escapedQuery})`, "gi");
   return text.split(regex).map((part, i) =>
-    regex.test(part) ? (
+    part.toLocaleLowerCase() === query.toLocaleLowerCase() ? (
       <mark key={i} className="bg-accent/30 text-accent px-1 rounded">
         {part}
       </mark>
@@ -83,6 +84,8 @@ function extractSnippet(
 
 export function SearchView({ onNavigate, persistedQuery, onQueryChange }: SearchViewProps) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 const [stats, setStats] = useState({
   totalItems: 0,
   totalCommunities: 0,
@@ -98,13 +101,20 @@ useEffect(() => {
 }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const normalizedQuery = persistedQuery.trim();
     const runSearch = async () => {
-if (persistedQuery.length === 0) {
+if (!normalizedQuery) {
         setSearchResults([]);
+        setSearchError(null);
+        setIsSearching(false);
         return;
       }
 
-const data = await searchArchive(persistedQuery);
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+const data = await searchArchive(normalizedQuery);
 
       // interviews → AUDIO
       const audioResults: SearchResult[] = data.interviews.map((item: any) => {
@@ -152,10 +162,22 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
 
 
 
-      setSearchResults([...audioResults, ...mediaResults]);
+      if (!cancelled) setSearchResults([...audioResults, ...mediaResults]);
+      } catch (error) {
+        if (!cancelled) {
+          setSearchResults([]);
+          setSearchError(error instanceof Error ? error.message : "Search failed. Please try again.");
+        }
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
     };
 
-    runSearch();
+    const timeout = window.setTimeout(runSearch, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, [persistedQuery]);
 
   return (
@@ -187,7 +209,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
           </h1>
          {stats.totalItems > 0 && (
   <p className="text-sm opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
-    {stats.totalItems} ITEMS · {stats.totalCommunities} COMMUNITIES · 180GB DATA
+    {stats.totalItems} ITEMS · {stats.totalCommunities} COMMUNITIES
   </p>
 )}
 
@@ -225,6 +247,16 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
         </motion.div>
 
         {/* Results */}
+        {isSearching && (
+          <p className="text-sm opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+            SEARCHING…
+          </p>
+        )}
+        {searchError && (
+          <p className="text-sm text-red-600" role="alert" style={{ fontFamily: "'Space Mono', monospace" }}>
+            {searchError}
+          </p>
+        )}
         {searchResults.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -252,8 +284,6 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
                       onNavigate(`audio:${result.id}`);
                     } else if (result.type === "Image") {
                       onNavigate(`image-detail:${result.id}`);
-                    } else if (result.type === "Video") {
-                      onNavigate(`video:${result.id}`);
                     } else if (result.type === "PDF") {
                       onNavigate(`pdf:${result.id}`);
                     } else if (result.type === "3D") {

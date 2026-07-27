@@ -10,6 +10,7 @@ import {
 import { getJobs } from "../../services/jobs";
 import { supabase } from "../../lib/supabase";
 import { updateCommunityTerrain } from "../../services/communities";
+import { getModelDownloadUrl } from "../../lib/modal";
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
@@ -309,7 +310,7 @@ setAllCommunities(commData || []);
         className="text-sm opacity-60"
         style={{ fontFamily: "'Space Mono', monospace" }}
       >
-        RUN COLAB TO PROCESS
+        MODAL PIPELINE
       </p>
     </div>
 
@@ -360,9 +361,9 @@ setAllCommunities(commData || []);
           </button>
 
           {/* Tour link when done */}
-{job.status === "done" && job.model_url && (
+{job.status === "done" && getModelDownloadUrl(job.object_name) && (
   <a
-    href={`https://afifah-uzair-19--ethnoverse-3dgs-download-ply.modal.run?object_name=${job.object_name}`}
+    href={getModelDownloadUrl(job.object_name)!}
     download={`${job.object_name}_point_cloud.ply`}
     target="_blank"
     rel="noopener noreferrer"
@@ -377,16 +378,19 @@ setAllCommunities(commData || []);
     </div>
   </motion.div>
 )}
-        {/* Recent Activity Table */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.6 }}
-                >
-                  <div className="mb-6 flex items-center justify-between">
-                    {/* Add the rest of the recent activity content here if needed */}
-                  </div>
-                </motion.div>
+        {recentActivity.length > 0 && (
+          <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}>
+            <h2 className="text-3xl mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>Recent Activity</h2>
+            <div className="border border-border divide-y divide-border">
+              {recentActivity.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-4 p-4">
+                  <div><p className="text-sm">{item.title}</p><p className="text-xs opacity-50">{item.type} · {new Date(item.date).toLocaleDateString()}</p></div>
+                  <button onClick={() => handleDelete(item.id, item.type)} className="text-xs text-red-600 hover:underline">DELETE</button>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
               </div>
             </div>
           );
