@@ -2,6 +2,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { getAllCommunities } from "../../services/communities";
+import {
+  COMMUNITY_PLACEHOLDER_IMAGE,
+  OFFLINE_COMMUNITY,
+} from "../../config/archive";
+import { isSupabaseConfigured } from "../../lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,20 +27,7 @@ interface HomepageProps {
 
 // ─── Static fallback (shown while loading / on error) ────────────────────────
 
-const FALLBACK_COMMUNITY: Community = {
-  community_id: "fallback-001",
-  name: "Kolhi Community",
-  location: "Tharparkar, Sindh",
-  language: "Dhati",
-  short_description:
-    "The Kolhi people of Tharparkar preserve ancient traditions through oral histories, " +
-    "intricate tattoo artistry, and sustainable agricultural practices passed down through " +
-    "generations in the desert landscape.",
-  long_description: "",
-  picture_cloudinary_url:
-    "https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaW5kaCUyMGN1bHR1cmUlMjB0cmFkaXRpb25hbHxlbnwxfHx8fDE3NjU3NTcxNDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  created_at: "",
-};
+const OFFLINE_PREVIEW: Community = OFFLINE_COMMUNITY;
 
 // ─── Film-grain noise SVG (inline, no external dependency) ───────────────────
 
@@ -48,21 +40,22 @@ function FeaturedSkeleton() {
   return (
     <div
       className="grid md:grid-cols-2 gap-8 items-center animate-pulse"
+      role="status"
       aria-label="Loading featured community…"
       aria-live="polite"
     >
       {/* Image placeholder */}
-      <div className="aspect-[4/3] rounded-sm bg-[#1A1A1A]/10" />
+      <div className="aspect-[4/3] rounded-sm bg-ink/10" />
       {/* Text placeholders */}
       <div className="space-y-4">
-        <div className="h-3 w-24 rounded bg-[#1A1A1A]/10" />
-        <div className="h-8 w-3/4 rounded bg-[#1A1A1A]/10" />
+        <div className="h-3 w-24 rounded bg-ink/10" />
+        <div className="h-8 w-3/4 rounded bg-ink/10" />
         <div className="space-y-2">
-          <div className="h-4 w-full rounded bg-[#1A1A1A]/10" />
-          <div className="h-4 w-5/6 rounded bg-[#1A1A1A]/10" />
-          <div className="h-4 w-4/6 rounded bg-[#1A1A1A]/10" />
+          <div className="h-4 w-full rounded bg-ink/10" />
+          <div className="h-4 w-5/6 rounded bg-ink/10" />
+          <div className="h-4 w-4/6 rounded bg-ink/10" />
         </div>
-        <div className="h-4 w-32 rounded bg-[#1A1A1A]/10" />
+        <div className="h-4 w-32 rounded bg-ink/10" />
       </div>
     </div>
   );
@@ -80,7 +73,7 @@ function FeaturedCard({
 }) {
   const imageSrc =
     community.picture_cloudinary_url ||
-    "https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080";
+    COMMUNITY_PLACEHOLDER_IMAGE;
 
   // Zero-padded archive ID e.g. ARCHIVE-001
   const archiveId = `ARCHIVE-${String(index + 1).padStart(3, "0")}`;
@@ -89,7 +82,7 @@ function FeaturedCard({
     <div
       className="group cursor-pointer"
       onClick={() =>
-        community.community_id === "fallback-001"
+        community.community_id === "offline-preview"
           ? onNavigate("explore")
           : onNavigate(`community:${community.community_id}`)
       }
@@ -99,7 +92,7 @@ function FeaturedCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          if (community.community_id === "fallback-001") {
+          if (community.community_id === "offline-preview") {
             onNavigate("explore");
           } else {
             onNavigate(`community:${community.community_id}`);
@@ -122,7 +115,7 @@ function FeaturedCard({
         {/* Text */}
         <div>
           <p
-            className="text-sm mb-2 opacity-60"
+            className="text-sm mb-2 opacity-80"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             {archiveId} · FEATURED
@@ -172,6 +165,13 @@ export function Homepage({ onNavigate }: HomepageProps) {
     let cancelled = false;
 
     async function fetchCommunities() {
+      if (!isSupabaseConfigured) {
+        setError("Supabase is not configured for this local preview.");
+        setCommunities([OFFLINE_PREVIEW]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -184,15 +184,15 @@ export function Homepage({ onNavigate }: HomepageProps) {
           console.error("[Homepage] Supabase error:", sbError.message);
           setError(sbError.message);
           // Fall back gracefully — show hardcoded data
-          setCommunities([FALLBACK_COMMUNITY]);
+          setCommunities([OFFLINE_PREVIEW]);
         } else {
-          setCommunities(data ?? [FALLBACK_COMMUNITY]);
+          setCommunities(data ?? [OFFLINE_PREVIEW]);
         }
       } catch (err) {
         if (cancelled) return;
         console.error("[Homepage] Unexpected error:", err);
         setError("Failed to load communities.");
-        setCommunities([FALLBACK_COMMUNITY]);
+        setCommunities([OFFLINE_PREVIEW]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -205,7 +205,7 @@ export function Homepage({ onNavigate }: HomepageProps) {
   }, []);
 
   // Featured community = the first one returned (ordered by created_at DESC in service)
-  const featuredCommunity = communities[0] ?? FALLBACK_COMMUNITY;
+  const featuredCommunity = communities[0] ?? OFFLINE_PREVIEW;
 
   return (
     <div className="min-h-screen">
@@ -218,12 +218,11 @@ export function Homepage({ onNavigate }: HomepageProps) {
         {/* Background Image + Film Grain */}
         <div className="absolute inset-0" aria-hidden="true">
           <img
-            src="https://images.unsplash.com/photo-1677153224313-7b009d1b33e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0aGFyJTIwZGVzZXJ0JTIwbGFuZHNjYXBlfGVufDF8fHx8MTc2NTc1NzE0M3ww&ixlib=rb-4.1.0&q=80&w=1080"
+            src={COMMUNITY_PLACEHOLDER_IMAGE}
             alt=""
             className="w-full h-full object-cover grayscale opacity-40"
             /* decorative — alt intentionally empty */
             loading="eager"
-            fetchPriority="high"
           />
           {/* Film Grain Texture */}
           <div
@@ -296,11 +295,11 @@ export function Homepage({ onNavigate }: HomepageProps) {
             <>
               {error && (
                 <p
-                  className="text-xs mb-6 opacity-50"
+                  className="mb-8 border-2 border-destructive bg-destructive/10 p-4 text-sm font-semibold text-destructive"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                   role="status"
                 >
-                  OFFLINE MODE — showing cached data
+                  OFFLINE PREVIEW — this is placeholder content, not archive data
                 </p>
               )}
               <FeaturedCard
@@ -326,7 +325,7 @@ export function Homepage({ onNavigate }: HomepageProps) {
           className="max-w-4xl mx-auto text-center"
         >
           <p
-            className="text-sm mb-4 opacity-60"
+            className="text-sm mb-4 opacity-80"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ABOUT ETHNOVERSE

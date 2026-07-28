@@ -1,5 +1,36 @@
 // src/services/media.ts
 import { supabase } from "../lib/supabase";
+import {
+  normalizeTags,
+  optionalText,
+  requireHttpUrl,
+  requireText,
+  requireUuid,
+} from "../lib/validation";
+
+export interface MediaIndexImage {
+  id: number | string;
+  title: string | null;
+  created_at: string;
+  community_id: string;
+  picture_cloudinary_url: string | null;
+  tags: string[] | null;
+}
+
+export interface MediaIndexInterview {
+  id: number | string;
+  title: string | null;
+  date: string | null;
+  community_id: string;
+  summary_text: string | null;
+}
+
+export interface MediaIndexDocument {
+  id: number | string;
+  title: string | null;
+  created_at: string;
+  community_id: string;
+}
 
 export async function getMediaByCommunity(communityId: string) {
   const { data, error } = await supabase
@@ -31,15 +62,19 @@ export async function createMedia(payload: {
   picture_cloudinary_url: string;
   tags?: string[] | null;
 }) {
+  const validated = {
+    title: requireText(payload.title, "Title", 200),
+    description: optionalText(payload.description, "Description", 5_000),
+    community_id: requireUuid(payload.community_id, "Community"),
+    picture_cloudinary_url: requireHttpUrl(
+      payload.picture_cloudinary_url,
+      "Image URL",
+    ),
+    tags: normalizeTags(payload.tags),
+  };
   const { data, error } = await supabase
     .from("visual_media")
-    .insert([{
-      title: payload.title,
-      description: payload.description ?? null,
-      community_id: payload.community_id,
-      picture_cloudinary_url: payload.picture_cloudinary_url,
-      tags: payload.tags ?? null,
-    }])
+    .insert([validated])
     .select()
     .single();
   return { data, error };
@@ -81,9 +116,9 @@ export async function getMediaIndexItems(communityId?: string) {
 
   return {
     data: {
-      media: mediaData || [],
-      interviews: interviewData || [],
-      documents: docData || [],
+      media: (mediaData || []) as MediaIndexImage[],
+      interviews: (interviewData || []) as MediaIndexInterview[],
+      documents: (docData || []) as MediaIndexDocument[],
     },
     error: mediaError || interviewError,
   };

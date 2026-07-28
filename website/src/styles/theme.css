@@ -4,6 +4,15 @@
   --font-size: 16px;
   
   /* Tharparkar Dust Color Palette */
+  --ink: #1A1A1A;
+  --paper: #F5F1E8;
+  --umber: #8B4513;
+  --dark-umber: #704010;
+  --graphite: #333333;
+  --smoke: #666666;
+  --surface: #F9F9F9;
+  --line: #CCCCCC;
+  --canvas-white: #FFFFFF;
   --background: #F5F1E8; /* Unbleached Paper */
   --foreground: #2C2C2C; /* Deep Charcoal */
   --card: #F5F1E8;
@@ -86,6 +95,15 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-umber: var(--umber);
+  --color-dark-umber: var(--dark-umber);
+  --color-graphite: var(--graphite);
+  --color-smoke: var(--smoke);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-canvas-white: var(--canvas-white);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

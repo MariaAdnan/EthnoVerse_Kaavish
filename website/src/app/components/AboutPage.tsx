@@ -1,17 +1,9 @@
 // src/app/components/AboutPage.tsx
 import { motion } from "motion/react";
-import { NavigationBar } from "./NavigationBar";
 
-interface AboutPageProps {
-  onNavigate: (view: string) => void;
-}
-
-export function AboutPage({ onNavigate }: AboutPageProps) {
+export function AboutPage() {
   return (
     <div className="min-h-screen">
-      {/* Navigation Bar */}
-      <NavigationBar onNavigate={onNavigate} />
-      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -19,7 +11,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
         transition={{ duration: 0.8 }}
         className="border-b border-border p-12 pt-32 text-center">
         {/* <p 
-          className="text-sm mb-3 opacity-60"
+          className="text-sm mb-3 opacity-80"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           SRS FIGURE 3.8
@@ -82,7 +74,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
             </h2>
             <div className="space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
-                The platform is built using a modern web architecture with React and Node.js, supported by PostgreSQL (via Supabase) for structured data management. This enables efficient handling of multimedia content, metadata, and scalable access for both administrators and public users.
+                The platform is built as a React and Vite web application, supported by PostgreSQL, authentication, and row-level security through Supabase. This enables efficient handling of multimedia content, metadata, and controlled access for administrators and public users.
               </p>
               <p>
                 Our 3D reconstruction pipeline is based on 3D Gaussian Splatting (3DGS), a state-of-the-art technique for real-time scene rendering. Unlike traditional methods, 3DGS represents scenes using optimized Gaussian primitives, enabling fast, high-quality reconstruction from multi-view images with minimal manual intervention.

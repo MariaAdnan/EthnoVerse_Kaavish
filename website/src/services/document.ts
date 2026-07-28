@@ -1,4 +1,10 @@
 import { supabase } from "../lib/supabase";
+import {
+  optionalText,
+  requireHttpUrl,
+  requireText,
+  requireUuid,
+} from "../lib/validation";
 
 export async function getDocumentsByCommunity(communityId: string) {
   const { data, error } = await supabase
@@ -29,9 +35,24 @@ export async function createDocument(payload: {
   pages?: number | null;
   file_size_kb?: number | null;
 }) {
+  const validated = {
+    title: requireText(payload.title, "Title", 200),
+    description: optionalText(payload.description, "Description", 5_000),
+    community_id: requireUuid(payload.community_id, "Community"),
+    pdf_cloudinary_url: requireHttpUrl(payload.pdf_cloudinary_url, "Document URL"),
+    author: optionalText(payload.author, "Author", 200),
+    pages:
+      payload.pages == null
+        ? null
+        : Math.max(1, Math.min(100_000, Math.trunc(payload.pages))),
+    file_size_kb:
+      payload.file_size_kb == null
+        ? null
+        : Math.max(1, Math.min(100_000_000, Math.trunc(payload.file_size_kb))),
+  };
   const { data, error } = await supabase
     .from("documents")
-    .insert([payload])
+    .insert([validated])
     .select()
     .single();
   return { data, error };

@@ -1,19 +1,29 @@
 // src/app/components/AdminDashboard.tsx
 import { motion } from "motion/react";
-import { Box, Upload, Edit2, Trash2, Users, Database, Plus } from "lucide-react";
+import { Box, Database, Loader2, Plus, Upload, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { 
   getDashboardStats, 
   getRecentActivity,
-  deleteArchiveItem
+  deleteArchiveItem,
+  type RecentActivity,
 } from "../../services/admin";
-import { getJobs } from "../../services/jobs";
+import { getJobs, type ModelJob } from "../../services/jobs";
 import { supabase } from "../../lib/supabase";
 import { updateCommunityTerrain } from "../../services/communities";
 import { getModelDownloadUrl } from "../../lib/modal";
+import { BUILT_IN_TOUR_COMMUNITY_ID } from "../../config/archive";
+import { errorMessage } from "../../lib/validation";
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
+}
+
+interface TourCommunity {
+  community_id: string;
+  name: string;
+  terrain_type: string | null;
 }
 
 export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
@@ -23,11 +33,13 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   newUsersThisMonth: 0,
 });
 
-const [recentActivity, setRecentActivity] = useState<any[]>([]);
+const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 const [loading, setLoading] = useState( true);
-const [jobs, setJobs] = useState<any[]>([]);  
+const [jobs, setJobs] = useState<ModelJob[]>([]);
 const [showTourPicker, setShowTourPicker] = useState(false);
-const [allCommunities, setAllCommunities] = useState<any[]>([]);
+const [allCommunities, setAllCommunities] = useState<TourCommunity[]>([]);
+const [pendingDelete, setPendingDelete] = useState<RecentActivity | null>(null);
+const [isDeleting, setIsDeleting] = useState(false);
 useEffect(() => {
   async function loadDashboard() {
     try {
@@ -53,28 +65,31 @@ setAllCommunities(commData || []);
 
   loadDashboard();
 }, []);
-  const handleDelete = async (id: string, type: string) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this item?");
-  if (!confirmDelete) return;
-
+  const confirmDelete = async () => {
+  if (!pendingDelete || isDeleting) return;
   try {
-    const { error } = await deleteArchiveItem(id, type);
+    setIsDeleting(true);
+    const { error } = await deleteArchiveItem(
+      pendingDelete.id,
+      pendingDelete.type,
+    );
 
     if (error) {
       console.error(error);
-      alert("Delete failed.");
+      toast.error("Delete failed.");
       return;
     }
 
-    // remove from UI immediately
-    setRecentActivity(prev => prev.filter(item => item.id !== id));
-
-    // update stats
+    setRecentActivity(prev => prev.filter(item => item.id !== pendingDelete.id));
     const updatedStats = await getDashboardStats();
     setStats(updatedStats);
-
+    setPendingDelete(null);
+    toast.success("Archive item deleted.");
   } catch (err) {
     console.error("Delete error:", err);
+    toast.error(errorMessage(err, "Delete failed."));
+  } finally {
+    setIsDeleting(false);
   }
 };
 
@@ -89,7 +104,7 @@ setAllCommunities(commData || []);
       >
         <div className="max-w-7xl mx-auto">
           <p 
-            className="text-sm mb-2 opacity-60"
+            className="text-sm mb-2 opacity-80"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ADMINISTRATIVE INTERFACE
@@ -115,7 +130,7 @@ setAllCommunities(commData || []);
             <div className="flex items-start justify-between mb-4">
               <Database className="w-8 h-8 text-accent" />
               <p 
-                className="text-xs opacity-60"
+                className="text-xs opacity-80"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 TOTAL ARCHIVES
@@ -136,7 +151,7 @@ setAllCommunities(commData || []);
             <div className="flex items-start justify-between mb-4">
               <Users className="w-8 h-8 text-accent" />
               <p 
-                className="text-xs opacity-60"
+                className="text-xs opacity-80"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 USER ACTIVITY
@@ -208,12 +223,13 @@ setAllCommunities(commData || []);
       <h2 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
         Open Tour Editor
       </h2>
-      <p className="text-xs opacity-60 mb-6" style={{ fontFamily: "'Space Mono', monospace" }}>
+      <p className="text-xs opacity-80 mb-6" style={{ fontFamily: "'Space Mono', monospace" }}>
         SELECT A COMMUNITY TO EDIT ITS TOUR
       </p>
 
       {allCommunities.map((c) => {
-        const isKolhi = c.community_id === '2c0e586a-3685-4135-8107-b442cdd22d73';
+        const isBuiltInTour =
+          c.community_id === BUILT_IN_TOUR_COMMUNITY_ID;
         return (
           <div
             key={c.community_id}
@@ -222,16 +238,16 @@ setAllCommunities(commData || []);
             <div>
               <p className="text-sm font-medium">{c.name}</p>
               <p className="text-xs opacity-50" style={{ fontFamily: "'Space Mono', monospace" }}>
-                {isKolhi ? 'DEVELOPER BUILT · INSERT ONLY' : `TERRAIN: ${(c.terrain_type || 'not set').toUpperCase()}`}
+                {isBuiltInTour ? 'BUILT-IN TOUR · INSERT ONLY' : `TERRAIN: ${(c.terrain_type || 'not set').toUpperCase()}`}
               </p>
             </div>
 
-            {/* Terrain selector — only for non-Kolhi communities */}
-            {!isKolhi && (
+            {/* Terrain selector — only for data-driven terrain tours */}
+            {!isBuiltInTour && (
   c.terrain_type ? (
     // Already set — show as read-only
     <span
-      className="text-xs px-2 py-1 border border-border opacity-60"
+      className="text-xs px-2 py-1 border border-border opacity-80"
       style={{ fontFamily: "'Space Mono', monospace" }}
     >
       {c.terrain_type.toUpperCase()}
@@ -266,15 +282,15 @@ setAllCommunities(commData || []);
     setShowTourPicker(false);
     onNavigate(`admin-3d-tour:${c.community_id}`);
   }}
-  disabled={!isKolhi && !c.terrain_type}
+  disabled={!isBuiltInTour && !c.terrain_type}
   className={`text-xs px-3 py-2 border shrink-0 ${
-    !isKolhi && !c.terrain_type
+    !isBuiltInTour && !c.terrain_type
       ? 'border-border opacity-30 cursor-not-allowed'
       : 'border-accent text-accent hover:bg-accent/10'
   }`}
   style={{ fontFamily: "'Space Mono', monospace" }}
 >
-  {!isKolhi && !c.terrain_type ? 'SET TERRAIN FIRST' : 'OPEN →'}
+  {!isBuiltInTour && !c.terrain_type ? 'SET TERRAIN FIRST' : 'OPEN →'}
 </button>
           </div>
         );
@@ -307,7 +323,7 @@ setAllCommunities(commData || []);
         3D Tour Jobs
       </h2>
       <p
-        className="text-sm opacity-60"
+        className="text-sm opacity-80"
         style={{ fontFamily: "'Space Mono', monospace" }}
       >
         MODAL PIPELINE
@@ -385,11 +401,56 @@ setAllCommunities(commData || []);
               {recentActivity.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-4 p-4">
                   <div><p className="text-sm">{item.title}</p><p className="text-xs opacity-50">{item.type} · {new Date(item.date).toLocaleDateString()}</p></div>
-                  <button onClick={() => handleDelete(item.id, item.type)} className="text-xs text-red-600 hover:underline">DELETE</button>
+                  <button onClick={() => setPendingDelete(item)} className="text-xs text-destructive hover:underline">DELETE</button>
                 </div>
               ))}
             </div>
           </motion.section>
+        )}
+        {pendingDelete && (
+          <div
+            className="fixed inset-0 z-[70] grid place-items-center bg-foreground/60 p-6"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !isDeleting) {
+                setPendingDelete(null);
+              }
+            }}
+          >
+            <section
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="delete-dialog-title"
+              aria-describedby="delete-dialog-description"
+              className="w-full max-w-md border border-border bg-background p-8 shadow-xl"
+            >
+              <h2 id="delete-dialog-title" className="text-2xl mb-3">
+                Delete archive item?
+              </h2>
+              <p id="delete-dialog-description" className="text-muted-foreground mb-8">
+                “{pendingDelete.title}” will be permanently removed from the archive.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setPendingDelete(null)}
+                  className="border border-border px-4 py-2 disabled:opacity-50"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => void confirmDelete()}
+                  className="bg-destructive text-destructive-foreground px-4 py-2 disabled:cursor-wait disabled:opacity-80 flex items-center gap-2"
+                >
+                  {isDeleting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                  {isDeleting ? "DELETING…" : "DELETE"}
+                </button>
+              </div>
+            </section>
+          </div>
         )}
               </div>
             </div>

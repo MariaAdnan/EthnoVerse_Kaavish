@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Box } from "lucide-react";
 import { getCommunityById } from "../../services/communities";
 import { getInterviewsByCommunity } from "../../services/interviews";
+import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,16 +54,16 @@ function formatDate(raw?: string | null): string {
 function HeroSkeleton() {
   return (
     <div className="max-w-3xl mx-auto animate-pulse text-center" aria-hidden="true">
-      <div className="h-3 w-32 bg-[#1A1A1A]/10 rounded mx-auto mb-4" />
-      <div className="h-16 w-3/4 bg-[#1A1A1A]/10 rounded mx-auto mb-6" />
+      <div className="h-3 w-32 bg-ink/10 rounded mx-auto mb-4" />
+      <div className="h-16 w-3/4 bg-ink/10 rounded mx-auto mb-6" />
       <div className="space-y-2 mb-8">
-        <div className="h-4 w-full bg-[#1A1A1A]/10 rounded mx-auto" />
-        <div className="h-4 w-5/6 bg-[#1A1A1A]/10 rounded mx-auto" />
-        <div className="h-4 w-4/6 bg-[#1A1A1A]/10 rounded mx-auto" />
+        <div className="h-4 w-full bg-ink/10 rounded mx-auto" />
+        <div className="h-4 w-5/6 bg-ink/10 rounded mx-auto" />
+        <div className="h-4 w-4/6 bg-ink/10 rounded mx-auto" />
       </div>
       <div className="flex flex-col md:flex-row gap-4 justify-center">
-        <div className="h-12 w-48 bg-[#1A1A1A]/10 rounded-sm mx-auto md:mx-0" />
-        <div className="h-12 w-48 bg-[#1A1A1A]/10 rounded-sm mx-auto md:mx-0" />
+        <div className="h-12 w-48 bg-ink/10 rounded-sm mx-auto md:mx-0" />
+        <div className="h-12 w-48 bg-ink/10 rounded-sm mx-auto md:mx-0" />
       </div>
     </div>
   );
@@ -71,17 +72,17 @@ function HeroSkeleton() {
 function InterviewCardSkeleton({ index }: { index: number }) {
   return (
     <div
-      className="bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden animate-pulse"
+      className="bg-white border border-ink/10 rounded-lg overflow-hidden animate-pulse"
       style={{ animationDelay: `${index * 0.1}s` }}
       aria-hidden="true"
     >
-      <div className="aspect-[4/3] bg-[#1A1A1A]/10" />
+      <div className="aspect-[4/3] bg-ink/10" />
       <div className="p-8 space-y-3">
-        <div className="h-6 w-3/4 bg-[#1A1A1A]/10 rounded" />
-        <div className="h-3 w-24 bg-[#1A1A1A]/10 rounded" />
-        <div className="h-4 w-full bg-[#1A1A1A]/10 rounded" />
-        <div className="h-4 w-5/6 bg-[#1A1A1A]/10 rounded" />
-        <div className="h-3 w-16 bg-[#1A1A1A]/10 rounded mt-2" />
+        <div className="h-6 w-3/4 bg-ink/10 rounded" />
+        <div className="h-3 w-24 bg-ink/10 rounded" />
+        <div className="h-4 w-full bg-ink/10 rounded" />
+        <div className="h-4 w-5/6 bg-ink/10 rounded" />
+        <div className="h-3 w-16 bg-ink/10 rounded mt-2" />
       </div>
     </div>
   );
@@ -100,7 +101,7 @@ function InterviewCard({
 }) {
   const imageSrc =
     interview.picture_cloudinary_url ||
-    `https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800`;
+    COMMUNITY_PLACEHOLDER_IMAGE;
 
   const excerpt = interview.summary_text
     ? `"${interview.summary_text.slice(0, 120).trim()}${interview.summary_text.length > 120 ? "…" : ""}"`
@@ -113,7 +114,7 @@ function InterviewCard({
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      className="bg-white border border-ink/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
       onClick={() => onNavigate(`audio:${interview.id}`)}
       role="link"
       tabIndex={0}
@@ -138,7 +139,7 @@ function InterviewCard({
       <div className="p-8">
         {/* Title */}
         <h3
-          className="text-2xl mb-2 text-[#1A1A1A] group-hover:text-[#CC7722] transition-colors leading-snug"
+          className="text-2xl mb-2 text-ink group-hover:text-accent transition-colors leading-snug"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
           {interview.title}
@@ -147,7 +148,7 @@ function InterviewCard({
         {/* Interviewee */}
         {interview.interviewee && (
           <p
-            className="text-xs opacity-60 mb-1"
+            className="text-xs opacity-80 mb-1"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             {interview.interviewee.toUpperCase()}
@@ -171,7 +172,7 @@ function InterviewCard({
 
         {/* CTA */}
         <span
-          className="text-xs font-bold tracking-wide uppercase border-b border-[#1A1A1A] pb-1 group-hover:border-[#CC7722] group-hover:text-[#CC7722] transition-colors"
+          className="text-xs font-bold tracking-wide uppercase border-b border-ink pb-1 group-hover:border-accent group-hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           Listen Now »
@@ -256,7 +257,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
           </p>
           <button
             onClick={() => onNavigate("explore")}
-            className="text-sm text-[#CC7722] hover:underline"
+            className="text-sm text-accent hover:underline"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ← BACK TO EXPLORE
@@ -272,7 +273,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
       <div className="fixed top-[72px] left-6 z-40">
         <button
           onClick={() => onNavigate("back")}
-          className="text-[#1A1A1A] hover:text-[#CC7722] transition-colors"
+          className="text-ink hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← BACK</span>
@@ -292,7 +293,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
           >
             {/* Location + language */}
             <p
-              className="text-sm tracking-widest opacity-60 mb-4"
+              className="text-sm tracking-widest opacity-80 mb-4"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               {[community?.location, community?.language]
@@ -302,7 +303,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
 
             {/* Community name */}
             <h1
-              className="text-[clamp(3rem,8vw,5.5rem)] leading-tight mb-8 text-[#1A1A1A]"
+              className="text-[clamp(3rem,8vw,5.5rem)] leading-tight mb-8 text-ink"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               {community?.name}
@@ -319,7 +320,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
 onClick={() => onNavigate(`3d-tour:${communityId}`)}
-                className="px-8 py-3 bg-[#1A1A1A] text-[#F5F1E8] rounded-sm flex items-center gap-3 hover:bg-[#333] transition-colors w-full sm:w-auto justify-center"
+                className="px-8 py-3 bg-ink text-paper rounded-sm flex items-center gap-3 hover:bg-graphite transition-colors w-full sm:w-auto justify-center"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 <Box className="w-4 h-4" aria-hidden="true" />
@@ -328,7 +329,7 @@ onClick={() => onNavigate(`3d-tour:${communityId}`)}
 
               <button
   onClick={() => onNavigate(`community:${communityId}:visual`)}
-  className="px-8 py-3 border border-[#1A1A1A] text-[#1A1A1A] rounded-sm hover:bg-[#1A1A1A]/5 transition-colors w-full sm:w-auto"
+  className="px-8 py-3 border border-ink text-ink rounded-sm hover:bg-ink/5 transition-colors w-full sm:w-auto"
   style={{ fontFamily: "'Space Mono', monospace" }}
 >
   VIEW FULL ARCHIVE

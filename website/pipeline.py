@@ -2,11 +2,13 @@
 # Deploy with:  modal deploy pipeline.py
 # Supabase Database Webhook (model_jobs INSERT) → this webhook → T4 GPU runs pipeline
 
+import hmac
 import os
 import subprocess
 from pathlib import Path
 
 import modal
+from fastapi import HTTPException, Request, Response
 
 volume = modal.Volume.from_name("ethnoverse-ply-storage", create_if_missing=True)
 image = (
@@ -29,12 +31,11 @@ image = (
         "clang",
     )
     .run_commands(
-        "pip install setuptools>=68 wheel packaging",
+        "pip install setuptools==80.9.0 wheel==0.45.1 packaging==25.0",
         "pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118",
-        "pip install numpy==1.26.4 supabase cloudinary requests pycolmap plyfile tqdm Pillow scipy fastapi",
+        "pip install numpy==1.26.4 supabase==2.18.1 cloudinary==1.44.1 requests==2.32.5 pycolmap==3.13.0 plyfile==1.1.3 tqdm==4.67.1 Pillow==11.3.0 scipy==1.16.2 fastapi==0.116.1 opencv-python-headless==4.11.0.86",
         "git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
-        "pip install setuptools>=68 wheel",
-        "pip install numpy==1.26.4 supabase cloudinary requests pycolmap plyfile tqdm Pillow scipy fastapi opencv-python-headless",
+        "cd /opt/gaussian-splatting && git checkout 54c035f7834b564019656c3e3fcc3646292f727d && git submodule update --init --recursive",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/diff-gaussian-rasterization",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/simple-knn",
     )
@@ -282,7 +283,6 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
 )
 @modal.fastapi_endpoint(method="GET")
 def download_ply(object_name: str):
-    from fastapi import Response
     ply_path = Path(f"/mnt/ply_storage/{object_name}/point_cloud.ply")
     if not ply_path.exists():
         return Response(content="Not found", status_code=404)
@@ -301,7 +301,18 @@ def download_ply(object_name: str):
 # ── Webhook endpoint ───────────────────────────────────────────────────────────
 @app.function(secrets=secrets)
 @modal.fastapi_endpoint(method="POST")
-def webhook(payload: dict):
+def webhook(request: Request, payload: dict):
+    expected_secret = os.environ.get("WEBHOOK_SHARED_SECRET", "")
+    if not expected_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Webhook authentication is not configured",
+        )
+
+    provided_secret = request.headers.get("x-ethnoverse-webhook-secret", "")
+    if not hmac.compare_digest(provided_secret, expected_secret):
+        raise HTTPException(status_code=401, detail="Invalid webhook credentials")
+
     # Supabase sends `record: null` for DELETE webhooks.  Treat that exactly
     # like an absent record so this endpoint returns a useful validation error
     # rather than crashing while accessing `.get` below.
@@ -317,7 +328,7 @@ def webhook(payload: dict):
         return {"ok": True, "skipped": True, "reason": f"status={status}"}
 
     if not all([job_id, images_zip_url, object_name, community_id]):
-        return {"ok": False, "error": "Missing required fields", "record": record}
+        raise HTTPException(status_code=422, detail="Missing required record fields")
 
     run_pipeline.spawn(
         job_id=job_id,

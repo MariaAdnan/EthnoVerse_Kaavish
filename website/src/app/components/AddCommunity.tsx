@@ -2,9 +2,12 @@
 
 import { motion } from "motion/react";
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { createCommunity } from "../../services/communities";
 import { uploadToCloudinary } from "../../lib/cloudinary";
+import { resizeImage, validateUploadFile } from "../../lib/files";
+import { errorMessage } from "../../lib/validation";
 
 
 interface AddCommunityProps {
@@ -20,10 +23,13 @@ export function AddCommunity({ onNavigate }: AddCommunityProps) {
     longDescription: "",
   });
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  if (isSubmitting) return;
 
   try {
+    setIsSubmitting(true);
     let coverImageUrl: string | null = null;
 
     // 1️⃣ Upload cover image if exists
@@ -44,11 +50,13 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (error) throw error;
 
-    alert("Community created successfully");
+    toast.success("Community created successfully.");
     onNavigate("admin");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("CREATE COMMUNITY ERROR:", err);
-    alert(err.message || "Failed to create community");
+    toast.error(errorMessage(err, "Failed to create community."));
+  } finally {
+    setIsSubmitting(false);
   }
 };
 
@@ -65,7 +73,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-ink flex items-center justify-center p-8">
       {/* Form Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -79,7 +87,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-6xl md:text-7xl text-[#F5F1E8] mb-4"
+            className="text-6xl md:text-7xl text-paper mb-4"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             REGISTER COMMUNITY
@@ -88,7 +96,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.6 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-[#F5F1E8] text-sm"
+            className="text-paper text-sm"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ETHNOGRAPHIC DATA ENTRY SYSTEM
@@ -105,7 +113,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <label
               htmlFor="name"
-              className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+              className="block text-xs text-paper mb-3 tracking-wider opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               NAME
@@ -118,7 +126,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={handleChange}
               required
               placeholder="e.g., Kolhi, Bheel"
-              className="w-full bg-transparent border-b-2 border-[#F5F1E8]/20 text-[#F5F1E8] pb-3 focus:border-[#CC7722] focus:outline-none transition-colors placeholder:text-[#F5F1E8]/30"
+              className="w-full bg-transparent border-b-2 border-paper/20 text-paper pb-3 focus:border-accent focus:outline-none transition-colors placeholder:text-paper/30"
               style={{ fontFamily: "'Space Mono', monospace" }}
             />
           </motion.div>
@@ -131,7 +139,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <label
               htmlFor="location"
-              className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+              className="block text-xs text-paper mb-3 tracking-wider opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               LOCATION
@@ -144,7 +152,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={handleChange}
               required
               placeholder="e.g., Tharparkar, Umerkot"
-              className="w-full bg-transparent border-b-2 border-[#F5F1E8]/20 text-[#F5F1E8] pb-3 focus:border-[#CC7722] focus:outline-none transition-colors placeholder:text-[#F5F1E8]/30"
+              className="w-full bg-transparent border-b-2 border-paper/20 text-paper pb-3 focus:border-accent focus:outline-none transition-colors placeholder:text-paper/30"
               style={{ fontFamily: "'Space Mono', monospace" }}
             />
           </motion.div>
@@ -157,7 +165,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <label
               htmlFor="language"
-              className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+              className="block text-xs text-paper mb-3 tracking-wider opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               LANGUAGE
@@ -170,7 +178,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={handleChange}
               required
               placeholder="e.g., Dhatki, Sindhi"
-              className="w-full bg-transparent border-b-2 border-[#F5F1E8]/20 text-[#F5F1E8] pb-3 focus:border-[#CC7722] focus:outline-none transition-colors placeholder:text-[#F5F1E8]/30"
+              className="w-full bg-transparent border-b-2 border-paper/20 text-paper pb-3 focus:border-accent focus:outline-none transition-colors placeholder:text-paper/30"
               style={{ fontFamily: "'Space Mono', monospace" }}
             />
           </motion.div>
@@ -183,7 +191,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <label
               htmlFor="shortDescription"
-              className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+              className="block text-xs text-paper mb-3 tracking-wider opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               SHORT DESCRIPTION
@@ -198,10 +206,10 @@ const handleSubmit = async (e: React.FormEvent) => {
               required
               maxLength={150}
               placeholder="A brief introduction to the community..."
-              className="w-full bg-transparent border-b-2 border-[#F5F1E8]/20 text-[#F5F1E8] pb-3 focus:border-[#CC7722] focus:outline-none transition-colors placeholder:text-[#F5F1E8]/30"
+              className="w-full bg-transparent border-b-2 border-paper/20 text-paper pb-3 focus:border-accent focus:outline-none transition-colors placeholder:text-paper/30"
               style={{ fontFamily: "'Space Mono', monospace" }}
             />
-            <div className="mt-2 text-xs text-[#F5F1E8]/40 text-right" style={{ fontFamily: "'Space Mono', monospace" }}>
+            <div className="mt-2 text-xs text-paper/40 text-right" style={{ fontFamily: "'Space Mono', monospace" }}>
               {formData.shortDescription.length}/150
             </div>
           </motion.div>
@@ -214,7 +222,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <label
               htmlFor="longDescription"
-              className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+              className="block text-xs text-paper mb-3 tracking-wider opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               LONG DESCRIPTION
@@ -227,7 +235,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               required
               rows={8}
               placeholder="Detailed ethnographic information about the community, their traditions, cultural practices, and historical context..."
-              className="w-full bg-transparent border-2 border-[#F5F1E8]/20 text-[#F5F1E8] p-4 focus:border-[#CC7722] focus:outline-none transition-colors resize-none placeholder:text-[#F5F1E8]/30"
+              className="w-full bg-transparent border-2 border-paper/20 text-paper p-4 focus:border-accent focus:outline-none transition-colors resize-none placeholder:text-paper/30"
               style={{ fontFamily: "'Space Mono', monospace" }}
             />
           </motion.div>
@@ -238,19 +246,28 @@ const handleSubmit = async (e: React.FormEvent) => {
   transition={{ duration: 0.6, delay: 0.5 }}
 >
   <label
-    className="block text-xs text-[#F5F1E8] mb-3 tracking-wider opacity-60"
+    className="block text-xs text-paper mb-3 tracking-wider opacity-80"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
     COVER IMAGE
   </label>
 
-  <div className="border-2 border-dashed border-[#F5F1E8]/30 p-6 text-center hover:border-[#CC7722] transition-colors">
+  <div className="border-2 border-dashed border-paper/30 p-6 text-center hover:border-accent transition-colors">
     <input
       type="file"
       accept="image/*"
       onChange={(e) => {
         if (e.target.files?.[0]) {
-          setCoverFile(e.target.files[0]);
+          const selected = e.target.files[0];
+          void (async () => {
+            try {
+              validateUploadFile(selected, "image");
+              setCoverFile(await resizeImage(selected));
+            } catch (error) {
+              setCoverFile(null);
+              toast.error(errorMessage(error, "Invalid cover image."));
+            }
+          })();
         }
       }}
       className="hidden"
@@ -259,11 +276,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     <label htmlFor="cover-upload" className="cursor-pointer">
       {coverFile ? (
-        <p className="text-sm text-[#F5F1E8]">
+        <p className="text-sm text-paper">
           Selected: {coverFile.name}
         </p>
       ) : (
-        <p className="text-sm text-[#F5F1E8]/60">
+        <p className="text-sm text-paper/60">
           Click to upload cover image (JPG / PNG)
         </p>
       )}
@@ -281,11 +298,16 @@ const handleSubmit = async (e: React.FormEvent) => {
           >
             <button
               type="submit"
-              className="bg-[#CC7722] text-[#F5F1E8] px-12 py-5 hover:bg-[#CC7722]/90 transition-all border-2 border-[#CC7722] hover:border-[#F5F1E8] group flex items-center gap-3"
+              disabled={isSubmitting}
+              className="bg-accent text-paper px-12 py-5 hover:bg-accent/90 transition-all border-2 border-accent hover:border-paper group flex items-center gap-3 disabled:cursor-wait disabled:opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
-              CREATE ARCHIVE
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {isSubmitting ? "CREATING…" : "CREATE ARCHIVE"}
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+              )}
             </button>
           </motion.div>
         </form>
@@ -295,7 +317,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       <div className="fixed top-8 left-8 z-50">
         <button
           onClick={() => onNavigate('admin')}
-          className="text-[#F5F1E8] hover:text-[#CC7722] transition-colors"
+          className="text-paper hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← ADMIN</span>

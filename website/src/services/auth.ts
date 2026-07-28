@@ -22,10 +22,12 @@ export const adminLogin = async (email: string, password: string) => {
     .single();
 
   if (roleError || !user) {
+    await supabase.auth.signOut();
     return { error: "User record not found" };
   }
 
   if (user.role !== "admin") {
+    await supabase.auth.signOut();
     return { error: "Access denied: Admins only" };
   }
 

@@ -1,5 +1,11 @@
 // src/services/interviews.ts
 import { supabase } from "../lib/supabase";
+import {
+  optionalText,
+  requireHttpUrl,
+  requireText,
+  requireUuid,
+} from "../lib/validation";
 
 export function getInterviewsByCommunity(communityId: string) {
   return supabase
@@ -68,22 +74,23 @@ export async function createInterview(payload: {
   summary_urdu?: string | null;
   summary_sindhi?: string | null;
 }) {
+  const validated = {
+    title: requireText(payload.title, "Title", 200),
+    community_id: requireUuid(payload.community_id, "Community"),
+    audio_cloudinary_url: requireHttpUrl(payload.audio_cloudinary_url, "Audio URL"),
+    date: payload.date || null,
+    interviewer: optionalText(payload.interviewer, "Interviewer", 200),
+    interviewee: optionalText(payload.interviewee, "Interviewee", 200),
+    summary_text: optionalText(payload.summary_text, "English summary", 10_000),
+    picture_cloudinary_url: payload.picture_cloudinary_url
+      ? requireHttpUrl(payload.picture_cloudinary_url, "Interview image URL")
+      : null,
+    summary_urdu: optionalText(payload.summary_urdu, "Urdu summary", 10_000),
+    summary_sindhi: optionalText(payload.summary_sindhi, "Sindhi summary", 10_000),
+  };
   const { data, error } = await supabase
     .from("interviews")
-    .insert([
-      {
-        title: payload.title,
-        community_id: payload.community_id,
-        audio_cloudinary_url: payload.audio_cloudinary_url,
-        date: payload.date ?? null,
-        interviewer: payload.interviewer ?? null,
-        interviewee: payload.interviewee ?? null,
-        summary_text: payload.summary_text ?? null,
-        picture_cloudinary_url: payload.picture_cloudinary_url ?? null,
-        summary_urdu: payload.summary_urdu ?? null,
-        summary_sindhi: payload.summary_sindhi ?? null,
-      },
-    ])
+    .insert([validated])
     .select()
     .single();
 

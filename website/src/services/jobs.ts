@@ -1,6 +1,11 @@
 import { supabase } from "../lib/supabase";
+import {
+  requireHttpUrl,
+  requireText,
+  requireUuid,
+} from "../lib/validation";
 
-export type JobStatus = "queued" | "processing" | "completed" | "failed";
+export type JobStatus = "queued" | "processing" | "done" | "failed";
 
 export interface ModelJob {
   id: string;
@@ -12,7 +17,8 @@ export interface ModelJob {
   model_url: string | null;
   created_at: string;
   community_id: string | null;
-  video_url: string | null;
+  video_url?: string | null;
+  images_zip_url?: string | null;
   communities?: {
     name: string;
   };
@@ -20,18 +26,24 @@ export interface ModelJob {
 
 export async function createJob(data: {
   community_id: string;
-  video_url: string;
+  images_zip_url: string;
   object_name: string;
 }) {
   const jobId = crypto.randomUUID();
+  const communityId = requireUuid(data.community_id, "Community");
+  const imagesZipUrl = requireHttpUrl(data.images_zip_url, "Image ZIP URL");
+  const objectName = requireText(data.object_name, "Object name", 80);
+  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(objectName)) {
+    throw new Error("Object name may contain letters, numbers, hyphens, and underscores.");
+  }
   const { data: insertedJob, error } = await supabase
     .from("model_jobs")
     .insert([
       {
         id: jobId,
-        community_id: data.community_id,
-        video_url: data.video_url,
-        object_name: data.object_name,
+        community_id: communityId,
+        images_zip_url: imagesZipUrl,
+        object_name: objectName,
         status: "queued",
         progress: 0,
         message: "Job queued...",

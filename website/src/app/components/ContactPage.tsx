@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { NavigationBar } from "./NavigationBar";
 
 interface ContactPageProps {
   onNavigate: (view: string) => void;
@@ -8,9 +7,6 @@ interface ContactPageProps {
 export function ContactPage({ onNavigate }: ContactPageProps) {
   return (
     <div className="min-h-screen">
-      {/* Navigation Bar */}
-      <NavigationBar onNavigate={onNavigate} />
-
       {/* Header (matches About page) */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -38,7 +34,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
           {/* General Inquiries */}
           <div className="border-b border-border pb-10">
             <h2
-              className="text-xs mb-4 opacity-60"
+              className="text-xs mb-4 opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               GENERAL INQUIRIES
@@ -56,7 +52,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
           {/* Research Contributions */}
           <div className="border-b border-border pb-10">
             <h2
-              className="text-xs mb-4 opacity-60"
+              className="text-xs mb-4 opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               RESEARCH CONTRIBUTIONS
@@ -74,7 +70,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
           {/* Supervisor */}
           <div>
             <h2
-              className="text-xs mb-4 opacity-60"
+              className="text-xs mb-4 opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               SUPERVISOR
@@ -105,7 +101,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
         >
           <button
             onClick={() => onNavigate("home")}
-            className="group inline-flex items-center gap-2 text-accent hover:gap-4 transition-all"
+            className="group inline-flex items-center gap-2 text-dark-umber hover:gap-4 hover:text-accent transition-all"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             <span>←</span>

@@ -1,0 +1,40 @@
+EthnoVerse Original Code License
+
+MIT License
+
+Copyright (c) 2026 EthnoVerse contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of the original EthnoVerse source code and associated documentation files
+(the "EthnoVerse Code"), to deal in the EthnoVerse Code without restriction,
+including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the EthnoVerse Code, and to
+permit persons to whom the EthnoVerse Code is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the EthnoVerse Code.
+
+THE ETHNOVERSE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE ETHNOVERSE CODE OR THE USE OR OTHER DEALINGS
+IN THE ETHNOVERSE CODE.
+
+Third-party exclusions
+----------------------
+
+This license applies only to original EthnoVerse code. It does not relicense:
+
+- the Inria/GraphDeco Gaussian Splatting implementation or its submodules;
+- third-party models, point clouds, photographs, audio, documents, fonts, or
+  other research/media assets;
+- dependencies distributed under their own licenses.
+
+Those materials remain subject to their respective licenses and permissions.
+In particular, the 3D reconstruction worker depends on Inria's Gaussian
+Splatting reference implementation, whose license restricts use to
+non-commercial research, evaluation, and related permitted purposes. Review
+the upstream license before running or distributing that pipeline.

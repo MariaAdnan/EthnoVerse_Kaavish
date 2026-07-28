@@ -426,8 +426,58 @@ function handleKeyUp(event) {
 window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
 
+const performancePanel = document.getElementById('performancePanel');
+const deviceClass = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 768
+  ? 'mobile/touch'
+  : 'desktop';
+let fpsWindowStartedAt = performance.now();
+let fpsFrameCount = 0;
+const fpsSamples = [];
+
+window.ethnoversePerformance = {
+  deviceClass,
+  currentFps: 0,
+  averageFps: 0,
+  samples: fpsSamples,
+};
+
+function recordFrame(timestamp) {
+  fpsFrameCount += 1;
+  const elapsed = timestamp - fpsWindowStartedAt;
+  if (elapsed < 1000) return;
+
+  const currentFps = (fpsFrameCount * 1000) / elapsed;
+  fpsSamples.push(Number(currentFps.toFixed(2)));
+  if (fpsSamples.length > 120) fpsSamples.shift();
+  const averageFps = fpsSamples.reduce((sum, value) => sum + value, 0) / fpsSamples.length;
+
+  window.ethnoversePerformance.currentFps = currentFps;
+  window.ethnoversePerformance.averageFps = averageFps;
+  if (performancePanel) {
+    performancePanel.textContent =
+      `${currentFps.toFixed(1)} FPS\n${averageFps.toFixed(1)} AVG · ${deviceClass.toUpperCase()}`;
+  }
+
+  if (window.parent !== window) {
+    window.parent.postMessage(
+      {
+        type: 'ethnoverse:fps',
+        deviceClass,
+        currentFps,
+        averageFps,
+        sampleCount: fpsSamples.length,
+      },
+      window.location.origin,
+    );
+  }
+
+  fpsFrameCount = 0;
+  fpsWindowStartedAt = timestamp;
+}
+
 function animate() {
   requestAnimationFrame(animate);
+  recordFrame(performance.now());
   if (lookLeft) cameraYaw += lookSpeed;
   if (lookRight) cameraYaw -= lookSpeed;
   if (lookUp) cameraPitch += lookSpeed;
@@ -825,10 +875,13 @@ if (isAdmin) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = '.ply';
+  fileInput.setAttribute('aria-label', 'Choose a binary Gaussian-splat PLY file');
   fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
 
   const banner = document.createElement('div');
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
   banner.style.cssText = `
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     z-index: 999; padding: 12px 24px; background: rgba(0,0,0,0.7); color: white;
@@ -897,11 +950,46 @@ if (isAdmin) {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    const maxPlyBytes = 200 * 1024 * 1024;
+    if (!/\.ply$/i.test(file.name)) {
+      banner.innerText = 'Choose a .ply point-cloud file.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    if (file.size === 0 || file.size > maxPlyBytes) {
+      banner.innerText = 'PLY files must be between 1 byte and 200 MB.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    const signature = new TextDecoder().decode((await file.slice(0, 64).arrayBuffer()));
+    if (!signature.startsWith('ply')) {
+      banner.innerText = 'This file does not contain a valid PLY header.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    if (!signature.includes('format binary_little_endian')) {
+      banner.innerText = 'Choose a binary little-endian Gaussian-splat PLY file.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
     const objectName = file.name.replace(/\.ply$/i, '');
     banner.innerText = '⏳ Reading file...';
     banner.style.display = 'block';
     insertBtn.style.opacity = '0.5';
-    const centroid = await computePlyCentroid(file);
+    let centroid;
+    try {
+      centroid = await computePlyCentroid(file);
+    } catch (error) {
+      console.error('Could not read PLY file:', error);
+      banner.innerText = 'Could not read this PLY file.';
+      insertBtn.style.opacity = '1';
+      fileInput.value = '';
+      return;
+    }
     const localUrl = URL.createObjectURL(file);
     pendingObject = {
       type: 'ply',
@@ -919,6 +1007,8 @@ if (isAdmin) {
 
   // ── Adjustment panel ──────────────────────────────────────────────────────
   const panel = document.createElement('div');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Adjust 3D object');
   panel.style.cssText = `
     position: fixed; right: 20px; top: 80px; z-index: 999;
     background: rgba(10,10,10,0.85); color: white;
@@ -945,6 +1035,7 @@ if (isAdmin) {
     slider.max = max;
     slider.step = step;
     slider.value = value;
+    slider.setAttribute('aria-label', label);
     slider.style.cssText = 'width: 100%; accent-color: #c8a96e; cursor: pointer;';
     slider.addEventListener('input', () => {
       val.innerText = Number(slider.value).toFixed(2);
@@ -1093,8 +1184,8 @@ if (isAdmin) {
         offsetX:          pendingObject.autoOffset?.x ?? 0,
         offsetY:          pendingObject.autoOffset?.y ?? 0,
         offsetZ:          pendingObject.autoOffset?.z ?? 0,
-        labelTitle:       labelTitleInput?.value.trim() ?? '',
-        labelDescription: labelDescInput?.value.trim() ?? '',
+        labelTitle:       labelTitleInput?.value.trim().slice(0, 120) ?? '',
+        labelDescription: labelDescInput?.value.trim().slice(0, 1_000) ?? '',
       });
 
       if (pendingObject.file) URL.revokeObjectURL(pendingObject.url);

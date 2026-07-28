@@ -2,12 +2,26 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Final</title>
+        <title>EthnoVerse 3D Tour</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             html, body { width: 100%; height: 100%; overflow: hidden; background: #e8d4b0; }
             #container3D { width: 100%; height: 100%; }
             canvas { display: block; }
+            #performancePanel {
+                position: absolute;
+                right: 20px;
+                bottom: 20px;
+                z-index: 100;
+                min-width: 132px;
+                padding: 8px 12px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 6px;
+                background: rgba(0, 0, 0, 0.72);
+                color: white;
+                font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+                pointer-events: none;
+            }
 
             /* CSS2D label styles */
             .label3d {
@@ -44,6 +58,7 @@
                 <button id="timeSwitch" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 10px 20px; cursor: pointer; border-radius: 20px; border: none; background: #333; color: white; font-family: sans-serif;">
                     Switch to Night
                 </button>
+                <output id="performancePanel" aria-live="polite">MEASURING FPS…</output>
             </div>
         </main>
 

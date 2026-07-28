@@ -9,10 +9,10 @@ node_modules/
 # Build output
 dist/
 build/
+pipeline_output.zip
 
 __pycache__/
 *.py[cod]
 # OS files
 .DS_Store
 Thumbs.db
-

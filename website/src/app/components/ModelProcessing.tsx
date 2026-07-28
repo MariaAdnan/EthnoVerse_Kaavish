@@ -50,12 +50,12 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-[#1A1A1A]/10 rounded-lg p-12 shadow-lg text-center">
+      <div className="min-h-screen bg-paper flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-ink/10 rounded-lg p-12 shadow-lg text-center">
           <div className="flex justify-center mb-8">
-            <div className="w-8 h-8 border-2 border-[#8B4513] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-umber border-t-transparent rounded-full animate-spin" />
           </div>
-          <p style={{ fontFamily: 'Space Mono, monospace' }} className="text-[#1A1A1A]">
+          <p style={{ fontFamily: 'Space Mono, monospace' }} className="text-ink">
             Loading job details...
           </p>
         </div>
@@ -66,14 +66,14 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   // ── Error ──────────────────────────────────────────────────────────────────
   if (error || !job) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-[#1A1A1A]/10 rounded-lg p-12 shadow-lg text-center">
+      <div className="min-h-screen bg-paper flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-ink/10 rounded-lg p-12 shadow-lg text-center">
           <p className="text-red-600 mb-6" style={{ fontFamily: 'Space Mono, monospace' }}>
             {error ?? 'Job not found.'}
           </p>
           <button
             onClick={() => onNavigate('admin')}
-            className="px-6 py-2 bg-[#1A1A1A] text-[#F5F1E8] rounded hover:bg-[#1A1A1A]/90 transition-colors"
+            className="px-6 py-2 bg-ink text-paper rounded hover:bg-ink/90 transition-colors"
             style={{ fontFamily: 'Space Mono, monospace' }}
           >
             ← BACK TO DASHBOARD
@@ -83,7 +83,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
     );
   }
 
-  const isComplete   = job.status === 'completed' || job.status === ('done' as string);
+  const isComplete   = job.status === 'done';
   const isFailed     = job.status === 'failed';
   const isProcessing = !isComplete && !isFailed;
 
@@ -111,18 +111,18 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   // ── Processing / Failed view ───────────────────────────────────────────────
   if (isProcessing || isFailed) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-paper flex items-center justify-center p-6">
         <div className="fixed top-8 left-8 z-50">
           <button
             onClick={() => onNavigate('admin')}
-            className="text-[#1A1A1A] hover:text-[#8B4513] transition-colors"
+            className="text-ink hover:text-umber transition-colors"
             style={{ fontFamily: 'Space Mono, monospace' }}
           >
             <span className="text-sm">← DASHBOARD</span>
           </button>
         </div>
 
-        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-[#1A1A1A]/10 rounded-lg p-12 shadow-lg">
+        <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-ink/10 rounded-lg p-12 shadow-lg">
 
           {/* Technical Animation */}
           <div className="flex justify-center mb-8">
@@ -132,24 +132,24 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
               </div>
             ) : (
               <div className="relative w-32 h-32">
-                <div className="absolute inset-0 border-2 border-[#1A1A1A]/20 rounded-lg animate-[spin_4s_linear_infinite]">
-                  <div className="absolute top-0 left-0 w-3 h-3 bg-[#8B4513] rounded-full"></div>
-                  <div className="absolute top-0 right-0 w-3 h-3 bg-[#8B4513] rounded-full"></div>
-                  <div className="absolute bottom-0 left-0 w-3 h-3 bg-[#8B4513] rounded-full"></div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#8B4513] rounded-full"></div>
+                <div className="absolute inset-0 border-2 border-ink/20 rounded-lg animate-[spin_4s_linear_infinite]">
+                  <div className="absolute top-0 left-0 w-3 h-3 bg-umber rounded-full"></div>
+                  <div className="absolute top-0 right-0 w-3 h-3 bg-umber rounded-full"></div>
+                  <div className="absolute bottom-0 left-0 w-3 h-3 bg-umber rounded-full"></div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-umber rounded-full"></div>
                 </div>
-                <div className="absolute inset-2 border border-[#1A1A1A]/10 rounded-lg animate-[spin_6s_linear_infinite_reverse]"></div>
+                <div className="absolute inset-2 border border-ink/10 rounded-lg animate-[spin_6s_linear_infinite_reverse]"></div>
               </div>
             )}
           </div>
 
           {/* Heading */}
-          <h1 className="text-5xl text-center text-[#1A1A1A] mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+          <h1 className="text-5xl text-center text-ink mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
             {isFailed ? 'Processing Failed' : 'Generating Virtual Space'}
           </h1>
 
           {/* Status Text with Blinking Cursor */}
-          <p className="text-center text-[#1A1A1A] mb-8" style={{ fontFamily: 'Space Mono, monospace' }}>
+          <p className="text-center text-ink mb-8" style={{ fontFamily: 'Space Mono, monospace' }}>
             {isFailed
               ? (job.message ?? 'An error occurred during processing.')
               : <>{job.message ?? 'Processing…'}<span className="animate-pulse">_</span></>
@@ -159,13 +159,13 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
           {/* Progress bar */}
           {!isFailed && (
             <div className="mb-8">
-              <div className="flex justify-between text-xs mb-2 text-[#1A1A1A]/60" style={{ fontFamily: 'Space Mono, monospace' }}>
+              <div className="flex justify-between text-xs mb-2 text-ink/80" style={{ fontFamily: 'Space Mono, monospace' }}>
                 <span>PROGRESS</span>
                 <span>{job.progress}%</span>
               </div>
-              <div className="h-1.5 bg-[#1A1A1A]/10 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-ink/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#8B4513] rounded-full transition-all duration-700"
+                  className="h-full bg-umber rounded-full transition-all duration-700"
                   style={{ width: `${job.progress}%` }}
                 />
               </div>
@@ -178,10 +178,10 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
               const nextAt = steps[i + 1]?.at ?? 101;
               const s = stepStatus(at, nextAt);
               return (
-                <div key={label} className="flex items-center gap-3 text-[#1A1A1A]">
+                <div key={label} className="flex items-center gap-3 text-ink">
                   {s === 'done'    && <span className="text-green-600">[✓]</span>}
-                  {s === 'active'  && <span className="text-[#8B4513] animate-spin inline-block">⟳</span>}
-                  {s === 'pending' && <span className="text-[#1A1A1A]/30">[ ]</span>}
+                  {s === 'active'  && <span className="text-umber animate-spin inline-block">⟳</span>}
+                  {s === 'pending' && <span className="text-ink/30">[ ]</span>}
                   {s === 'error'   && <span className="text-red-500">[✕]</span>}
                   <span className={s === 'pending' ? 'opacity-40' : ''}>{label}</span>
                 </div>
@@ -191,8 +191,8 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
 
           {/* Warning Box */}
           {!isFailed && (
-            <div className="bg-[#F5F1E8] border border-[#1A1A1A]/20 rounded p-4">
-              <p className="text-sm text-[#1A1A1A]" style={{ fontFamily: 'Space Mono, monospace' }}>
+            <div className="bg-paper border border-ink/20 rounded p-4">
+              <p className="text-sm text-ink" style={{ fontFamily: 'Space Mono, monospace' }}>
                 ⓘ You may safely close this window. The archive will update automatically when rendering is complete.
               </p>
             </div>
@@ -204,59 +204,59 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
 // ── Completed view ─────────────────────────────────────────────────────────
 const downloadUrl = getModelDownloadUrl(job.object_name);
   return (
-    <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-paper flex items-center justify-center p-6">
       <div className="fixed top-8 left-8 z-50">
         <button
           onClick={() => onNavigate('admin')}
-          className="text-[#1A1A1A] hover:text-[#8B4513] transition-colors"
+          className="text-ink hover:text-umber transition-colors"
           style={{ fontFamily: 'Space Mono, monospace' }}
         >
           <span className="text-sm">← DASHBOARD</span>
         </button>
       </div>
 
-      <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-[#1A1A1A]/10 rounded-lg p-12 shadow-lg">
+      <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-ink/10 rounded-lg p-12 shadow-lg">
 
         {/* 3D Cube Icon */}
         <div className="flex justify-center mb-8">
           <div className="relative w-32 h-32">
-            <div className="absolute inset-0 border-2 border-[#8B4513] rounded-lg transform rotate-45">
-              <div className="absolute inset-4 border border-[#8B4513]/50 rounded-lg"></div>
+            <div className="absolute inset-0 border-2 border-umber rounded-lg transform rotate-45">
+              <div className="absolute inset-4 border border-umber/50 rounded-lg"></div>
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 bg-[#8B4513]/10 backdrop-blur-sm rounded"></div>
+              <div className="w-16 h-16 bg-umber/10 backdrop-blur-sm rounded"></div>
             </div>
           </div>
         </div>
 
         {/* Heading */}
-        <h1 className="text-5xl text-center text-[#1A1A1A] mb-8" style={{ fontFamily: 'Playfair Display, serif' }}>
+        <h1 className="text-5xl text-center text-ink mb-8" style={{ fontFamily: 'Playfair Display, serif' }}>
           Reconstruction Complete
         </h1>
 
         {/* File Details Box */}
-        <div className="bg-[#F5F1E8] border-2 border-[#1A1A1A] rounded p-6 mb-8" style={{ fontFamily: 'Space Mono, monospace' }}>
-          <div className="space-y-2 text-[#1A1A1A]">
+        <div className="bg-paper border-2 border-ink rounded p-6 mb-8" style={{ fontFamily: 'Space Mono, monospace' }}>
+          <div className="space-y-2 text-ink">
             <div className="flex justify-between">
-              <span className="text-[#1A1A1A]/60">FILENAME:</span>
+              <span className="text-ink/80">FILENAME:</span>
               <span>{job.object_name}.ply</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#1A1A1A]/60">OBJECT:</span>
+              <span className="text-ink/80">OBJECT:</span>
               <span>{job.object_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#1A1A1A]/60">ITERATIONS:</span>
+              <span className="text-ink/80">ITERATIONS:</span>
               <span>30,000</span>
             </div>
             {downloadUrl && (
               <div className="flex justify-between gap-4">
-                <span className="text-[#1A1A1A]/60 shrink-0">MODEL URL:</span>
+                <span className="text-ink/80 shrink-0">MODEL URL:</span>
                 <a
                   href={downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#8B4513] hover:underline text-xs truncate text-right"
+                  className="text-umber hover:underline text-xs truncate text-right"
                 >
                   {downloadUrl}
                 </a>
@@ -272,7 +272,7 @@ const downloadUrl = getModelDownloadUrl(job.object_name);
       href={downloadUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="px-8 py-3 bg-[#1A1A1A] text-[#F5F1E8] rounded hover:bg-[#1A1A1A]/90 transition-colors"
+      className="px-8 py-3 bg-ink text-paper rounded hover:bg-ink/90 transition-colors"
       style={{ fontFamily: 'Space Mono, monospace' }}
     >
       DOWNLOAD .PLY FILE
