@@ -34,8 +34,8 @@ image = (
         "pip install setuptools==80.9.0 wheel==0.45.1 packaging==25.0",
         "pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118",
         "pip install numpy==1.26.4 supabase==2.18.1 cloudinary==1.44.1 requests==2.32.5 pycolmap==3.13.0 plyfile==1.1.3 tqdm==4.67.1 Pillow==11.3.0 scipy==1.16.2 fastapi==0.116.1 opencv-python-headless==4.11.0.86",
-        "git clone --recursive https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
-        "cd /opt/gaussian-splatting && git checkout 54c035f7834b564019656c3e3fcc3646292f727d && git submodule update --init --recursive",
+        "git clone https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
+        "cd /opt/gaussian-splatting && git checkout 54c035f7834b564019656c3e3fcc3646292f727d && git submodule update --init --recursive submodules/diff-gaussian-rasterization submodules/simple-knn",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/diff-gaussian-rasterization",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/simple-knn",
     )
