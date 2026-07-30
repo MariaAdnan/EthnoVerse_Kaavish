@@ -2,7 +2,6 @@
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import React from "react";
 import { searchArchive } from "../../services/search";
 import { getArchiveStats } from "../../services/archivestats";
 
@@ -11,19 +10,21 @@ interface SearchViewProps {
   persistedQuery: string;
   onQueryChange: (q: string) => void;
 }
-interface SearchArchiveResponse {
-  interviews: any[];
-  media: any[];
-}
-
 interface SearchResult {
   id: string;
-  type: "Audio" | "Image" | "Video" | "PDF" | "3D";
+  type: "Audio" | "Image";
   title: string;
   community: string;
   date: string;
   summary?: string;   // raw searchable text
   snippet?: string;   // extracted preview
+}
+
+function communityName(
+  community: { name: string }[] | { name: string } | null,
+) {
+  if (Array.isArray(community)) return community[0]?.name ?? "Unknown";
+  return community?.name ?? "Unknown";
 }
 function highlight(text: string | null | undefined, query: string) {
   if (!text) return "";      // ⭐ THIS FIX PREVENTS CRASH
@@ -33,7 +34,7 @@ function highlight(text: string | null | undefined, query: string) {
   const regex = new RegExp(`(${escapedQuery})`, "gi");
   return text.split(regex).map((part, i) =>
     part.toLocaleLowerCase() === query.toLocaleLowerCase() ? (
-      <mark key={i} className="bg-accent/30 text-accent px-1 rounded">
+      <mark key={i} className="bg-secondary text-ink px-1 rounded">
         {part}
       </mark>
     ) : (
@@ -117,7 +118,7 @@ if (!normalizedQuery) {
 const data = await searchArchive(normalizedQuery);
 
       // interviews → AUDIO
-      const audioResults: SearchResult[] = data.interviews.map((item: any) => {
+      const audioResults: SearchResult[] = data.interviews.map((item) => {
   const summaryText = item.summary_text || "";
 
 
@@ -127,11 +128,11 @@ extractSnippet(summaryText, persistedQuery) ??
 // console.log("SUMMARY:", item.id, item.summary_html);
 
 return {
-  id: item.id,
+  id: String(item.id),
   type: "Audio",
-  title: item.title,
-  community: item.communities?.name || "Unknown",
-  date: item.date,
+  title: item.title ?? "Untitled Interview",
+  community: communityName(item.communities),
+  date: item.date ?? "",
   summary: summaryText,
   snippet,
 };
@@ -139,8 +140,7 @@ return {
 });
 
 
-      // media_items → IMAGE / VIDEO / PDF / 3D
-const mediaResults: SearchResult[] = data.media.map((item: any) => {
+const mediaResults: SearchResult[] = data.media.map((item) => {
   const description = item.description || "";
 
   // convert ["temple","god"] → "temple, god"
@@ -149,10 +149,10 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
   const fallbackTitle = tagsText || "Untitled Image";
 
   return {
-    id: item.id,
+    id: String(item.id),
     type: "Image",
     title: item.title || fallbackTitle,     // ⭐ FIX
-    community: item.communities?.name || "Unknown",
+    community: communityName(item.communities),
     date: "",
     summary: description || tagsText,       // ⭐ FIX
     snippet: extractSnippet(description || tagsText, persistedQuery),
@@ -181,9 +181,9 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
   }, [persistedQuery]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen flex flex-col items-center justify-start px-4 pb-8 pt-32 md:justify-center md:p-8 md:pt-24">
       {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
+      <div className="fixed left-4 top-20 z-40 md:left-8">
         <button
           onClick={() => onNavigate("home")}
           className="text-foreground hover:text-accent transition-colors"
@@ -202,14 +202,15 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
           className="mb-12 text-center"
         >
           <h1
-            className="text-6xl mb-4"
+            className="mb-4 text-5xl md:text-6xl"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             Search Archives
           </h1>
          {stats.totalItems > 0 && (
-  <p className="text-sm opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
-    {stats.totalItems} ITEMS · {stats.totalCommunities} COMMUNITIES
+  <p className="text-sm opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
+    {stats.totalItems} ITEMS · {stats.totalCommunities}{" "}
+    {stats.totalCommunities === 1 ? "COMMUNITY" : "COMMUNITIES"}
   </p>
 )}
 
@@ -233,13 +234,13 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
               style={{
                 fontFamily: "'Space Mono', monospace",
                 fontSize: "1.5rem",
-                caretColor: "#CC7722",
+                caretColor: "var(--accent)",
               }}
             />
             <Search className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 opacity-40" />
           </div>
           <p
-            className="text-xs opacity-60 mt-4"
+            className="text-xs opacity-80 mt-4"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             Search by keyword, community, type, or archive ID
@@ -248,7 +249,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
 
         {/* Results */}
         {isSearching && (
-          <p className="text-sm opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+          <p className="text-sm opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
             SEARCHING…
           </p>
         )}
@@ -265,7 +266,7 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
           >
             <div className="mb-6">
               <p
-                className="text-sm opacity-60"
+                className="text-sm opacity-80"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 {searchResults.length} RESULTS FOUND
@@ -284,46 +285,49 @@ const mediaResults: SearchResult[] = data.media.map((item: any) => {
                       onNavigate(`audio:${result.id}`);
                     } else if (result.type === "Image") {
                       onNavigate(`image-detail:${result.id}`);
-                    } else if (result.type === "PDF") {
-                      onNavigate(`pdf:${result.id}`);
-                    } else if (result.type === "3D") {
-                      onNavigate(`3d-tour:${result.id}`);
                     }
                   }}
                   className="w-full text-left border-b border-border hover:bg-secondary/30 transition-colors py-6 group"
                 >
-                  <div className="grid grid-cols-12 gap-4 items-center">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-center md:gap-4">
                     <div
-                      className="col-span-2 text-sm opacity-60"
+                      className="hidden text-sm opacity-80 md:col-span-2 md:block"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
                       {result.id}
                     </div>
-                    <div className="col-span-1">
-                      <span className="inline-block px-2 py-1 bg-accent/10 text-accent text-xs rounded">
+                    <div className="md:col-span-1">
+                      <span className="inline-block px-2 py-1 bg-secondary text-ink text-xs rounded">
                         {result.type}
                       </span>
                     </div>
-                    <div className="col-span-5">
+                    <div className="md:col-span-5">
   <div className="group-hover:text-accent transition-colors">
     {highlight(result.title, persistedQuery)}
   </div>
 
   {result.snippet && (
-    <p className="mt-2 text-sm opacity-60 leading-relaxed">
+    <p className="mt-2 text-sm opacity-80 leading-relaxed">
       {highlight(result.snippet, persistedQuery)}
     </p>
   )}
+  <p
+    className="mt-3 text-xs opacity-80 md:hidden"
+    style={{ fontFamily: "'Space Mono', monospace" }}
+  >
+    {result.community}
+    {result.date ? ` · ${result.date}` : ""}
+  </p>
 </div>
 
                     <div
-                      className="col-span-2 text-sm opacity-60"
+                      className="hidden text-sm opacity-80 md:col-span-2 md:block"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
                       {result.community}
                     </div>
                     <div
-                      className="col-span-2 text-sm opacity-60 text-right"
+                      className="hidden text-right text-sm opacity-80 md:col-span-2 md:block"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
                       {result.date}

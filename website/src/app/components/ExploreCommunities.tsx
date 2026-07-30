@@ -1,9 +1,9 @@
 // src/app/components/ExploreCommunities.tsx
 import { motion } from "motion/react";
-import Masonry from "react-responsive-masonry";
-import ResponsiveMasonry from "react-responsive-masonry";
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { useEffect, useState, useCallback } from "react";
 import { getAllCommunities } from "../../services/communities";
+import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,19 +36,8 @@ function cardHeight(index: number): number {
  * Fallback placeholder when a community has no Cloudinary image.
  * Uses a neutral Unsplash image so the grid never shows broken imgs.
  */
-const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1588848475993-01f5c4882472?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1619328147198-aa1477637a21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1669365415484-0b247a295659?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1677153224313-7b009d1b33e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1689770429297-bb8488af924c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-];
-
-function getImage(community: Community, index: number): string {
-  return (
-    community.picture_cloudinary_url ||
-    FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]
-  );
+function getImage(community: Community): string {
+  return community.picture_cloudinary_url || COMMUNITY_PLACEHOLDER_IMAGE;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -63,7 +52,7 @@ function MasonrySkeleton() {
         {placeholders.map((i) => (
           <div
             key={i}
-            className="animate-pulse rounded-sm bg-[#1A1A1A]/10"
+            className="animate-pulse rounded-sm bg-ink/10"
             style={{ height: `${cardHeight(i)}px` }}
             aria-hidden="true"
           />
@@ -84,7 +73,7 @@ function CommunityCard({
   onNavigate: (view: string) => void;
 }) {
   const height = cardHeight(index);
-  const imageSrc = getImage(community, index);
+  const imageSrc = getImage(community);
 
   return (
     <motion.div
@@ -94,7 +83,7 @@ function CommunityCard({
     >
       <button
         onClick={() => onNavigate(`community:${community.community_id}`)}
-        className="group relative overflow-hidden block w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CC7722]"
+        className="group relative overflow-hidden block w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         aria-label={`Explore ${community.name}`}
       >
         {/* Image */}
@@ -107,10 +96,10 @@ function CommunityCard({
         />
 
         {/* Dark overlay on hover */}
-        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-500" />
+        <div className="absolute inset-0 bg-foreground/55 md:bg-foreground/0 md:group-hover:bg-foreground/60 transition-all duration-500" />
 
         {/* Text overlay — visible on hover */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-[#F5F1E8] p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-paper p-6 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
           <h2
             className="text-[clamp(1.8rem,4vw,3rem)] mb-3 tracking-wider text-center leading-tight"
             style={{ fontFamily: "'Playfair Display', serif" }}
@@ -134,7 +123,7 @@ function CommunityCard({
             </p>
           )}
           <p
-            className="text-xs opacity-60 mt-4 tracking-wide"
+            className="text-xs opacity-80 mt-4 tracking-wide"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             VIEW COLLECTION →
@@ -142,9 +131,9 @@ function CommunityCard({
         </div>
 
         {/* Always-visible subtle name tag at bottom (for accessibility / discoverability) */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent group-hover:opacity-0 transition-opacity duration-300">
+        <div className="hidden md:block absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent group-hover:opacity-0 transition-opacity duration-300">
           <p
-            className="text-[#F5F1E8] text-sm tracking-wider truncate"
+            className="text-paper text-sm tracking-wider truncate"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             {community.name.toUpperCase()}
@@ -173,7 +162,7 @@ function ErrorState({
       </p>
       <button
         onClick={onRetry}
-        className="text-sm text-[#CC7722] hover:underline"
+        className="text-sm text-accent hover:underline"
         style={{ fontFamily: "'Space Mono', monospace" }}
       >
         RETRY →
@@ -247,7 +236,7 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
           Communities
         </h1>
         <p
-          className="text-sm opacity-60"
+          className="text-sm text-foreground"
           style={{ fontFamily: "'Space Mono', monospace" }}
           aria-live="polite"
           aria-label={communityCount}

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Volume2,
   Image as ImageIcon,
-  Video,
   FileText,
   Search,
   ArrowLeft,
@@ -21,7 +20,7 @@ interface MediaIndexProps {
   communityId?: string;
 }
 
-type MediaType = "AUDIO" | "IMAGE" | "VIDEO" | "PDF";
+type MediaType = "AUDIO" | "IMAGE" | "PDF";
 
 interface MediaItem {
   id: string;
@@ -36,7 +35,6 @@ interface MediaItem {
 const ICON_MAP: Record<MediaType, React.ElementType> = {
   AUDIO: Volume2,
   IMAGE: ImageIcon,
-  VIDEO: Video,
   PDF: FileText,
 };
 
@@ -65,23 +63,23 @@ export function MediaIndex({
         if (cancelled) return;
         if (fetchError) { setError(fetchError.message ?? "Failed to load archive."); return; }
 
-        const audioItems: MediaItem[] = (data.interviews ?? []).map((item: any) => ({
+        const audioItems: MediaItem[] = (data.interviews ?? []).map((item) => ({
           id: String(item.id),
           type: "AUDIO" as MediaType,
           title: item.title ?? "Untitled Interview",
-          date: item.date,
+          date: item.date ?? undefined,
           summaryText: item.summary_text ?? "",  
         }));
 
-        const imageItems: MediaItem[] = (data.media ?? []).map((item: any) => ({
+        const imageItems: MediaItem[] = (data.media ?? []).map((item) => ({
   id: String(item.id),
   type: "IMAGE" as MediaType,
   title: item.title ?? "Untitled Image",
   date: item.created_at,
-  imageUrl: item.picture_cloudinary_url,
+  imageUrl: item.picture_cloudinary_url ?? undefined,
   tags: item.tags ?? [],   // ← add this
 }));
-const docItems: MediaItem[] = (data.documents ?? []).map((item: any) => ({
+const docItems: MediaItem[] = (data.documents ?? []).map((item) => ({
   id: String(item.id),
   type: "PDF" as MediaType,
   title: item.title ?? "Untitled Document",
@@ -108,7 +106,7 @@ const filteredItems = useMemo(() => {
   return allItems.filter((item) => {
     const matchesFilter =
       filterType === "ALL" ||
-      (filterType === "VISUAL" && (item.type === "IMAGE" || item.type === "VIDEO")) ||
+      (filterType === "VISUAL" && item.type === "IMAGE") ||
       (filterType === "TEXT" && item.type === "PDF") ||
       item.type === filterType;
 
@@ -152,13 +150,13 @@ const filteredItems = useMemo(() => {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F5F1E8]">
+    <div className="min-h-screen bg-paper">
 
       {/* Back */}
       <div className="fixed top-24 left-8 z-40">
         <button
           onClick={() => onNavigate("back")}
-          className="text-[#1A1A1A] hover:text-[#CC7722] transition-colors flex items-center gap-2"
+          className="text-ink hover:text-accent transition-colors flex items-center gap-2"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -167,7 +165,7 @@ const filteredItems = useMemo(() => {
       </div>
 
       {/* Header */}
-      <div className="pt-32 pb-12 px-6 sm:px-12 border-b border-[#1A1A1A]/10">
+      <div className="pt-32 pb-12 px-6 sm:px-12 border-b border-ink/10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -175,15 +173,15 @@ const filteredItems = useMemo(() => {
           className="max-w-7xl mx-auto"
         >
           <p
-            className="text-sm mb-3 opacity-60"
+            className="text-sm mb-3 opacity-80"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             {communityId
               ? `${communityId.toUpperCase()} COMMUNITY · ARCHIVE INDEX`
-              : "KOLHI COMMUNITY · ARCHIVE INDEX"}
+              : "ALL COMMUNITIES · ARCHIVE INDEX"}
           </p>
           <h1
-            className="mb-6 text-[#1A1A1A]"
+            className="mb-6 text-ink"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             <span className="text-[clamp(2.5rem,8vw,5rem)] leading-tight tracking-tight">
@@ -197,7 +195,7 @@ const filteredItems = useMemo(() => {
     value={searchQuery}
     onChange={(e) => setSearchQuery(e.target.value)}
     placeholder="Search this community's archive..."
-    className="w-full bg-white/60 border border-[#1A1A1A]/20 rounded-lg pl-10 pr-4 py-3 focus:border-[#CC7722] outline-none transition-colors text-sm"
+    className="w-full bg-white/60 border border-ink/20 rounded-lg pl-10 pr-4 py-3 focus:border-accent outline-none transition-colors text-sm"
     style={{ fontFamily: "'Space Mono', monospace" }}
   />
 </div>
@@ -205,7 +203,7 @@ const filteredItems = useMemo(() => {
       </div>
 
       {/* Search + Filters */}
-      <div className="px-6 sm:px-12 py-8 border-b border-[#1A1A1A]/10 bg-[#1A1A1A]/5">
+      <div className="px-6 sm:px-12 py-8 border-b border-ink/10 bg-ink/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 items-center">
 
           
@@ -218,8 +216,8 @@ const filteredItems = useMemo(() => {
                 onClick={() => setFilterType(type)}
                 className={`px-4 py-2 rounded-lg text-xs transition-all ${
                   filterType === type
-                    ? "bg-[#1A1A1A] text-[#F5F1E8]"
-                    : "bg-[#1A1A1A]/10 hover:bg-[#1A1A1A]/20"
+                    ? "bg-ink text-paper"
+                    : "bg-ink/10 hover:bg-ink/20"
                 }`}
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
@@ -236,8 +234,8 @@ const filteredItems = useMemo(() => {
 
           {/* Loading */}
           {loading && (
-            <div className="flex flex-col items-center gap-4 py-24 text-[#1A1A1A]/50">
-              <Loader2 className="w-8 h-8 animate-spin text-[#CC7722]" />
+            <div className="flex flex-col items-center gap-4 py-24 text-ink/50">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
               <p className="text-xs tracking-widest" style={{ fontFamily: "'Space Mono', monospace" }}>
                 LOADING ARCHIVE...
               </p>
@@ -246,12 +244,12 @@ const filteredItems = useMemo(() => {
 
           {/* Error */}
           {!loading && error && (
-            <div className="flex flex-col items-center gap-4 py-24 text-[#1A1A1A]/60">
-              <AlertCircle className="w-8 h-8 text-[#CC7722]" />
+            <div className="flex flex-col items-center gap-4 py-24 text-ink/80">
+              <AlertCircle className="w-8 h-8 text-accent" />
               <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-xl">
                 Failed to load archive
               </p>
-              <p className="text-xs opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+              <p className="text-xs opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
                 {error}
               </p>
             </div>
@@ -259,7 +257,7 @@ const filteredItems = useMemo(() => {
 
           {/* Empty */}
           {!loading && !error && filteredItems.length === 0 && (
-            <div className="flex flex-col items-center gap-3 py-24 text-[#1A1A1A]/40">
+            <div className="flex flex-col items-center gap-3 py-24 text-ink/70">
               <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl">
                 No results found
               </p>
@@ -286,7 +284,7 @@ const filteredItems = useMemo(() => {
                     className="cursor-pointer group"
                   >
                     {/* Fixed-height container so images are always visible */}
-                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#1A1A1A]/5">
+                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-ink/5">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -295,22 +293,22 @@ const filteredItems = useMemo(() => {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-[#CC7722]">
+                        <div className="absolute inset-0 flex items-center justify-center text-accent">
                           <ImageIcon className="w-10 h-10 opacity-40" />
                         </div>
                       )}
                       {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-[#1A1A1A]/0 group-hover:bg-[#1A1A1A]/30 transition-colors duration-300" />
+                      <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/30 transition-colors duration-300" />
                     </div>
                     <p
-                      className="mt-3 text-sm font-medium text-[#1A1A1A] group-hover:text-[#CC7722] transition-colors truncate"
+                      className="mt-3 text-sm font-medium text-ink group-hover:text-accent transition-colors truncate"
                       style={{ fontFamily: "'Inter', sans-serif" }}
                     >
                       {item.title}
                     </p>
                     {item.date && (
                       <p
-                        className="text-xs text-[#1A1A1A]/40 mt-1"
+                        className="text-xs text-ink/70 mt-1"
                         style={{ fontFamily: "'Space Mono', monospace" }}
                       >
                         {new Date(item.date).toLocaleDateString("en-GB", {
@@ -327,7 +325,7 @@ const filteredItems = useMemo(() => {
 
           {/* ── ALL / AUDIO / TEXT → Table list ── */}
           {!loading && !error && filteredItems.length > 0 && filterType !== "VISUAL" && (
-            <div className="border border-[#1A1A1A]/10 rounded-lg overflow-hidden bg-white">
+            <div className="border border-ink/10 rounded-lg overflow-hidden bg-white">
               <AnimatePresence>
                 {filteredItems.map((item, index) => {
                   const Icon = ICON_MAP[item.type] ?? FileText;
@@ -339,19 +337,19 @@ const filteredItems = useMemo(() => {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3, delay: 0.04 * Math.min(index, 12) }}
                       onClick={() => handleRowClick(item)}
-                      className="w-full grid items-center gap-4 px-6 py-5 border-b border-[#1A1A1A]/10 hover:bg-[#1A1A1A]/5 transition-colors group text-left last:border-b-0"
+                      className="w-full grid items-center gap-4 px-6 py-5 border-b border-ink/10 hover:bg-ink/5 transition-colors group text-left last:border-b-0"
                       style={{ gridTemplateColumns: "2rem 1fr auto auto" }}
                     >
-                      <Icon className="w-4 h-4 text-[#CC7722] shrink-0" />
+                      <Icon className="w-4 h-4 text-accent shrink-0" />
                       <span
-                        className="font-medium text-[#1A1A1A] group-hover:text-[#CC7722] transition-colors truncate"
+                        className="font-medium text-ink group-hover:text-accent transition-colors truncate"
                         style={{ fontFamily: "'Inter', sans-serif" }}
                       >
                         {item.title}
                       </span>
                       {item.date && (
                         <span
-                          className="text-xs text-[#1A1A1A]/40 hidden sm:block shrink-0"
+                          className="text-xs text-ink/70 hidden sm:block shrink-0"
                           style={{ fontFamily: "'Space Mono', monospace" }}
                         >
                           {new Date(item.date).toLocaleDateString("en-GB", {
@@ -362,7 +360,7 @@ const filteredItems = useMemo(() => {
                         </span>
                       )}
                       <span
-                        className="text-xs text-[#1A1A1A]/60 text-right shrink-0"
+                        className="text-xs text-ink/80 text-right shrink-0"
                         style={{ fontFamily: "'Space Mono', monospace" }}
                       >
                         {item.type}
@@ -373,9 +371,9 @@ const filteredItems = useMemo(() => {
               </AnimatePresence>
 
               {/* Footer count */}
-              <div className="px-6 py-3 border-t border-[#1A1A1A]/10 bg-[#1A1A1A]/5">
+              <div className="px-6 py-3 border-t border-ink/10 bg-ink/5">
                 <p
-                  className="text-xs text-[#1A1A1A]/40"
+                  className="text-xs text-ink/70"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   {filteredItems.length} ITEM{filteredItems.length !== 1 ? "S" : ""}

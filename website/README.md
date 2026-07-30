@@ -1,11 +1,18 @@
+# EthnoVerse web application
 
-  # EthnoVerse UI Kit Design
+The frontend is a React, TypeScript, Vite, and Tailwind application backed by
+Supabase and Cloudinary. See the repository root
+[`README.md`](../README.md) for setup, licensing, worker, and security
+instructions.
 
-  This is a code bundle for EthnoVerse UI Kit Design. The original project is available at https://www.figma.com/design/EWe3I3QMQqI50Sq6jzvcVP/EthnoVerse-UI-Kit-Design.
+```bash
+npm ci
+npm run dev
+```
 
-  ## Running the code
+Before submitting changes:
 
-  Run `npm i` to install the dependencies.
-
-  Run `npm run dev` to start the development server.
-  
+```bash
+npm run check
+npm audit
+```

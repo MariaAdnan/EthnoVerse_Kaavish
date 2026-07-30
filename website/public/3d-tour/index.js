@@ -1,6 +1,7 @@
 // to maria and afifah: watch this: https://youtu.be/lGokKxJ8D2c?si=Ye0FsN33LdLfcbYM
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { SplatMesh } from "@sparkjsdev/spark";
 // ── URL params — must be first, everything reads from these ──
@@ -15,6 +16,29 @@ const SUPABASE_KEY = urlParams.get('supabaseKey');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error('Supabase configuration is missing from the tour URL');
+}
+
+const ASSET_URLS = Object.freeze({
+  'bangles1 (1)-2.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415706/ethnoverse/3d-tour/bangles1%20%281%29-2.spz',
+  'bangles2-2.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415707/ethnoverse/3d-tour/bangles2-2.spz',
+  'box.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415710/ethnoverse/3d-tour/box.spz',
+  'char_pai.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415711/ethnoverse/3d-tour/char_pai.glb',
+  'desert-v1.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415715/ethnoverse/3d-tour/desert-v1.glb',
+  'frame03.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415717/ethnoverse/3d-tour/frame03.glb',
+  'grass.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415718/ethnoverse/3d-tour/grass.glb',
+  'hut.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415723/ethnoverse/3d-tour/hut.glb',
+  'matka.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415725/ethnoverse/3d-tour/matka.spz',
+  'mountains.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415730/ethnoverse/3d-tour/mountains.glb',
+  'oak_trees.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415732/ethnoverse/3d-tour/oak_trees.glb',
+  'outfit-2.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415734/ethnoverse/3d-tour/outfit-2.spz',
+  'realistic_bush.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415737/ethnoverse/3d-tour/realistic_bush.glb',
+  'rocky.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415740/ethnoverse/3d-tour/rocky.glb',
+});
+
+function assetUrl(filename) {
+  const url = ASSET_URLS[filename];
+  if (!url) throw new Error(`Missing 3D asset URL for ${filename}`);
+  return url;
 }
 
 const pendingAdminTokenRequests = new Map();
@@ -79,7 +103,16 @@ scene.background = new THREE.Color(0xe8d4b0);
 scene.fog = new THREE.Fog(0xe8d4b0, 30, 50);
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 let object;
-const loader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/libs/draco/gltf/');
+
+function createGLTFLoader() {
+  const gltfLoader = new GLTFLoader();
+  gltfLoader.setDRACOLoader(dracoLoader);
+  return gltfLoader;
+}
+
+const loader = createGLTFLoader();
 
 // ── CSS2D label renderer ───────────────────────────────────────────────────
 const labelRenderer = new CSS2DRenderer();
@@ -128,7 +161,7 @@ async function loadTerrain() {
       scene.add(object);
     }, undefined, (err) => {
       console.error('Custom terrain GLB failed:', err);
-      loader.load('grass.glb', (gltf) => {
+      loader.load(assetUrl('grass.glb'), (gltf) => {
         object = gltf.scene;
         object.position.set(0, -2, 0);
         object.scale.set(1, 1, 1);
@@ -138,7 +171,7 @@ async function loadTerrain() {
     return;
   }
 
-  loader.load(terrainFile, function (gltf) {
+  loader.load(assetUrl(terrainFile), function (gltf) {
     object = gltf.scene;
     if (isKolhi) {
       object.position.set(70, -4.5, -70);
@@ -191,7 +224,7 @@ function loadKolhiObjects() {
 
 
   const matkaRotation = [Math.PI, 0, 0];
-  const matka = new SplatMesh({ url: "matka.ply" });
+  const matka = new SplatMesh({ url: assetUrl("matka.spz") });
   matka.position.set(1.5, -3.7, -2.8);
   matka.scale.set(2, 2, 2);
   matka.rotation.set(...matkaRotation, 'XYZ');
@@ -202,20 +235,20 @@ function loadKolhiObjects() {
     1.2, -3.3, -2.5
   );
 
-  const matka2 = new SplatMesh({ url: "matka.ply" });
+  const matka2 = new SplatMesh({ url: assetUrl("matka.spz") });
   matka2.position.set(1, -3.3, -2.5);
   matka2.scale.set(1.5, 1.5, 1.5);
   matka2.rotation.set(...matkaRotation, 'XYZ');
   scene.add(matka2);
 
-  const matka3 = new SplatMesh({ url: "matka.ply" });
+  const matka3 = new SplatMesh({ url: assetUrl("matka.spz") });
   matka3.position.set(1.2, -3.3, -2.0);
   matka3.scale.set(1.5, 1.5, 1.5);
   matka3.rotation.set(...matkaRotation, 'XYZ');
   scene.add(matka3);
 
 
-loader.load(`hut.glb`, function (gltf) {
+loader.load(assetUrl('hut.glb'), function (gltf) {
   const masterHut = gltf.scene;
   const hutPositions = [
     { x: 5, z: -5, y: 0, rot: 0 },
@@ -287,7 +320,7 @@ loader.load(`hut.glb`, function (gltf) {
   });
 
   // Outfit centered in hut 1
-  const outfit = new SplatMesh({ url: "outfit-2.ply" });
+  const outfit = new SplatMesh({ url: assetUrl("outfit-2.spz") });
   outfit.position.set(5.5, -0.4, -5);
   outfit.scale.set(0.3, 0.3, 0.3);
   outfit.rotation.set(0.354, -0.4, 0, 'ZYX');
@@ -299,8 +332,8 @@ loader.load(`hut.glb`, function (gltf) {
   );
 
   // Charpai outside hut 2
-  const charpaiLoader = new GLTFLoader();
-  charpaiLoader.load('char_pai.glb', (gltf) => {
+  const charpaiLoader = createGLTFLoader();
+  charpaiLoader.load(assetUrl('char_pai.glb'), (gltf) => {
     const charpai = gltf.scene;
     charpai.position.set(0, -1.5, -8.5);
     charpai.rotation.y = Math.PI / 2;
@@ -322,14 +355,14 @@ loader.load(`hut.glb`, function (gltf) {
   });
 
   // Oak trees
-  const treeLoader = new GLTFLoader();
+  const treeLoader = createGLTFLoader();
   const treePositions = [
     { x: -15, y: -2.0, z: 2,   scale: 0.04,  rot: 0 },
     { x: -13, y: -2.0, z: 4,   scale: 0.035, rot: 0.8 },
     { x: 16,  y: -2.0, z: -18, scale: 0.045, rot: 0 },
     { x: 18,  y: -2.0, z: -16, scale: 0.038, rot: 1.2 },
   ];
-  treeLoader.load('oak_trees.glb', (gltf) => {
+  treeLoader.load(assetUrl('oak_trees.glb'), (gltf) => {
     treePositions.forEach((pos) => {
       const tree = gltf.scene.clone();
       tree.position.set(pos.x, pos.y, pos.z);
@@ -349,7 +382,7 @@ loader.load(`hut.glb`, function (gltf) {
   });
 
   // Bushes
-  const bushLoader = new GLTFLoader();
+  const bushLoader = createGLTFLoader();
   const bushPositions = [
     { x: 8,   y: -2.0, z: 2,   scale: 0.28, rot: 0 },
     { x: -3,  y: -2.0, z: -3,  scale: 0.42, rot: 1.1 },
@@ -360,7 +393,7 @@ loader.load(`hut.glb`, function (gltf) {
     { x: 2,   y: -2.0, z: -12, scale: 0.32, rot: 3.0 },
     { x: -16, y: -2.0, z: -8,  scale: 0.60, rot: 0.2 },
   ];
-  bushLoader.load('realistic_bush.glb', (gltf) => {
+  bushLoader.load(assetUrl('realistic_bush.glb'), (gltf) => {
     bushPositions.forEach((pos) => {
       const bush = gltf.scene.clone();
       bush.position.set(pos.x, pos.y, pos.z);
@@ -426,8 +459,58 @@ function handleKeyUp(event) {
 window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
 
+const performancePanel = document.getElementById('performancePanel');
+const deviceClass = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 768
+  ? 'mobile/touch'
+  : 'desktop';
+let fpsWindowStartedAt = performance.now();
+let fpsFrameCount = 0;
+const fpsSamples = [];
+
+window.ethnoversePerformance = {
+  deviceClass,
+  currentFps: 0,
+  averageFps: 0,
+  samples: fpsSamples,
+};
+
+function recordFrame(timestamp) {
+  fpsFrameCount += 1;
+  const elapsed = timestamp - fpsWindowStartedAt;
+  if (elapsed < 1000) return;
+
+  const currentFps = (fpsFrameCount * 1000) / elapsed;
+  fpsSamples.push(Number(currentFps.toFixed(2)));
+  if (fpsSamples.length > 120) fpsSamples.shift();
+  const averageFps = fpsSamples.reduce((sum, value) => sum + value, 0) / fpsSamples.length;
+
+  window.ethnoversePerformance.currentFps = currentFps;
+  window.ethnoversePerformance.averageFps = averageFps;
+  if (performancePanel) {
+    performancePanel.textContent =
+      `${currentFps.toFixed(1)} FPS\n${averageFps.toFixed(1)} AVG · ${deviceClass.toUpperCase()}`;
+  }
+
+  if (window.parent !== window) {
+    window.parent.postMessage(
+      {
+        type: 'ethnoverse:fps',
+        deviceClass,
+        currentFps,
+        averageFps,
+        sampleCount: fpsSamples.length,
+      },
+      window.location.origin,
+    );
+  }
+
+  fpsFrameCount = 0;
+  fpsWindowStartedAt = timestamp;
+}
+
 function animate() {
   requestAnimationFrame(animate);
+  recordFrame(performance.now());
   if (lookLeft) cameraYaw += lookSpeed;
   if (lookRight) cameraYaw -= lookSpeed;
   if (lookUp) cameraPitch += lookSpeed;
@@ -760,7 +843,7 @@ async function loadSavedObjects() {
         );
       }
     } else {
-      const gltfLoader = new GLTFLoader();
+      const gltfLoader = createGLTFLoader();
       gltfLoader.load(row.object_url, (gltf) => {
         const obj = gltf.scene;
         obj.position.set(row.position_x, row.position_y, row.position_z);
@@ -825,10 +908,13 @@ if (isAdmin) {
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = '.ply';
+  fileInput.setAttribute('aria-label', 'Choose a binary Gaussian-splat PLY file');
   fileInput.style.display = 'none';
   document.body.appendChild(fileInput);
 
   const banner = document.createElement('div');
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
   banner.style.cssText = `
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
     z-index: 999; padding: 12px 24px; background: rgba(0,0,0,0.7); color: white;
@@ -897,11 +983,46 @@ if (isAdmin) {
   fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    const maxPlyBytes = 200 * 1024 * 1024;
+    if (!/\.ply$/i.test(file.name)) {
+      banner.innerText = 'Choose a .ply point-cloud file.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    if (file.size === 0 || file.size > maxPlyBytes) {
+      banner.innerText = 'PLY files must be between 1 byte and 200 MB.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    const signature = new TextDecoder().decode((await file.slice(0, 64).arrayBuffer()));
+    if (!signature.startsWith('ply')) {
+      banner.innerText = 'This file does not contain a valid PLY header.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
+    if (!signature.includes('format binary_little_endian')) {
+      banner.innerText = 'Choose a binary little-endian Gaussian-splat PLY file.';
+      banner.style.display = 'block';
+      fileInput.value = '';
+      return;
+    }
     const objectName = file.name.replace(/\.ply$/i, '');
     banner.innerText = '⏳ Reading file...';
     banner.style.display = 'block';
     insertBtn.style.opacity = '0.5';
-    const centroid = await computePlyCentroid(file);
+    let centroid;
+    try {
+      centroid = await computePlyCentroid(file);
+    } catch (error) {
+      console.error('Could not read PLY file:', error);
+      banner.innerText = 'Could not read this PLY file.';
+      insertBtn.style.opacity = '1';
+      fileInput.value = '';
+      return;
+    }
     const localUrl = URL.createObjectURL(file);
     pendingObject = {
       type: 'ply',
@@ -919,6 +1040,8 @@ if (isAdmin) {
 
   // ── Adjustment panel ──────────────────────────────────────────────────────
   const panel = document.createElement('div');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Adjust 3D object');
   panel.style.cssText = `
     position: fixed; right: 20px; top: 80px; z-index: 999;
     background: rgba(10,10,10,0.85); color: white;
@@ -945,6 +1068,7 @@ if (isAdmin) {
     slider.max = max;
     slider.step = step;
     slider.value = value;
+    slider.setAttribute('aria-label', label);
     slider.style.cssText = 'width: 100%; accent-color: #c8a96e; cursor: pointer;';
     slider.addEventListener('input', () => {
       val.innerText = Number(slider.value).toFixed(2);
@@ -1093,8 +1217,8 @@ if (isAdmin) {
         offsetX:          pendingObject.autoOffset?.x ?? 0,
         offsetY:          pendingObject.autoOffset?.y ?? 0,
         offsetZ:          pendingObject.autoOffset?.z ?? 0,
-        labelTitle:       labelTitleInput?.value.trim() ?? '',
-        labelDescription: labelDescInput?.value.trim() ?? '',
+        labelTitle:       labelTitleInput?.value.trim().slice(0, 120) ?? '',
+        labelDescription: labelDescInput?.value.trim().slice(0, 1_000) ?? '',
       });
 
       if (pendingObject.file) URL.revokeObjectURL(pendingObject.url);

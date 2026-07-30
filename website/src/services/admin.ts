@@ -1,5 +1,12 @@
 import { supabase } from "../lib/supabase";
 
+export interface RecentActivity {
+  id: string;
+  type: "IMAGE" | "AUDIO";
+  title: string;
+  date: string;
+}
+
 /* ---------------- STATS ---------------- */
 
 export async function getDashboardStats() {
@@ -28,23 +35,19 @@ export async function getDashboardStats() {
     newUsersThisMonth: usersThisMonthRes.count || 0,
   };
 }
-export async function getRecentActivity() {
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
-
+export async function getRecentActivity(): Promise<RecentActivity[]> {
   const [mediaRes, interviewsRes] = await Promise.all([
     supabase
       .from("visual_media")
       .select("id, title, created_at")
-      .gte("created_at", sevenDaysAgo)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(10),
 
     supabase
       .from("interviews")
       .select("id, title, created_at")
-      .gte("created_at", sevenDaysAgo)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const media =
@@ -63,12 +66,12 @@ export async function getRecentActivity() {
       date: item.created_at,
     })) || [];
 
-  return [...media, ...interviews].sort(
+  return ([...media, ...interviews] as RecentActivity[]).sort(
     (a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 }
-export async function deleteArchiveItem(id: string, type: string) {
+export async function deleteArchiveItem(id: string, type: RecentActivity["type"]) {
   // id format: "MEDIA-12" or "AUDIO-7"
   const realId = id.split("-")[1];
 

@@ -1,26 +1,35 @@
 //src/app/components/MediaUpload.tsx  
 
 import { motion } from "motion/react";
-  import { Upload, File } from "lucide-react";
-  import { useState } from "react";
-  import { createInterview } from "../../services/interviews";
-  import { createMedia } from "../../services/media";
-  import { uploadToCloudinary, uploadZipToCloudinary } from "../../services/upload";
-  import { supabase } from "../../lib/supabase";
-  import { useEffect } from "react";
+import { File, Loader2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { createInterview } from "../../services/interviews";
+import { createMedia } from "../../services/media";
+import { uploadToCloudinary, uploadZipToCloudinary } from "../../services/upload";
+import { supabase } from "../../lib/supabase";
 import { createDocument } from "../../services/document";
+import { createJob } from "../../services/jobs";
+import { resizeImage, validateUploadFile } from "../../lib/files";
+import { errorMessage } from "../../lib/validation";
 
   interface MediaUploadProps {
     onNavigate: (view: string) => void;
   }
 
-    type MediaType = "audio" | "image" | "document" | "3d-tour" | "";
+  interface CommunityOption {
+    community_id: string;
+    name: string;
+  }
+
+  type MediaType = "audio" | "image" | "document" | "3d-tour" | "";
   export function MediaUpload({ onNavigate }: MediaUploadProps) {
     const [mediaType, setMediaType] = useState<MediaType>("");
     const [dragActive, setDragActive] = useState(false);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [author, setAuthor] = useState("");
-  const [communities, setCommunities] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<CommunityOption[]>([]);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     const fetchCommunities = async () => {
@@ -40,7 +49,7 @@ import { createDocument } from "../../services/document";
     // Common Fields
     const [title, setTitle] = useState("");
     const [community, setCommunity] = useState("");
-    const [date, setDate] = useState("");
+    const date = "";
 
     // Audio Fields
     const [interviewer, setInterviewer] = useState("");
@@ -66,31 +75,52 @@ import { createDocument } from "../../services/document";
       }
     };
 
+    const selectFile = async (file: File) => {
+      if (!mediaType) {
+        toast.error("Select a media type first.");
+        return;
+      }
+      try {
+        validateUploadFile(file, mediaType);
+        const preparedFile = mediaType === "image" ? await resizeImage(file) : file;
+        setUploadedFile(preparedFile);
+        if (preparedFile.size < file.size) {
+          toast.success(
+            `Image optimized from ${(file.size / 1024 / 1024).toFixed(1)} MB to ${(preparedFile.size / 1024 / 1024).toFixed(1)} MB.`,
+          );
+        }
+      } catch (error) {
+        setUploadedFile(null);
+        toast.error(errorMessage(error, "The selected file is not valid."));
+      }
+    };
+
     const handleDrop = (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        setUploadedFile(e.dataTransfer.files[0]);
+        void selectFile(e.dataTransfer.files[0]);
       }
     };
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
-        setUploadedFile(e.target.files[0]);
+        void selectFile(e.target.files[0]);
       }
     };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     try {
-      if (!mediaType) return alert("Select media type");
-      if (!uploadedFile) return alert("Upload a file");
-      if (!title || !community) return alert("Fill required fields");
-
-      // 1️⃣ Upload to Cloudinary
-      const fileUrl = await uploadToCloudinary(uploadedFile);
+      if (!mediaType) return toast.error("Select a media type.");
+      if (!uploadedFile) return toast.error("Upload a file.");
+      if (!title.trim() || !community) return toast.error("Fill all required fields.");
+      validateUploadFile(uploadedFile, mediaType);
+      setIsPublishing(true);
 
       if (mediaType === "audio") {
+        const fileUrl = await uploadToCloudinary(uploadedFile);
         const { error } = await createInterview({
           title,
           community_id: community,
@@ -107,6 +137,7 @@ import { createDocument } from "../../services/document";
         if (error) throw error;
       }
 if (mediaType === "document") {
+  const fileUrl = await uploadToCloudinary(uploadedFile);
   const { error } = await createDocument({
     title,
     description: description || null,
@@ -117,6 +148,7 @@ if (mediaType === "document") {
   if (error) throw error;
 }
       if (mediaType === "image") {
+        const fileUrl = await uploadToCloudinary(uploadedFile);
         const { error } = await createMedia({
           title,
           description: description || null,
@@ -130,29 +162,24 @@ if (mediaType === "document") {
         if (error) throw error;
       }
       if (mediaType === "3d-tour") {
-  if (!objectName) return alert("Enter an object name");
+  if (!objectName.trim()) throw new Error("Enter an object name.");
 
-  // ✅ Use raw upload for zip — guarantees a public, directly downloadable URL
   const zipUrl = await uploadZipToCloudinary(uploadedFile);
-
-  const { error } = await supabase.from("model_jobs").insert([{
-    id: crypto.randomUUID(),
+  await createJob({
     community_id: community,
     images_zip_url: zipUrl,
     object_name: objectName,
-    status: "queued",
-    progress: 0,
-  }]);
-
-  if (error) throw error;
+  });
 }
 
-      alert("Uploaded successfully ✅");
+      toast.success("Media published successfully.");
       onNavigate("admin");
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(err.message || "Upload failed");
+      toast.error(errorMessage(err, "Upload failed."));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -162,7 +189,7 @@ if (mediaType === "document") {
 <div className="fixed top-24 left-8 z-50">
         <button
           onClick={() => onNavigate("back")}
-          className="text-[#1A1A1A] hover:text-[#CC7722] transition-colors"
+          className="text-ink hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← BACK</span>
@@ -177,7 +204,7 @@ if (mediaType === "document") {
         >
           <div className="max-w-7xl mx-auto">
             <p
-              className="text-sm mb-2 opacity-60"
+              className="text-sm mb-2 opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               FR-W02 · CONTENT MANAGEMENT
@@ -202,7 +229,7 @@ if (mediaType === "document") {
             {/* MEDIA TYPE */}
             <div className="mb-8">
               <label
-                className="block text-sm mb-4 opacity-60"
+                className="block text-sm mb-4 opacity-80"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 MEDIA TYPE *
@@ -230,7 +257,7 @@ if (mediaType === "document") {
             {mediaType && (
               <>
                 <label
-                  className="block text-sm mb-4 opacity-60"
+                  className="block text-sm mb-4 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   MEDIA FILE
@@ -250,6 +277,7 @@ if (mediaType === "document") {
                   }`}
                 >
                   <input
+                    aria-label="Choose media file"
                     type="file"
                     accept={
   mediaType === "audio" ? "audio/*" :
@@ -271,7 +299,7 @@ if (mediaType === "document") {
                       >
                         {uploadedFile.name}
                       </p>
-                      <p className="text-xs opacity-60">
+                      <p className="text-xs opacity-80">
                         Click or drag to replace
                       </p>
                     </div>
@@ -284,7 +312,7 @@ if (mediaType === "document") {
                       >
                         DROP FILES
                       </p>
-                      <p className="text-sm opacity-60 mb-4">
+                      <p className="text-sm opacity-80 mb-4">
   {mediaType === "audio"
     ? "Audio Files"
     : mediaType === "3d-tour"
@@ -313,7 +341,7 @@ if (mediaType === "document") {
             {mediaType && (
               <>
                 <label
-                  className="block text-sm mb-4 opacity-60"
+                  className="block text-sm mb-4 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   METADATA
@@ -322,7 +350,7 @@ if (mediaType === "document") {
                 {/* TITLE */}
                 <div>
                   <label
-                    className="block text-xs mb-3 opacity-60"
+                    className="block text-xs mb-3 opacity-80"
                     style={{ fontFamily: "'Space Mono', monospace" }}
                   >
                     TITLE *
@@ -340,7 +368,7 @@ if (mediaType === "document") {
                 {/* Community Dropdown */}
               <div>
   <label 
-    className="block text-xs mb-3 opacity-60"
+    className="block text-xs mb-3 opacity-80"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
     COMMUNITY *
@@ -372,7 +400,7 @@ if (mediaType === "document") {
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     /> */}
                     <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   INTERVIEWER *
@@ -385,7 +413,7 @@ if (mediaType === "document") {
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     />
                     <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   INTERVIEWEE *
@@ -398,7 +426,7 @@ if (mediaType === "document") {
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     />
   <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (ENGLISH) 
@@ -410,7 +438,7 @@ if (mediaType === "document") {
                       className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                     />
   <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (URDU)
@@ -422,7 +450,7 @@ if (mediaType === "document") {
                       className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                     />
   <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (SINDHI)
@@ -442,7 +470,7 @@ if (mediaType === "document") {
                     {/* Description Field */}
               <div>
                 <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   DESCRIPTION
@@ -453,11 +481,11 @@ if (mediaType === "document") {
                   placeholder="Provide context and details about this media..."
                   rows={6}
                   className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
-                  style={{ caretColor: '#CC7722' }}
+                  style={{ caretColor: 'var(--accent)' }}
                 />
               </div>
   <label 
-                  className="block text-xs mb-3 opacity-60"
+                  className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   TAGS *
@@ -474,7 +502,7 @@ if (mediaType === "document") {
                 {mediaType === "document" && (
   <>
     <div>
-      <label className="block text-xs mb-3 opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+      <label className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
         AUTHOR / COMPILER
       </label>
       <input
@@ -486,7 +514,7 @@ if (mediaType === "document") {
       />
     </div>
     <div>
-      <label className="block text-xs mb-3 opacity-60" style={{ fontFamily: "'Space Mono', monospace" }}>
+      <label className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
         DESCRIPTION
       </label>
       <textarea
@@ -502,7 +530,7 @@ if (mediaType === "document") {
                 {mediaType === "3d-tour" && (
   <div>
     <label
-      className="block text-xs mb-3 opacity-60"
+      className="block text-xs mb-3 opacity-80"
       style={{ fontFamily: "'Space Mono', monospace" }}
     >
       OBJECT NAME *
@@ -522,11 +550,14 @@ if (mediaType === "document") {
 
                 {/* PUBLISH */}
                 <button
+                  type="button"
                   onClick={handlePublish}
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 transition-all py-4"
+                  disabled={isPublishing}
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 transition-all py-4 disabled:cursor-wait disabled:opacity-80 flex items-center justify-center gap-3"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  PUBLISH
+                  {isPublishing && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                  {isPublishing ? "PUBLISHING…" : "PUBLISH"}
                 </button>
               </>
             )}

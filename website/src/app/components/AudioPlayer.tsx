@@ -1,9 +1,12 @@
 // src/app/components/AudioPlayer.tsx
 import { motion, AnimatePresence } from "motion/react";
-import { Play, Pause, Download, Share2, ChevronDown, Loader2, AlertCircle } from "lucide-react";
+import { Play, Pause, Download, Share2, Loader2, AlertCircle } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "./ImageWithFallback";
 import { getInterviewById, getRecentInterviews } from "../../services/interviews";
+import { downloadRemoteFile } from "../../lib/files";
+import { errorMessage } from "../../lib/validation";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -103,7 +106,6 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [summaryLang, setSummaryLang] = useState<SummaryLang>("en");
-  const [showCollections, setShowCollections] = useState(false);
 
   // ── Fetch interview ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -175,7 +177,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ── Pause on unmount to avoid ghost audio ─────────────────────────────────
   useEffect(() => {
-    return () => { audioRef.current?.pause(); };
+    const audio = audioRef.current;
+    return () => { audio?.pause(); };
   }, []);
 
   // ── Play / pause ───────────────────────────────────────────────────────────
@@ -202,14 +205,17 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
   };
 
   // ── Download ───────────────────────────────────────────────────────────────
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!interview?.audio_cloudinary_url) return;
-    const a = document.createElement("a");
-    a.href = interview.audio_cloudinary_url;
-    a.download = `${(interview.title ?? "interview").replace(/\s+/g, "_")}.mp3`;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+    try {
+      await downloadRemoteFile(
+        interview.audio_cloudinary_url,
+        `${(interview.title ?? "interview").replace(/\s+/g, "_")}.mp3`,
+      );
+      toast.success("Audio download started.");
+    } catch (downloadError) {
+      toast.error(errorMessage(downloadError, "Audio download failed."));
+    }
   };
 
   // ── Share ──────────────────────────────────────────────────────────────────
@@ -236,9 +242,9 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-[#666666]">
-          <Loader2 className="w-10 h-10 animate-spin text-[#8B4513]" />
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-smoke">
+          <Loader2 className="w-10 h-10 animate-spin text-umber" />
           <p style={{ fontFamily: "'Space Mono', monospace" }} className="text-xs tracking-widest">
             LOADING ARCHIVE...
           </p>
@@ -250,18 +256,18 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
   // ─── Error ─────────────────────────────────────────────────────────────────
   if (error || !interview) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-[#666666] max-w-sm text-center px-6">
-          <AlertCircle className="w-10 h-10 text-[#8B4513]" />
-          <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl text-[#333333]">
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-smoke max-w-sm text-center px-6">
+          <AlertCircle className="w-10 h-10 text-umber" />
+          <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl text-graphite">
             Could not load interview
           </p>
-          <p style={{ fontFamily: "'Space Mono', monospace" }} className="text-xs opacity-60">
+          <p style={{ fontFamily: "'Space Mono', monospace" }} className="text-xs opacity-80">
             {error}
           </p>
           <button
             onClick={() => onNavigate("back")}
-            className="mt-2 px-6 py-2 border border-[#333333]/30 hover:border-[#8B4513] transition-colors text-sm text-[#333333]"
+            className="mt-2 px-6 py-2 border border-graphite/30 hover:border-umber transition-colors text-sm text-graphite"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ← GO BACK
@@ -273,7 +279,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ─── Main render ───────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F9F9F9] text-[#333333]">
+    <div className="min-h-screen bg-surface text-graphite">
 
       {/* Hidden audio element — always mounted when interview exists */}
       <audio
@@ -287,7 +293,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       <div className="fixed top-8 left-8 z-50">
         <button
           onClick={() => onNavigate("back")}
-          className="text-[#333333] hover:text-[#8B4513] transition-colors"
+          className="text-graphite hover:text-umber transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← BACK</span>
@@ -299,7 +305,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
-        className="w-full h-[60vh] bg-[#333333] overflow-hidden"
+        className="w-full h-[60vh] bg-graphite overflow-hidden"
       >
         <ImageWithFallback
           src={interview.picture_cloudinary_url ?? ""}
@@ -309,7 +315,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       </motion.div>
 
       {/* ── Audio section ───────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-[#333333]/10">
+      <div className="bg-white border-b border-graphite/10">
         <div className="max-w-4xl mx-auto px-6 sm:px-8 py-12">
 
           {/* Metadata */}
@@ -320,7 +326,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             className="mb-8"
           >
             <p
-              className="text-xs tracking-widest text-[#666666] mb-4"
+              className="text-xs tracking-widest text-smoke mb-4"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               ORAL HISTORY ARCHIVE
@@ -334,7 +340,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             >
               {interview.title}
             </h1>
-            <p className="text-lg text-[#666666]">
+            <p className="text-lg text-smoke">
               {interview.date
                 ? `Recorded ${new Date(interview.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · `
                 : ""}
@@ -347,7 +353,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-[#F9F9F9] border border-[#333333]/10 p-6 sm:p-8"
+            className="bg-surface border border-graphite/10 p-6 sm:p-8"
           >
             <div className="flex items-center gap-4 sm:gap-6 mb-6">
 
@@ -355,7 +361,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
               <button
                 onClick={togglePlay}
                 aria-label={isPlaying ? "Pause" : "Play"}
-                className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#8B4513] hover:bg-[#704010] text-white flex items-center justify-center transition-all shadow-lg"
+                className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-umber hover:bg-dark-umber text-white flex items-center justify-center transition-all shadow-lg"
               >
                 {isPlaying
                   ? <Pause className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -367,17 +373,17 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                 <div
                   ref={progressRef}
                   onClick={handleProgressClick}
-                  className="h-2 bg-[#E5E5E5] rounded-full overflow-hidden cursor-pointer mb-2"
+                  className="h-2 bg-muted rounded-full overflow-hidden cursor-pointer mb-2"
                 >
                   <div
-                    className="h-full bg-[#8B4513] transition-all duration-300"
+                    className="h-full bg-umber transition-all duration-300"
                     style={{
                       width: duration ? `${(currentTime / duration) * 100}%` : "0%",
                     }}
                   />
                 </div>
                 <div
-                  className="flex justify-between text-xs text-[#666666]"
+                  className="flex justify-between text-xs text-smoke"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   <span>{formatTime(currentTime)}</span>
@@ -389,7 +395,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
               <button
                 onClick={handleDownload}
                 aria-label="Download audio"
-                className="shrink-0 w-10 h-10 flex items-center justify-center text-[#666666] hover:text-[#8B4513] transition-colors"
+                className="shrink-0 w-10 h-10 flex items-center justify-center text-smoke hover:text-umber transition-colors"
               >
                 <Download className="w-5 h-5" />
               </button>
@@ -398,7 +404,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
               <button
                 onClick={handleShare}
                 aria-label="Share"
-                className="shrink-0 w-10 h-10 flex items-center justify-center text-[#666666] hover:text-[#8B4513] transition-colors"
+                className="shrink-0 w-10 h-10 flex items-center justify-center text-smoke hover:text-umber transition-colors"
               >
                 <Share2 className="w-5 h-5" />
               </button>
@@ -406,7 +412,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
             {/* Audio info */}
             <div
-              className="text-xs text-[#666666] space-y-1"
+              className="text-xs text-smoke space-y-1"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               {interview.interviewee && <p>Speaker: {interview.interviewee}</p>}
@@ -435,8 +441,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             onClick={() => setSummaryLang(key)}
             className={`px-4 py-2 border text-sm transition-colors ${
               summaryLang === key
-                ? "bg-[#8B4513] text-white border-[#8B4513]"
-                : "border-[#333333]/20 hover:border-[#8B4513] text-[#333333]"
+                ? "bg-umber text-white border-umber"
+                : "border-graphite/20 hover:border-umber text-graphite"
             }`}
             style={{
               fontFamily:
@@ -478,7 +484,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                   key={i}
                   className={`leading-relaxed mb-8 ${
                     i === 0
-                      ? "text-xl first-letter:text-6xl first-letter:font-bold first-letter:mr-2 first-letter:float-left first-letter:text-[#8B4513]"
+                      ? "text-xl first-letter:text-6xl first-letter:font-bold first-letter:mr-2 first-letter:float-left first-letter:text-umber"
                       : ""
                   }`}
                 >
@@ -496,7 +502,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
         {/* Metadata footer */}
         <div
-          className="mt-16 pt-8 border-t border-[#333333]/10 text-sm text-[#666666] space-y-2"
+          className="mt-16 pt-8 border-t border-graphite/10 text-sm text-smoke space-y-2"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           {interview.date && (
@@ -538,7 +544,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
       {/* ── More Voices ─────────────────────────────────────────────────────── */}
       {recentStories.length > 0 && (
-        <div className="bg-white border-t border-[#333333]/10 py-16">
+        <div className="bg-white border-t border-graphite/10 py-16">
           <div className="max-w-7xl mx-auto px-6 sm:px-8">
             <h2
               className="text-4xl mb-12 text-center"
@@ -557,7 +563,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                   className="group cursor-pointer"
                   onClick={() => onNavigate(`audio:${story.id}`)}
                 >
-                  <div className="mb-4 overflow-hidden bg-[#333333]">
+                  <div className="mb-4 overflow-hidden bg-graphite">
                     <ImageWithFallback
                       src={story.picture_cloudinary_url ?? ""}
                       alt={`Portrait of ${story.interviewee ?? story.title}`}
@@ -565,20 +571,20 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                     />
                   </div>
                   <h3
-                    className="text-2xl mb-2 text-[#333333]"
+                    className="text-2xl mb-2 text-graphite"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
                     {story.interviewee ?? story.title}
                   </h3>
                   {story.communities?.name && (
                     <p
-                      className="text-xs tracking-widest text-[#666666] mb-3"
+                      className="text-xs tracking-widest text-smoke mb-3"
                       style={{ fontFamily: "'Space Mono', monospace" }}
                     >
                       {story.communities.name.toUpperCase()}
                     </p>
                   )}
-                  <p className="text-[#666666] leading-relaxed italic text-sm">
+                  <p className="text-smoke leading-relaxed italic text-sm">
                     {getSummaryExcerpt(story.summary_html)}
                   </p>
                 </motion.div>
@@ -589,7 +595,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       )}
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="bg-[#333333] text-[#F9F9F9] py-8">
+      <footer className="bg-graphite text-surface py-8">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 text-center">
           <p
             className="text-sm opacity-70"

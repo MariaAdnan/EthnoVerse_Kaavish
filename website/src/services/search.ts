@@ -2,8 +2,27 @@
 import { supabase } from "../lib/supabase";
 
 export interface SearchArchiveResponse {
-  interviews: any[];
-  media: any[];
+  interviews: SearchInterview[];
+  media: SearchMedia[];
+}
+
+export interface SearchInterview {
+  id: string | number;
+  title: string | null;
+  date: string | null;
+  summary_text: string | null;
+  community_id: string;
+  communities: { name: string }[] | { name: string } | null;
+}
+
+export interface SearchMedia {
+  id: string | number;
+  title: string | null;
+  description: string | null;
+  tags: string[] | null;
+  community_id: string;
+  picture_cloudinary_url: string | null;
+  communities: { name: string }[] | { name: string } | null;
 }
 
 // `.or()` receives a PostgREST filter expression, not a parameterized value.
@@ -48,7 +67,9 @@ export async function searchArchive(
   .rpc("search_media_tags", { community: communityId, search: tagMatch });
 
     const merged = [...(textData ?? []), ...(tagData ?? [])];
-    mediaData = merged.filter((item, i, arr) => arr.findIndex(x => x.id === item.id) === i);
+    mediaData = merged.filter(
+      (item, i, arr) => arr.findIndex((candidate) => candidate.id === item.id) === i,
+    );
   } else {
   const { data: textData, error: textError } = await supabase
     .from("visual_media")
@@ -66,12 +87,12 @@ export async function searchArchive(
 
   const merged = [...(textData ?? []), ...(tagData ?? [])];
   mediaData = merged.filter(
-    (item, i, arr) => arr.findIndex((x: any) => x.id === item.id) === i
+    (item, i, arr) => arr.findIndex((candidate) => candidate.id === item.id) === i
   );
 }
 
   return {
-    interviews: interviews ?? [],
-    media: mediaData ?? [],
+    interviews: (interviews ?? []) as SearchInterview[],
+    media: (mediaData ?? []) as SearchMedia[],
   };
 }

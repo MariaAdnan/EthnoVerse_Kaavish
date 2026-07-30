@@ -211,7 +211,7 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
       >
         <div className="max-w-4xl mx-auto">
           <p
-            className="text-sm mb-2 opacity-60"
+            className="text-sm mb-2 opacity-80"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             ADMIN GUIDELINES
@@ -300,7 +300,7 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
           className="mt-12 p-8 border-2 border-accent bg-accent/5"
         >
           <p
-            className="text-xs opacity-60 mb-2"
+            className="text-xs opacity-80 mb-2"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             IMPORTANT

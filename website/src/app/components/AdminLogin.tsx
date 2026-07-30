@@ -36,12 +36,12 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
 
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-ink flex items-center justify-center p-6">
       {/* Back to Home */}
       <div className="fixed top-8 left-8 z-50">
         <button
           onClick={() => onNavigate('home')}
-          className="text-[#F5F1E8] hover:text-[#CC7722] transition-colors"
+          className="text-paper hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← HOME</span>
@@ -55,17 +55,17 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
         transition={{ duration: 0.8 }}
         className="w-full max-w-md"
       >
-        <div className="border-2 border-[#F5F1E8] bg-[#1A1A1A] p-12">
+        <div className="border-2 border-paper bg-ink p-12">
           {/* Header */}
           <div className="mb-12 text-center">
             <h1 
-              className="text-4xl text-[#F5F1E8] mb-3"
+              className="text-4xl text-paper mb-3"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               ADMINISTRATOR
             </h1>
             <p 
-              className="text-sm text-[#F5F1E8]/60"
+              className="text-sm text-paper/60"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
               ACCESS
@@ -77,19 +77,22 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
             {/* Username Field */}
             <div>
               <label 
-                className="block text-xs text-[#F5F1E8]/60 mb-3"
+                htmlFor="admin-email"
+                className="block text-xs text-paper/60 mb-3"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 EMAIL
               </label>
               <input
-                type="text"
+                id="admin-email"
+                type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-[#F5F1E8] text-[#F5F1E8] pb-3 focus:border-[#CC7722] outline-none transition-colors"
+                className="w-full bg-transparent border-b-2 border-paper text-paper pb-3 focus:border-accent outline-none transition-colors"
                 style={{ 
                   fontFamily: "'Space Mono', monospace",
-                  caretColor: '#CC7722'
+                  caretColor: 'var(--accent)'
                 }}
                 required
               />
@@ -98,19 +101,22 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
             {/* Password Field */}
             <div>
               <label 
-                className="block text-xs text-[#F5F1E8]/60 mb-3"
+                htmlFor="admin-password"
+                className="block text-xs text-paper/60 mb-3"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
                 PASSWORD
               </label>
               <input
+                id="admin-password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent border-b-2 border-[#F5F1E8] text-[#F5F1E8] pb-3 focus:border-[#CC7722] outline-none transition-colors"
+                className="w-full bg-transparent border-b-2 border-paper text-paper pb-3 focus:border-accent outline-none transition-colors"
                 style={{ 
                   fontFamily: "'Space Mono', monospace",
-                  caretColor: '#CC7722'
+                  caretColor: 'var(--accent)'
                 }}
                 required
               />
@@ -129,16 +135,17 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full bg-[#CC7722] text-[#F5F1E8] py-4 hover:bg-[#CC7722]/90 transition-colors mt-12"
+              disabled={loading}
+              className="w-full bg-accent text-paper py-4 hover:bg-accent/90 transition-colors mt-12 disabled:cursor-wait disabled:opacity-80"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
-              LOGIN
+              {loading ? "SIGNING IN…" : "LOGIN"}
             </motion.button>
           </form>
 
           {/* Footer Note */}
           <p 
-            className="text-xs text-[#F5F1E8]/40 text-center mt-8"
+            className="text-xs text-paper/40 text-center mt-8"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             UC-A01 · ADMIN AUTHENTICATION
