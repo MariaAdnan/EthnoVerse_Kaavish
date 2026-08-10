@@ -1,0 +1,34 @@
+{
+  "item": "Matka",
+  "evaluation_type": "observed/training-view reconstruction fidelity",
+  "captured_images_n": 54,
+  "registered_images_n": 46,
+  "registration_percent": 85.18518518518519,
+  "evaluated_registered_views_n": 8,
+  "model_splats_n": 6944,
+  "model_bytes": 1640259,
+  "alignment_trimmed_symmetric_rmse": null,
+  "quality_mean": {
+    "full_psnr_db": 8.254982167271006,
+    "full_ssim": 0.679819692577984,
+    "foreground_psnr_db": 14.01913377779534,
+    "foreground_ssim": 0.5044143474067252
+  },
+  "quality_std": {
+    "full_psnr_db": 1.528760219767437,
+    "full_ssim": 0.07080519591615447,
+    "foreground_psnr_db": 5.964457402373496,
+    "foreground_ssim": 0.18382515435036587
+  },
+  "original_training_minutes": null,
+  "original_training_minutes_note": "Not recoverable from an existing PLY/SPZ file; training logs were not supplied.",
+  "evaluation_runtime_minutes": 0.07284467568339702,
+  "method_notes": [
+    "No retraining or model modification was performed.",
+    "Cameras were recovered from the supplied capture sequence with COLMAP.",
+    "Foreground metrics use the largest connected component of render alpha >= 0.30.",
+    "Full-frame metrics are background-sensitive because the object-only PLY renders over white.",
+    "These are not novel-view generalization scores because the existing model may have seen all source photographs.",
+    "The model-to-camera similarity transform was obtained with robust PCA initialization and trimmed symmetric ICP against central sparse points."
+  ]
+}

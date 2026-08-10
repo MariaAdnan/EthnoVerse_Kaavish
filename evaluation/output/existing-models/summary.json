@@ -1,0 +1,88 @@
+{
+  "items": [
+    {
+      "item": "Matka",
+      "captured_images_n": 54,
+      "registered_images_n": 46,
+      "registration_percent": 85.18518518518519,
+      "evaluated_views_n": 8,
+      "model_splats_n": 6944,
+      "model_size_mib": 1.5642728805541992,
+      "foreground_psnr_db_mean": 14.01913377779534,
+      "foreground_psnr_db_std": 5.964457402373496,
+      "foreground_ssim_mean": 0.5044143474067252,
+      "foreground_ssim_std": 0.18382515435036587,
+      "full_psnr_db_mean": 8.254982167271006,
+      "full_ssim_mean": 0.679819692577984,
+      "metric_pass_minutes": 0.07284467568339702,
+      "original_training_minutes": "unavailable"
+    },
+    {
+      "item": "Bangles 1",
+      "captured_images_n": 93,
+      "registered_images_n": 93,
+      "registration_percent": 100.0,
+      "evaluated_views_n": 8,
+      "model_splats_n": 10868,
+      "model_size_mib": 2.447437286376953,
+      "foreground_psnr_db_mean": 12.341311418624247,
+      "foreground_psnr_db_std": 0.577379137921523,
+      "foreground_ssim_mean": 0.14204176430079213,
+      "foreground_ssim_std": 0.019270307582940068,
+      "full_psnr_db_mean": 6.330139378610916,
+      "full_ssim_mean": 0.4659065187561834,
+      "metric_pass_minutes": 0.08687450486662177,
+      "original_training_minutes": "unavailable"
+    },
+    {
+      "item": "Bangles 2",
+      "captured_images_n": 105,
+      "registered_images_n": 105,
+      "registration_percent": 100.0,
+      "evaluated_views_n": 8,
+      "model_splats_n": 2527,
+      "model_size_mib": 0.5701513290405273,
+      "foreground_psnr_db_mean": 11.352115954139302,
+      "foreground_psnr_db_std": 1.7674070277865022,
+      "foreground_ssim_mean": 0.3025252447385995,
+      "foreground_ssim_std": 0.1394294736125881,
+      "full_psnr_db_mean": 5.931768666632928,
+      "full_ssim_mean": 0.3077604644876468,
+      "metric_pass_minutes": 0.04759694096671107,
+      "original_training_minutes": "unavailable"
+    },
+    {
+      "item": "Outfit",
+      "captured_images_n": 140,
+      "registered_images_n": 72,
+      "registration_percent": 51.42857142857143,
+      "evaluated_views_n": 8,
+      "model_splats_n": 91188,
+      "model_size_mib": 20.524829864501953,
+      "foreground_psnr_db_mean": 15.100978170783264,
+      "foreground_psnr_db_std": 2.3857768886826314,
+      "foreground_ssim_mean": 0.1561343953791976,
+      "foreground_ssim_std": 0.11141230457376614,
+      "full_psnr_db_mean": 6.790458220065581,
+      "full_ssim_mean": 0.35226773829864233,
+      "metric_pass_minutes": 0.40871697430023535,
+      "original_training_minutes": "unavailable"
+    }
+  ],
+  "overall": {
+    "evaluation_type": "observed/training-view reconstruction fidelity",
+    "assets_n": 4,
+    "captured_images_n": 392,
+    "registered_images_in_selected_camera_models_n": 316,
+    "evaluated_views_n": 32,
+    "quality_mean_over_all_evaluated_views": {
+      "foreground_psnr_db": 13.20338483033554,
+      "foreground_ssim": 0.27627893795632863,
+      "full_psnr_db": 6.826837108145107,
+      "full_ssim": 0.4514386035301142
+    },
+    "metric_pass_minutes_sum": 0.6160330958169652,
+    "original_training_minutes": null,
+    "original_training_minutes_note": "The existing PLY/SPZ assets contain no training-duration metadata and no training logs were supplied."
+  }
+}

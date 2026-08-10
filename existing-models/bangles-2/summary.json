@@ -1,0 +1,34 @@
+{
+  "item": "Bangles 2",
+  "evaluation_type": "observed/training-view reconstruction fidelity",
+  "captured_images_n": 105,
+  "registered_images_n": 105,
+  "registration_percent": 100.0,
+  "evaluated_registered_views_n": 8,
+  "model_splats_n": 2527,
+  "model_bytes": 597847,
+  "alignment_trimmed_symmetric_rmse": null,
+  "quality_mean": {
+    "full_psnr_db": 5.931768666632928,
+    "full_ssim": 0.3077604644876468,
+    "foreground_psnr_db": 11.352115954139302,
+    "foreground_ssim": 0.3025252447385995
+  },
+  "quality_std": {
+    "full_psnr_db": 0.3898829933841691,
+    "full_ssim": 0.040037755762517134,
+    "foreground_psnr_db": 1.7674070277865022,
+    "foreground_ssim": 0.1394294736125881
+  },
+  "original_training_minutes": null,
+  "original_training_minutes_note": "Not recoverable from an existing PLY/SPZ file; training logs were not supplied.",
+  "evaluation_runtime_minutes": 0.04759694096671107,
+  "method_notes": [
+    "No retraining or model modification was performed.",
+    "Cameras were recovered from the supplied capture sequence with COLMAP.",
+    "Foreground metrics use the largest connected component of render alpha >= 0.30.",
+    "Full-frame metrics are background-sensitive because the object-only PLY renders over white.",
+    "These are not novel-view generalization scores because the existing model may have seen all source photographs.",
+    "After initial ICP, this rotationally ambiguous cylindrical asset was gravity-aligned using the mean recovered camera image-up direction; scale and vertical position were calibrated against observed silhouettes, so this item includes observed-view registration refinement."
+  ]
+}
