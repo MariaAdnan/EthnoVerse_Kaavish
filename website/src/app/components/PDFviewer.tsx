@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getDocumentById } from "../../services/document";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ export function PDFViewer({ onNavigate, view }: PDFViewerProps) {
     setLoading(true);
     setError(null);
 
-    getDocumentById(docId)
+    withTimeout(getDocumentById(docId), 8_000)
       .then((data) => {
         if (cancelled) return;
         if (!data) { setError("Document not found."); return; }

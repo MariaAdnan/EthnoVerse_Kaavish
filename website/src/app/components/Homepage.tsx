@@ -7,6 +7,7 @@ import {
   OFFLINE_COMMUNITY,
 } from "../../config/archive";
 import { isSupabaseConfigured } from "../../lib/supabase";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,26 +80,15 @@ function FeaturedCard({
   const archiveId = `ARCHIVE-${String(index + 1).padStart(3, "0")}`;
 
   return (
-    <div
-      className="group cursor-pointer"
+    <button
+      type="button"
+      className="group w-full cursor-pointer text-left"
       onClick={() =>
         community.community_id === "offline-preview"
           ? onNavigate("explore")
           : onNavigate(`community:${community.community_id}`)
       }
-      role="link"
-      tabIndex={0}
       aria-label={`View ${community.name} collection`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          if (community.community_id === "offline-preview") {
-            onNavigate("explore");
-          } else {
-            onNavigate(`community:${community.community_id}`);
-          }
-        }
-      }}
     >
       <div className="grid md:grid-cols-2 gap-8 items-center">
         {/* Image */}
@@ -140,17 +130,16 @@ function FeaturedCard({
               {community.language ? ` · ${community.language}` : ""}
             </p>
           )}
-          <button
+          <span
             className="inline-flex items-center gap-2 text-accent hover:gap-4 transition-all focus-visible:outline-none focus-visible:underline"
             style={{ fontFamily: "'Space Mono', monospace" }}
-            tabIndex={-1} /* parent div is the interactive element */
           >
             <span className="text-sm">VIEW COLLECTION</span>
             <span aria-hidden="true">→</span>
-          </button>
+          </span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -176,7 +165,11 @@ export function Homepage({ onNavigate }: HomepageProps) {
         setLoading(true);
         setError(null);
 
-        const { data, error: sbError } = await getAllCommunities();
+        const { data, error: sbError } = await withTimeout(
+          getAllCommunities(),
+          8_000,
+          "The archive is temporarily unreachable.",
+        );
 
         if (cancelled) return;
 

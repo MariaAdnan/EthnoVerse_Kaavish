@@ -23,7 +23,13 @@ The endpoint returns HTTP 401 when the header is missing or wrong and HTTP 503
 when the Modal secret has not been configured. Never put this value in a
 frontend environment variable, source file, issue, or screenshot.
 
-After changing the Modal app name or workspace, update the target URL in
-Supabase and deploy the frontend with `VITE_MODAL_DOWNLOAD_URL` set to the
-matching `download_ply` endpoint. Test with a 10+ image ZIP and confirm the
-job moves from `queued` to `processing`.
+Add a separate random `MODEL_DOWNLOAD_SIGNING_SECRET` to the Modal secret and
+to the `cloudinary-admin` Edge Function. Set that function's
+`MODAL_DOWNLOAD_URL` to the deployed `download_ply` endpoint. The browser asks
+the Edge Function for a five-minute administrator-only download URL; the Modal
+endpoint rejects missing, incorrect, or expired signatures.
+
+After changing the Modal app name or workspace, update the webhook target and
+the Edge Function's `MODAL_DOWNLOAD_URL`. Test with a 10+ image ZIP and confirm
+the job moves from `queued` to `processing`. Deliver the same webhook twice and
+confirm that only one GPU worker is started.

@@ -5,8 +5,16 @@ import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createCommunity } from "../../services/communities";
-import { uploadToCloudinary } from "../../lib/cloudinary";
-import { resizeImage, validateUploadFile } from "../../lib/files";
+import {
+  deleteCloudinaryAsset,
+  uploadToCloudinary,
+  type CloudinaryAsset,
+} from "../../services/upload";
+import {
+  resizeImage,
+  validateUploadFile,
+  validateUploadFileContents,
+} from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
 
 
@@ -27,33 +35,39 @@ export function AddCommunity({ onNavigate }: AddCommunityProps) {
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   if (isSubmitting) return;
+  let coverAsset: CloudinaryAsset | null = null;
+  let databaseRecordCreated = false;
 
   try {
     setIsSubmitting(true);
-    let coverImageUrl: string | null = null;
 
-    // 1️⃣ Upload cover image if exists
     if (coverFile) {
-      const uploadResult = await uploadToCloudinary(coverFile);
-      coverImageUrl = uploadResult.url;
+      coverAsset = await uploadToCloudinary(coverFile, "image");
     }
 
-    // 2️⃣ Create community with cover_image
     const { error } = await createCommunity({
       name: formData.name,
       location: formData.location,
       language: formData.language,
       short_description: formData.shortDescription,
       long_description: formData.longDescription,
-      picture_cloudinary_url: coverImageUrl,
+      picture_cloudinary_url: coverAsset?.url ?? null,
     });
 
     if (error) throw error;
+    databaseRecordCreated = true;
 
     toast.success("Community created successfully.");
     onNavigate("admin");
   } catch (err: unknown) {
     console.error("CREATE COMMUNITY ERROR:", err);
+    if (coverAsset && !databaseRecordCreated) {
+      try {
+        await deleteCloudinaryAsset(coverAsset);
+      } catch (cleanupError) {
+        console.error("ORPHANED CLOUDINARY ASSET:", coverAsset.publicId, cleanupError);
+      }
+    }
     toast.error(errorMessage(err, "Failed to create community."));
   } finally {
     setIsSubmitting(false);
@@ -73,7 +87,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   
 
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center p-8">
+    <div className="min-h-screen bg-ink flex items-start justify-center px-6 pb-12 pt-32 sm:px-8">
       {/* Form Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -87,7 +101,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-6xl md:text-7xl text-paper mb-4"
+            className="text-[clamp(2.5rem,11vw,4.5rem)] leading-tight text-paper mb-4"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             REGISTER COMMUNITY
@@ -123,6 +137,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               id="name"
               name="name"
               value={formData.name}
+              maxLength={120}
               onChange={handleChange}
               required
               placeholder="e.g., Kolhi, Bheel"
@@ -149,6 +164,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               id="location"
               name="location"
               value={formData.location}
+              maxLength={180}
               onChange={handleChange}
               required
               placeholder="e.g., Tharparkar, Umerkot"
@@ -175,6 +191,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               id="language"
               name="language"
               value={formData.language}
+              maxLength={120}
               onChange={handleChange}
               required
               placeholder="e.g., Dhatki, Sindhi"
@@ -231,6 +248,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               id="longDescription"
               name="longDescription"
               value={formData.longDescription}
+              maxLength={10000}
               onChange={handleChange}
               required
               rows={8}
@@ -245,12 +263,12 @@ const handleSubmit = async (e: React.FormEvent) => {
   animate={{ opacity: 1, x: 0 }}
   transition={{ duration: 0.6, delay: 0.5 }}
 >
-  <label
+  <p
     className="block text-xs text-paper mb-3 tracking-wider opacity-80"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
     COVER IMAGE
-  </label>
+  </p>
 
   <div className="border-2 border-dashed border-paper/30 p-6 text-center hover:border-accent transition-colors">
     <input
@@ -262,6 +280,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           void (async () => {
             try {
               validateUploadFile(selected, "image");
+              await validateUploadFileContents(selected, "image");
               setCoverFile(await resizeImage(selected));
             } catch (error) {
               setCoverFile(null);
@@ -314,7 +333,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       </motion.div>
 
       {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
+      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
         <button
           onClick={() => onNavigate('admin')}
           className="text-paper hover:text-accent transition-colors"

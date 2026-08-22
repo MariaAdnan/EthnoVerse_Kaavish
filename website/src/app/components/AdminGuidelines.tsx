@@ -77,12 +77,12 @@ const steps = [
         label: "Steps",
         items: [
           "Login to Admin Dashboard and authenticate",
-          "Navigate to Upload Media",
-          "Select Media Type → Image Set (for 3D)",
+          "Open Upload New Media",
+          "Select Media Type → 3D Tour (Gaussian Splat)",
           "Select the relevant Community",
-          "Upload all captured images together",
-          "Fill Title, Description, Tags, Date Captured, Consent Documentation",
-          "Click Submit",
+          "Put the JPG/PNG captures in one ZIP file and upload it",
+          "Enter a clear title and filesystem-safe object name",
+          "Click Publish; the reconstruction job starts automatically",
         ],
       },
     ],
@@ -96,7 +96,7 @@ const steps = [
       {
         label: "Automatic Checks",
         items: [
-          "System validates image count, resolution, and file integrity",
+          "System validates the ZIP structure, file integrity, compression ratio, and minimum image count",
         ],
       },
       {
@@ -119,9 +119,9 @@ const steps = [
       {
         label: "Start Reconstruction",
         items: [
-          "Navigate to 3D Scene Builder",
-          "Select the uploaded image set",
-          "Click Start Reconstruction",
+          "Open the job from the Admin Dashboard",
+          "Use View Progress to monitor each processing stage",
+          "A failed job displays its worker error so the image set can be corrected",
         ],
       },
       {
@@ -135,7 +135,7 @@ const steps = [
       },
       {
         label: "Processing Time",
-        items: ["Typically 5–20 minutes depending on image count and system load"],
+        items: ["Typically 15–20 minutes, depending on image count and GPU availability"],
       },
     ],
   },
@@ -148,6 +148,7 @@ const steps = [
       {
         label: "Quality Checklist",
         items: [
+          "Download the completed PLY from the job screen",
           "Object fully reconstructed",
           "No major holes or distortions",
           "Smooth visual transitions",
@@ -166,25 +167,24 @@ const steps = [
   },
   {
     number: "07",
-    title: "Optimize & Publish",
+    title: "Place & Publish",
     icon: Globe,
     color: "text-accent",
     subsections: [
       {
-        label: "Optimize for Web",
+        label: "Add to a Tour",
         items: [
-          "Click Optimize for Web",
-          "System performs Gaussian pruning, compression, rendering tuning",
-          "Verify smooth interaction and fast loading",
+          "Open the 3D Tour Editor for the correct community",
+          "Choose Insert Object and select the downloaded binary little-endian PLY",
+          "Click the terrain to place it, then adjust position, scale, and rotation",
         ],
       },
       {
         label: "Publish to Archive",
         items: [
-          "Assign model to relevant Community",
-          "Add cultural and contextual description",
-          "Set Visibility → Public ON",
-          "Click Publish",
+          "Add a concise, culturally accurate title and description",
+          "Click Save; the asset is uploaded through the admin-only Cloudinary signer",
+          "Exit and reopen the public tour to verify placement and loading",
         ],
       },
     ],
@@ -207,7 +207,7 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="border-b border-border p-8"
+        className="border-b border-border px-6 pb-8 pt-32 sm:px-8"
       >
         <div className="max-w-4xl mx-auto">
           <p
@@ -217,7 +217,7 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
             ADMIN GUIDELINES
           </p>
           <h1
-            className="text-5xl"
+            className="text-[clamp(2.5rem,10vw,3rem)] leading-tight"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             3D Reconstruction Workflow
@@ -228,7 +228,7 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
         </div>
       </motion.div>
 
-      <div className="max-w-4xl mx-auto p-8">
+      <div className="max-w-4xl mx-auto px-6 py-8 sm:px-8">
         {/* Steps */}
         <div className="space-y-8">
           {steps.map((step, index) => {
@@ -323,9 +323,9 @@ export function AdminGuidelines({ onNavigate }: AdminGuidelinesProps) {
       </div>
 
       {/* Back Navigation */}
-      <div className="fixed top-8 left-8 z-50">
+      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
         <button
-          onClick={() => onNavigate('admin-dashboard')}
+          onClick={() => onNavigate('admin')}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >

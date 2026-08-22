@@ -1,6 +1,6 @@
 // src/app/components/AdminDashboard.tsx
 import { motion } from "motion/react";
-import { Box, Database, Loader2, Plus, Upload, Users } from "lucide-react";
+import { BookOpen, Box, Database, Loader2, LogOut, Plus, Upload, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { 
@@ -12,9 +12,11 @@ import {
 import { getJobs, type ModelJob } from "../../services/jobs";
 import { supabase } from "../../lib/supabase";
 import { updateCommunityTerrain } from "../../services/communities";
-import { getModelDownloadUrl } from "../../lib/modal";
+import { downloadModel } from "../../lib/modal";
 import { BUILT_IN_TOUR_COMMUNITY_ID } from "../../config/archive";
 import { errorMessage } from "../../lib/validation";
+import { adminLogout } from "../../services/auth";
+import { withTimeout } from "../../lib/async";
 
 interface AdminDashboardProps {
   onNavigate: (view: string) => void;
@@ -30,7 +32,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [stats, setStats] = useState({
   totalArchives: 0,
   communities: 0,
-  newUsersThisMonth: 0,
+  newAccountsThisMonth: 0,
 });
 
 const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -40,36 +42,101 @@ const [showTourPicker, setShowTourPicker] = useState(false);
 const [allCommunities, setAllCommunities] = useState<TourCommunity[]>([]);
 const [pendingDelete, setPendingDelete] = useState<RecentActivity | null>(null);
 const [isDeleting, setIsDeleting] = useState(false);
+const [loadError, setLoadError] = useState<string | null>(null);
+const [adminEmail, setAdminEmail] = useState<string | null>(null);
+const [isSigningOut, setIsSigningOut] = useState(false);
+const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
+const [updatingTerrainId, setUpdatingTerrainId] = useState<string | null>(null);
 useEffect(() => {
   async function loadDashboard() {
-    try {
-      const [statsData, activityData] = await Promise.all([
-        getDashboardStats(),
-        getRecentActivity(),
+    const [statsResult, activityResult, communitiesResult, jobsResult, sessionResult] =
+      await Promise.allSettled([
+        withTimeout(getDashboardStats(), 8_000),
+        withTimeout(getRecentActivity(), 8_000),
+        withTimeout(
+          supabase.from("communities").select("community_id, name, terrain_type"),
+          8_000,
+        ),
+        withTimeout(getJobs(), 8_000),
+        withTimeout(supabase.auth.getSession(), 8_000),
       ]);
-      const { data: commData } = await supabase
-  .from("communities")
-  .select("community_id, name, terrain_type");
-setAllCommunities(commData || []);
-      const jobsData = await getJobs();
-      setJobs(jobsData || []);
 
-      setStats(statsData);
-      setRecentActivity(activityData);
-    } catch (err) {
-      console.error("Dashboard load error:", err);
-    } finally {
-      setLoading(false);
+    let partialFailure = false;
+    if (statsResult.status === "fulfilled") setStats(statsResult.value);
+    else partialFailure = true;
+    if (activityResult.status === "fulfilled") setRecentActivity(activityResult.value);
+    else partialFailure = true;
+    if (communitiesResult.status === "fulfilled" && !communitiesResult.value.error) {
+      setAllCommunities(communitiesResult.value.data || []);
+    } else partialFailure = true;
+    if (jobsResult.status === "fulfilled") setJobs(jobsResult.value || []);
+    else partialFailure = true;
+    if (sessionResult.status === "fulfilled") {
+      setAdminEmail(sessionResult.value.data.session?.user.email ?? null);
+    } else partialFailure = true;
+
+    if (partialFailure) {
+      setLoadError("Some dashboard data could not be loaded.");
     }
+    setLoading(false);
   }
 
   loadDashboard();
 }, []);
+
+const handleLogout = async () => {
+  if (isSigningOut) return;
+  try {
+    setIsSigningOut(true);
+    await adminLogout();
+    onNavigate("admin-login");
+  } catch (error) {
+    toast.error(errorMessage(error, "Sign out failed."));
+  } finally {
+    setIsSigningOut(false);
+  }
+};
+
+const handleModelDownload = async (job: ModelJob) => {
+  if (downloadingJobId) return;
+  try {
+    setDownloadingJobId(job.id);
+    await downloadModel(job.id, `${job.object_name}_point_cloud.ply`);
+  } catch (error) {
+    toast.error(errorMessage(error, "Model download failed."));
+  } finally {
+    setDownloadingJobId(null);
+  }
+};
+
+const handleTerrainChange = async (communityId: string, terrainType: string) => {
+  if (!terrainType || updatingTerrainId) return;
+  try {
+    setUpdatingTerrainId(communityId);
+    const { error } = await withTimeout(
+      updateCommunityTerrain(communityId, terrainType),
+      8_000,
+    );
+    if (error) throw error;
+    setAllCommunities((current) =>
+      current.map((community) =>
+        community.community_id === communityId
+          ? { ...community, terrain_type: terrainType }
+          : community,
+      ),
+    );
+    toast.success("Community terrain saved.");
+  } catch (error) {
+    toast.error(errorMessage(error, "Terrain could not be saved."));
+  } finally {
+    setUpdatingTerrainId(null);
+  }
+};
   const confirmDelete = async () => {
   if (!pendingDelete || isDeleting) return;
   try {
     setIsDeleting(true);
-    const { error } = await deleteArchiveItem(
+    const { data, error } = await deleteArchiveItem(
       pendingDelete.id,
       pendingDelete.type,
     );
@@ -80,11 +147,19 @@ setAllCommunities(commData || []);
       return;
     }
 
-    setRecentActivity(prev => prev.filter(item => item.id !== pendingDelete.id));
-    const updatedStats = await getDashboardStats();
+    setRecentActivity((current) =>
+      current.filter(
+        (item) => !(item.id === pendingDelete.id && item.type === pendingDelete.type),
+      ),
+    );
+    const updatedStats = await withTimeout(getDashboardStats(), 8_000);
     setStats(updatedStats);
     setPendingDelete(null);
-    toast.success("Archive item deleted.");
+    if (data?.cleanupWarning) {
+      toast.warning("Archive item deleted, but its Cloudinary file needs manual cleanup.");
+    } else {
+      toast.success("Archive item and its uploaded file were deleted.");
+    }
   } catch (err) {
     console.error("Delete error:", err);
     toast.error(errorMessage(err, "Delete failed."));
@@ -100,25 +175,43 @@ setAllCommunities(commData || []);
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="border-b border-border p-8"
+        className="border-b border-border px-6 pb-8 pt-32 sm:px-8"
       >
-        <div className="max-w-7xl mx-auto">
-          <p 
-            className="text-sm mb-2 opacity-80"
+        <div className="max-w-7xl mx-auto flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p
+              className="text-sm mb-2 opacity-80"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              ADMINISTRATIVE INTERFACE
+            </p>
+            <h1
+              className="text-[clamp(2.75rem,10vw,3rem)] leading-tight"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              Dashboard
+            </h1>
+            {adminEmail && <p className="mt-2 break-all text-sm text-muted-foreground">{adminEmail}</p>}
+          </div>
+          <button
+            type="button"
+            disabled={isSigningOut}
+            onClick={() => void handleLogout()}
+            className="inline-flex items-center justify-center gap-2 border border-ink px-4 py-2 text-sm hover:bg-ink hover:text-paper disabled:opacity-60"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
-            ADMINISTRATIVE INTERFACE
-          </p>
-          <h1 
-            className="text-5xl"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
-            Dashboard
-          </h1>
+            {isSigningOut ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <LogOut className="size-4" aria-hidden="true" />}
+            {isSigningOut ? "SIGNING OUT…" : "SIGN OUT"}
+          </button>
         </div>
       </motion.div>
 
       <div className="max-w-7xl mx-auto p-8">
+        {loadError && (
+          <div role="alert" className="mb-8 border border-destructive bg-destructive/5 p-4 text-sm text-destructive">
+            {loadError} Refresh the page to try again.
+          </div>
+        )}
         {/* Stats Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -161,10 +254,10 @@ setAllCommunities(commData || []);
               className="text-6xl mb-2"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
-{loading ? "—" : stats.newUsersThisMonth}
+{loading ? "—" : stats.newAccountsThisMonth}
             </p>
             <p className="text-sm text-muted-foreground">
-              Active researchers this month · +18% growth
+              Accounts created during the past 30 days
             </p>
           </div>
         </motion.div>
@@ -217,10 +310,28 @@ setAllCommunities(commData || []);
   </div>
 </button>
 
+          <button
+            type="button"
+            onClick={() => onNavigate('admin-guidelines')}
+            className="w-full border-2 border-foreground bg-transparent hover:bg-foreground/10 transition-all p-6 group"
+          >
+            <div className="flex items-center justify-center gap-4">
+              <BookOpen className="w-5 h-5" />
+              <span style={{ fontFamily: "'Space Mono', monospace" }}>
+                3D CAPTURE &amp; PUBLISHING GUIDE
+              </span>
+            </div>
+          </button>
+
 {showTourPicker && (
-  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-8">
-    <div className="bg-background border border-border p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto">
-      <h2 className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 sm:p-8">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tour-picker-title"
+      className="bg-background border border-border p-6 sm:p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+    >
+      <h2 id="tour-picker-title" className="text-2xl mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
         Open Tour Editor
       </h2>
       <p className="text-xs opacity-80 mb-6" style={{ fontFamily: "'Space Mono', monospace" }}>
@@ -233,7 +344,7 @@ setAllCommunities(commData || []);
         return (
           <div
             key={c.community_id}
-            className="border border-border p-4 mb-3 flex items-center justify-between gap-4"
+            className="border border-border p-4 mb-3 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"
           >
             <div>
               <p className="text-sm font-medium">{c.name}</p>
@@ -256,16 +367,9 @@ setAllCommunities(commData || []);
     // Not set yet — show picker
     <select
       defaultValue=""
-      onChange={async (e) => {
-        if (!e.target.value) return;
-        await updateCommunityTerrain(c.community_id, e.target.value);
-        setAllCommunities(prev =>
-          prev.map(x => x.community_id === c.community_id
-            ? { ...x, terrain_type: e.target.value }
-            : x
-          )
-        );
-      }}
+      aria-label={`Terrain for ${c.name}`}
+      disabled={updatingTerrainId === c.community_id}
+      onChange={(event) => void handleTerrainChange(c.community_id, event.target.value)}
       className="bg-background border border-accent text-xs px-2 py-1"
       style={{ fontFamily: "'Space Mono', monospace" }}
     >
@@ -295,6 +399,10 @@ setAllCommunities(commData || []);
           </div>
         );
       })}
+
+      {allCommunities.length === 0 && !loading && (
+        <p className="text-sm text-muted-foreground">No communities are available.</p>
+      )}
 
       <button
         onClick={() => setShowTourPicker(false)}
@@ -377,17 +485,16 @@ setAllCommunities(commData || []);
           </button>
 
           {/* Tour link when done */}
-{job.status === "done" && getModelDownloadUrl(job.object_name) && (
-  <a
-    href={getModelDownloadUrl(job.object_name)!}
-    download={`${job.object_name}_point_cloud.ply`}
-    target="_blank"
-    rel="noopener noreferrer"
+{job.status === "done" && (
+  <button
+    type="button"
+    disabled={downloadingJobId === job.id}
+    onClick={() => void handleModelDownload(job)}
     className="text-xs px-3 py-2 border border-green-600 rounded text-green-600 hover:bg-green-600/10 shrink-0"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
-    DOWNLOAD .PLY →
-  </a>
+    {downloadingJobId === job.id ? "PREPARING…" : "DOWNLOAD .PLY →"}
+  </button>
 )}
         </div>
       ))}
@@ -399,7 +506,7 @@ setAllCommunities(commData || []);
             <h2 className="text-3xl mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>Recent Activity</h2>
             <div className="border border-border divide-y divide-border">
               {recentActivity.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 p-4">
+                <div key={`${item.type}-${item.id}`} className="flex items-center justify-between gap-4 p-4">
                   <div><p className="text-sm">{item.title}</p><p className="text-xs opacity-50">{item.type} · {new Date(item.date).toLocaleDateString()}</p></div>
                   <button onClick={() => setPendingDelete(item)} className="text-xs text-destructive hover:underline">DELETE</button>
                 </div>
@@ -428,7 +535,7 @@ setAllCommunities(commData || []);
                 Delete archive item?
               </h2>
               <p id="delete-dialog-description" className="text-muted-foreground mb-8">
-                “{pendingDelete.title}” will be permanently removed from the archive.
+                “{pendingDelete.title}” and its associated uploaded file will be permanently removed.
               </p>
               <div className="flex justify-end gap-3">
                 <button

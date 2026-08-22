@@ -6,12 +6,22 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createInterview } from "../../services/interviews";
 import { createMedia } from "../../services/media";
-import { uploadToCloudinary, uploadZipToCloudinary } from "../../services/upload";
+import {
+  deleteCloudinaryAsset,
+  uploadToCloudinary,
+  uploadZipToCloudinary,
+  type CloudinaryAsset,
+} from "../../services/upload";
 import { supabase } from "../../lib/supabase";
 import { createDocument } from "../../services/document";
 import { createJob } from "../../services/jobs";
-import { resizeImage, validateUploadFile } from "../../lib/files";
+import {
+  resizeImage,
+  validateUploadFile,
+  validateUploadFileContents,
+} from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
+import { withTimeout } from "../../lib/async";
 
   interface MediaUploadProps {
     onNavigate: (view: string) => void;
@@ -29,18 +39,21 @@ import { errorMessage } from "../../lib/validation";
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [author, setAuthor] = useState("");
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
+  const [communitiesError, setCommunitiesError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     const fetchCommunities = async () => {
-      const { data, error } = await supabase
-        .from("communities")
-        .select("community_id, name");
-
-      if (error) {
-        console.error(error);
-      } else {
+      try {
+        setCommunitiesError(null);
+        const { data, error } = await withTimeout(
+          supabase.from("communities").select("community_id, name"),
+          8_000,
+        );
+        if (error) throw error;
         setCommunities(data || []);
+      } catch (error) {
+        setCommunitiesError(errorMessage(error, "Communities could not be loaded."));
       }
     };
 
@@ -49,8 +62,6 @@ import { errorMessage } from "../../lib/validation";
     // Common Fields
     const [title, setTitle] = useState("");
     const [community, setCommunity] = useState("");
-    const date = "";
-
     // Audio Fields
     const [interviewer, setInterviewer] = useState("");
     const [interviewee, setInterviewee] = useState("");
@@ -82,6 +93,7 @@ import { errorMessage } from "../../lib/validation";
       }
       try {
         validateUploadFile(file, mediaType);
+        await validateUploadFileContents(file, mediaType);
         const preparedFile = mediaType === "image" ? await resizeImage(file) : file;
         setUploadedFile(preparedFile);
         if (preparedFile.size < file.size) {
@@ -112,6 +124,8 @@ import { errorMessage } from "../../lib/validation";
 
   const handlePublish = async () => {
     if (isPublishing) return;
+    let uploadedAsset: CloudinaryAsset | null = null;
+    let databaseRecordCreated = false;
     try {
       if (!mediaType) return toast.error("Select a media type.");
       if (!uploadedFile) return toast.error("Upload a file.");
@@ -120,12 +134,12 @@ import { errorMessage } from "../../lib/validation";
       setIsPublishing(true);
 
       if (mediaType === "audio") {
-        const fileUrl = await uploadToCloudinary(uploadedFile);
+        uploadedAsset = await uploadToCloudinary(uploadedFile, "audio");
         const { error } = await createInterview({
           title,
           community_id: community,
-          audio_cloudinary_url: fileUrl,
-          date: date || null,
+          audio_cloudinary_url: uploadedAsset.url,
+          date: null,
           interviewer: interviewer || null,
           interviewee: interviewee || null,
           summary_text: summaryText || null,
@@ -135,41 +149,45 @@ import { errorMessage } from "../../lib/validation";
         });
 
         if (error) throw error;
+        databaseRecordCreated = true;
       }
 if (mediaType === "document") {
-  const fileUrl = await uploadToCloudinary(uploadedFile);
+  uploadedAsset = await uploadToCloudinary(uploadedFile, "document");
   const { error } = await createDocument({
     title,
     description: description || null,
     community_id: community,
-    pdf_cloudinary_url: fileUrl,
+    pdf_cloudinary_url: uploadedAsset.url,
     author: author || null,
   });
   if (error) throw error;
+  databaseRecordCreated = true;
 }
       if (mediaType === "image") {
-        const fileUrl = await uploadToCloudinary(uploadedFile);
+        uploadedAsset = await uploadToCloudinary(uploadedFile, "image");
         const { error } = await createMedia({
           title,
           description: description || null,
           community_id: community,
-          picture_cloudinary_url: fileUrl,
+          picture_cloudinary_url: uploadedAsset.url,
           tags: tags
             ? tags.split(",").map((t) => t.trim())
             : null,
         });
 
         if (error) throw error;
+        databaseRecordCreated = true;
       }
       if (mediaType === "3d-tour") {
   if (!objectName.trim()) throw new Error("Enter an object name.");
 
-  const zipUrl = await uploadZipToCloudinary(uploadedFile);
+  uploadedAsset = await uploadZipToCloudinary(uploadedFile);
   await createJob({
     community_id: community,
-    images_zip_url: zipUrl,
+    images_zip_url: uploadedAsset.url,
     object_name: objectName,
   });
+  databaseRecordCreated = true;
 }
 
       toast.success("Media published successfully.");
@@ -177,6 +195,13 @@ if (mediaType === "document") {
 
     } catch (err: unknown) {
       console.error(err);
+      if (uploadedAsset && !databaseRecordCreated) {
+        try {
+          await deleteCloudinaryAsset(uploadedAsset);
+        } catch (cleanupError) {
+          console.error("ORPHANED CLOUDINARY ASSET:", uploadedAsset.publicId, cleanupError);
+        }
+      }
       toast.error(errorMessage(err, "Upload failed."));
     } finally {
       setIsPublishing(false);
@@ -186,13 +211,14 @@ if (mediaType === "document") {
     return (
       
       <div className="min-h-screen">
-<div className="fixed top-24 left-8 z-50">
+<div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
         <button
-          onClick={() => onNavigate("back")}
+          type="button"
+          onClick={() => onNavigate("admin")}
           className="text-ink hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
-          <span className="text-sm">← BACK</span>
+          <span className="text-sm">← ADMIN</span>
         </button>
       </div>
         {/* HEADER */}
@@ -200,7 +226,7 @@ if (mediaType === "document") {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="border-b border-border p-8"
+          className="border-b border-border px-6 pb-8 pt-32 sm:px-8"
         >
           <div className="max-w-7xl mx-auto">
             <p
@@ -210,7 +236,7 @@ if (mediaType === "document") {
               FR-W02 · CONTENT MANAGEMENT
             </p>
             <h1
-              className="text-5xl"
+              className="text-[clamp(2.5rem,10vw,3rem)] leading-tight"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Upload New Media
@@ -218,7 +244,7 @@ if (mediaType === "document") {
           </div>
         </motion.div>
 
-        <div className="max-w-7xl mx-auto p-8 grid lg:grid-cols-2 gap-12">
+        <div className="max-w-7xl mx-auto grid gap-12 px-6 py-8 sm:px-8 lg:grid-cols-2">
 
           {/* LEFT SIDE */}
           <motion.div
@@ -229,6 +255,7 @@ if (mediaType === "document") {
             {/* MEDIA TYPE */}
             <div className="mb-8">
               <label
+                htmlFor="media-type"
                 className="block text-sm mb-4 opacity-80"
                 style={{ fontFamily: "'Space Mono', monospace" }}
               >
@@ -236,6 +263,7 @@ if (mediaType === "document") {
               </label>
 
               <select
+                id="media-type"
                 value={mediaType}
                 onChange={(e) => {
                   setMediaType(e.target.value as MediaType);
@@ -257,6 +285,7 @@ if (mediaType === "document") {
             {mediaType && (
               <>
                 <label
+                  htmlFor="media-file"
                   className="block text-sm mb-4 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
@@ -277,6 +306,7 @@ if (mediaType === "document") {
                   }`}
                 >
                   <input
+                    id="media-file"
                     aria-label="Choose media file"
                     type="file"
                     accept={
@@ -340,34 +370,38 @@ if (mediaType === "document") {
           >
             {mediaType && (
               <>
-                <label
+                <p
                   className="block text-sm mb-4 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   METADATA
-                </label>
+                </p>
 
                 {/* TITLE */}
                 <div>
                   <label
+                    htmlFor="media-title"
                     className="block text-xs mb-3 opacity-80"
                     style={{ fontFamily: "'Space Mono', monospace" }}
                   >
                     TITLE *
                   </label>
                   <input
+                    id="media-title"
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     required
+                    maxLength={200}
                   />
                 </div>
 
                 {/* COMMUNITY */}
                 {/* Community Dropdown */}
               <div>
-  <label 
+  <label
+    htmlFor="media-community"
     className="block text-xs mb-3 opacity-80"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
@@ -375,6 +409,7 @@ if (mediaType === "document") {
   </label>
 
   <select
+    id="media-community"
     value={community}
     onChange={(e) => setCommunity(e.target.value)}
     className="w-full bg-background border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
@@ -388,76 +423,90 @@ if (mediaType === "document") {
       </option>
     ))}
   </select>
+  {communitiesError && (
+    <p role="alert" className="mt-3 text-xs text-destructive">
+      {communitiesError} Return to the dashboard and try again.
+    </p>
+  )}
 </div>
 
                 {/* AUDIO FIELDS */}
                 {mediaType === "audio" && (
                   <>
-                    {/* <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
-                    /> */}
-                    <label 
+                    <label
+                  htmlFor="media-interviewer"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  INTERVIEWER *
+                  INTERVIEWER
                 </label>
                     <input
+                      id="media-interviewer"
                       type="text"
-                      placeholder="xyz (e.g. John Doe)"
+                      placeholder="e.g. John Doe"
                       value={interviewer}
+                      maxLength={200}
                       onChange={(e) => setInterviewer(e.target.value)}
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     />
-                    <label 
+                    <label
+                  htmlFor="media-interviewee"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  INTERVIEWEE *
+                  INTERVIEWEE
                 </label>
                     <input
+                      id="media-interviewee"
                       type="text"
-                      placeholder="abc (e.g. Jane Doe)"
+                      placeholder="e.g. Jane Doe"
                       value={interviewee}
+                      maxLength={200}
                       onChange={(e) => setInterviewee(e.target.value)}
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     />
-  <label 
+  <label
+                  htmlFor="media-summary-en"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (ENGLISH) 
                 </label>
                     <textarea
+                      id="media-summary-en"
                       placeholder= "Provide a concise summary of the interview in English..."
                       value={summaryText}
+                      maxLength={10000}
                       onChange={(e) => setSummaryText(e.target.value)}
                       className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                     />
-  <label 
+  <label
+                  htmlFor="media-summary-ur"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (URDU)
                 </label>
                     <textarea
+                      id="media-summary-ur"
                       placeholder="Provide a concise summary of the interview in Urdu..."
                       value={summaryUrdu}
+                      maxLength={10000}
                       onChange={(e) => setSummaryUrdu(e.target.value)}
                       className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                     />
-  <label 
+  <label
+                  htmlFor="media-summary-sd"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   SUMMARY (SINDHI)
                 </label>
                     <textarea
+                      id="media-summary-sd"
                       placeholder="Provide a concise summary of the interview in Sindhi..."
                       value={summarySindhi}
+                      maxLength={10000}
                       onChange={(e) => setSummarySindhi(e.target.value)}
                       className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                     />
@@ -469,31 +518,37 @@ if (mediaType === "document") {
                   <>
                     {/* Description Field */}
               <div>
-                <label 
+                <label
+                  htmlFor="media-description"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
                   DESCRIPTION
                 </label>
                 <textarea
+                  id="media-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Provide context and details about this media..."
                   rows={6}
+                  maxLength={5000}
                   className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
                   style={{ caretColor: 'var(--accent)' }}
                 />
               </div>
-  <label 
+  <label
+                  htmlFor="media-tags"
                   className="block text-xs mb-3 opacity-80"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  TAGS *
+                  TAGS
                 </label>
                     <input
+                      id="media-tags"
                       type="text"
                       placeholder="Tags (comma separated)"
                       value={tags}
+                      maxLength={819}
                       onChange={(e) => setTags(e.target.value)}
                       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
                     />
@@ -502,26 +557,30 @@ if (mediaType === "document") {
                 {mediaType === "document" && (
   <>
     <div>
-      <label className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
+      <label htmlFor="media-author" className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
         AUTHOR / COMPILER
       </label>
       <input
+        id="media-author"
         type="text"
         value={author}
+        maxLength={200}
         onChange={(e) => setAuthor(e.target.value)}
         placeholder="e.g. Dr. Amina Shaikh"
         className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
       />
     </div>
     <div>
-      <label className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
+      <label htmlFor="document-description" className="block text-xs mb-3 opacity-80" style={{ fontFamily: "'Space Mono', monospace" }}>
         DESCRIPTION
       </label>
       <textarea
+        id="document-description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="What does this document contain?"
         rows={4}
+        maxLength={5000}
         className="w-full bg-transparent border-2 border-border focus:border-accent outline-none p-4 transition-colors resize-none"
       />
     </div>
@@ -530,16 +589,20 @@ if (mediaType === "document") {
                 {mediaType === "3d-tour" && (
   <div>
     <label
+      htmlFor="tour-object-name"
       className="block text-xs mb-3 opacity-80"
       style={{ fontFamily: "'Space Mono', monospace" }}
     >
       OBJECT NAME *
     </label>
     <input
+      id="tour-object-name"
       type="text"
       value={objectName}
       onChange={(e) => setObjectName(e.target.value)}
-      placeholder="e.g. ketchup, pottery-jar"
+      placeholder="e.g. pottery-jar"
+      maxLength={80}
+      pattern="[A-Za-z0-9][A-Za-z0-9_-]*"
       className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
     />
     <p className="text-xs opacity-40 mt-2" style={{ fontFamily: "'Space Mono', monospace" }}>

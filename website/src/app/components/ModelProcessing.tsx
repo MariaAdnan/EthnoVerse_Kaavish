@@ -1,7 +1,8 @@
-// src/app/components/ModelProcessing.tsx
-import React, { useEffect, useState } from 'react';
-import { getJobById, subscribeToJobUpdates, ModelJob } from '../../services/jobs';
-import { getModelDownloadUrl } from '../../lib/modal';
+import { useEffect, useState } from 'react';
+import { getJobById, subscribeToJobUpdates, type ModelJob } from '../../services/jobs';
+import { downloadModel } from '../../lib/modal';
+import { errorMessage } from '../../lib/validation';
+import { withTimeout } from '../../lib/async';
 
 interface ModelProcessingProps {
   onNavigate: (view: string) => void;
@@ -14,6 +15,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   const [job, setJob] = useState<ModelJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!jobId) {
@@ -26,7 +28,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
 
     async function init() {
       try {
-        const initialJob = await getJobById(jobId!);
+        const initialJob = await withTimeout(getJobById(jobId!), 8_000);
         setJob(initialJob);
         setLoading(false);
 
@@ -90,14 +92,14 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   // Steps mapped exactly to the progress values set in pipeline.ipynb
   const steps: { label: string; at: number }[] = [
     { label: 'Setting up folders',            at: 5   },
-    { label: 'Downloading video',             at: 10  },
-    { label: 'Extracting frames',             at: 15  },
+    { label: 'Downloading image archive',     at: 10  },
+    { label: 'Validating and extracting images', at: 15 },
     { label: 'COLMAP feature extraction',     at: 25  },
     { label: 'Matching features',             at: 40  },
     { label: 'Sparse reconstruction',         at: 55  },
     { label: 'Converting COLMAP output',      at: 60  },
     { label: 'Training 3DGS (~4 min)',        at: 65  },
-    { label: 'Uploading model to Cloudinary', at: 90  },
+    { label: 'Saving model to secure storage', at: 90 },
     { label: 'Complete',                      at: 100 },
   ];
 
@@ -112,7 +114,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   if (isProcessing || isFailed) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-        <div className="fixed top-8 left-8 z-50">
+        <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
           <button
             onClick={() => onNavigate('admin')}
             className="text-ink hover:text-umber transition-colors"
@@ -202,10 +204,20 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
     );
   }
 // ── Completed view ─────────────────────────────────────────────────────────
-const downloadUrl = getModelDownloadUrl(job.object_name);
+const handleDownload = async () => {
+  if (isDownloading) return;
+  try {
+    setIsDownloading(true);
+    await downloadModel(job.id, `${job.object_name}_point_cloud.ply`);
+  } catch (downloadError) {
+    setError(errorMessage(downloadError, 'Model download failed.'));
+  } finally {
+    setIsDownloading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-      <div className="fixed top-8 left-8 z-50">
+      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
         <button
           onClick={() => onNavigate('admin')}
           className="text-ink hover:text-umber transition-colors"
@@ -249,35 +261,24 @@ const downloadUrl = getModelDownloadUrl(job.object_name);
               <span className="text-ink/80">ITERATIONS:</span>
               <span>30,000</span>
             </div>
-            {downloadUrl && (
-              <div className="flex justify-between gap-4">
-                <span className="text-ink/80 shrink-0">MODEL URL:</span>
-                <a
-                  href={downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-umber hover:underline text-xs truncate text-right"
-                >
-                  {downloadUrl}
-                </a>
-              </div>
-            )}
+            <div className="flex justify-between gap-4">
+              <span className="text-ink/80 shrink-0">ACCESS:</span>
+              <span className="text-right text-xs">ADMIN-ONLY · 5-MINUTE LINK</span>
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center flex-wrap">
-  {downloadUrl && (
-    <a
-      href={downloadUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      type="button"
+      disabled={isDownloading}
+      onClick={() => void handleDownload()}
       className="px-8 py-3 bg-ink text-paper rounded hover:bg-ink/90 transition-colors"
       style={{ fontFamily: 'Space Mono, monospace' }}
     >
-      DOWNLOAD .PLY FILE
-    </a>
-  )}
+      {isDownloading ? 'PREPARING…' : 'DOWNLOAD .PLY FILE'}
+    </button>
 </div>
       </div>
     </div>

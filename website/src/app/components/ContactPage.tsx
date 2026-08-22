@@ -12,11 +12,11 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="border-b border-border p-12 pt-32 text-center"
+        className="border-b border-border px-6 pb-12 pt-32 text-center sm:px-12"
       >
 
         <h1
-          className="text-7xl"
+          className="text-5xl sm:text-7xl"
           style={{ fontFamily: "'Playfair Display', serif" }}
         >
           Contact
@@ -24,7 +24,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
       </motion.div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto p-12">
+      <div className="max-w-4xl mx-auto px-6 py-12 sm:p-12">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -42,7 +42,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
 
             <a
               href="mailto:ma08439@st.habib.edu.pk"
-              className="text-3xl hover:text-accent transition-colors"
+              className="block break-all text-xl hover:text-accent transition-colors sm:text-3xl"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               ma08439@st.habib.edu.pk
@@ -59,11 +59,11 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
             </h2>
 
             <a
-              href="mailto:research@ethnoverse.pk"
-              className="text-3xl hover:text-accent transition-colors"
+              href="mailto:ma08439@st.habib.edu.pk?subject=EthnoVerse%20research%20contribution"
+              className="block break-all text-xl hover:text-accent transition-colors sm:text-3xl"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              research@ethnoverse.pk
+              Email the project team
             </a>
           </div>
 

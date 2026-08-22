@@ -7,12 +7,14 @@ import {
   requireUuid,
 } from "../lib/validation";
 
-export function getInterviewsByCommunity(communityId: string) {
-  return supabase
+export async function getInterviewsByCommunity(communityId: string) {
+  const validatedCommunityId = requireUuid(communityId, "Community");
+  return await supabase
     .from("interviews")
-    .select("*")
-    .eq("community_id", communityId)
-    .order("date", { ascending: false });
+    .select("id, title, interviewee, interviewer, date, picture_cloudinary_url, summary_text")
+    .eq("community_id", validatedCommunityId)
+    .order("date", { ascending: false })
+    .limit(100);
 }
 export const getInterviewById = async (id: string) => {
   return await supabase

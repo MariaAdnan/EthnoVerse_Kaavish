@@ -1,4 +1,3 @@
-// src/services/media.ts
 import { supabase } from "../lib/supabase";
 import {
   normalizeTags,
@@ -32,27 +31,46 @@ export interface MediaIndexDocument {
   community_id: string;
 }
 
-export async function getMediaByCommunity(communityId: string) {
-  const { data, error } = await supabase
-    .from("visual_media")
-    .select(`
-      id, title, description, picture_cloudinary_url, tags, created_at,
-      communities ( community_id, name, location )
-    `)
-    .eq("community_id", communityId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
+export interface MediaDetail {
+  id: number;
+  title: string;
+  description: string | null;
+  picture_cloudinary_url: string;
+  tags: string[] | null;
+  created_at: string;
+  communities: {
+    community_id: string;
+    name: string;
+    location: string;
+  } | null;
 }
 
-export async function getMediaById(id: string | number) {
+export async function getMediaById(id: string | number): Promise<MediaDetail> {
   const { data, error } = await supabase
     .from("visual_media")
-    .select(`*, communities ( community_id, name, location )`)
+    .select(`id, title, description, picture_cloudinary_url, tags, created_at, community_id, communities ( community_id, name, location )`)
     .eq("id", Number(id))
     .single();
   if (error) throw error;
-  return data;
+  if (!data) throw new Error("Media item not found.");
+  const relation = Array.isArray(data.communities)
+    ? data.communities[0]
+    : data.communities;
+  return {
+    id: Number(data.id),
+    title: String(data.title ?? "Untitled Image"),
+    description: data.description == null ? null : String(data.description),
+    picture_cloudinary_url: String(data.picture_cloudinary_url ?? ""),
+    tags: Array.isArray(data.tags) ? data.tags.map(String) : null,
+    created_at: String(data.created_at),
+    communities: relation
+      ? {
+          community_id: String(relation.community_id),
+          name: String(relation.name),
+          location: String(relation.location),
+        }
+      : null,
+  };
 }
 
 export async function createMedia(payload: {
@@ -80,54 +98,66 @@ export async function createMedia(payload: {
   return { data, error };
 }
 
-export async function getMediaIndexItems(communityId?: string) {
+export async function getMediaIndexItems(
+  communityId?: string,
+  offset = 0,
+  pageSize = 50,
+) {
+  const scopedCommunityId =
+    communityId && communityId !== "ALL"
+      ? requireUuid(communityId, "Community")
+      : undefined;
+  const lastRow = offset + pageSize - 1;
   let mediaQuery = supabase
     .from("visual_media")
     .select("id, title, created_at, community_id, picture_cloudinary_url, tags")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, lastRow);
 
-  if (communityId && communityId !== "ALL") {
-    mediaQuery = mediaQuery.eq("community_id", communityId);
+  if (scopedCommunityId) {
+    mediaQuery = mediaQuery.eq("community_id", scopedCommunityId);
   }
-
-  const { data: mediaData, error: mediaError } = await mediaQuery;
 
   let interviewQuery = supabase
     .from("interviews")
     .select("id, title, date, community_id, summary_text")
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .range(offset, lastRow);
 
-  if (communityId && communityId !== "ALL") {
-    interviewQuery = interviewQuery.eq("community_id", communityId);
+  if (scopedCommunityId) {
+    interviewQuery = interviewQuery.eq("community_id", scopedCommunityId);
   }
-
-  const { data: interviewData, error: interviewError } = await interviewQuery;
 
   let docQuery = supabase
     .from("documents")
     .select("id, title, created_at, community_id")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, lastRow);
 
-  if (communityId && communityId !== "ALL") {
-    docQuery = docQuery.eq("community_id", communityId);
+  if (scopedCommunityId) {
+    docQuery = docQuery.eq("community_id", scopedCommunityId);
   }
 
-  const { data: docData } = await docQuery;
+  const [mediaResult, interviewResult, documentResult] = await Promise.all([
+    mediaQuery,
+    interviewQuery,
+    docQuery,
+  ]);
+
+  const mediaData = mediaResult.data || [];
+  const interviewData = interviewResult.data || [];
+  const docData = documentResult.data || [];
 
   return {
     data: {
-      media: (mediaData || []) as MediaIndexImage[],
-      interviews: (interviewData || []) as MediaIndexInterview[],
-      documents: (docData || []) as MediaIndexDocument[],
+      media: mediaData as MediaIndexImage[],
+      interviews: interviewData as MediaIndexInterview[],
+      documents: docData as MediaIndexDocument[],
     },
-    error: mediaError || interviewError,
+    hasMore:
+      mediaData.length === pageSize ||
+      interviewData.length === pageSize ||
+      docData.length === pageSize,
+    error: mediaResult.error || interviewResult.error || documentResult.error,
   };
 }
-
-export type AdminMediaItem = {
-  id: string;
-  media_type: "image" | "audio";
-  title: string;
-  created_at: string;
-  visible: boolean;
-};

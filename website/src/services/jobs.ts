@@ -59,29 +59,24 @@ export async function createJob(data: {
 export async function getJobs() {
   const { data, error } = await supabase
     .from("model_jobs")
-    .select("*, communities(name)")
+    .select("id, media_id, object_name, status, progress, message, model_url, created_at, community_id, images_zip_url, communities(name)")
     .order("created_at", { ascending: false })
     .limit(10);
 
   if (error) throw error;
-  return data as ModelJob[];
-}
-
-export async function getJobsByUser(communityId: string) {
-  const { data, error } = await supabase
-    .from("model_jobs")
-    .select("*")
-    .eq("community_id", communityId)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return data as ModelJob[];
+  return (data || []).map((job) => ({
+    ...job,
+    status: job.status as JobStatus,
+    communities: Array.isArray(job.communities)
+      ? job.communities[0]
+      : job.communities || undefined,
+  }));
 }
 
 export async function getJobById(jobId: string) {
   const { data, error } = await supabase
     .from("model_jobs")
-    .select("*")
+    .select("id, media_id, object_name, status, progress, message, model_url, created_at, community_id, images_zip_url")
     .eq("id", jobId)
     .single();
 

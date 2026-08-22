@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getAllCommunities } from "../../services/communities";
 import { Menu, X } from "lucide-react";
 import { isSupabaseConfigured } from "../../lib/supabase";
+import { withTimeout } from "../../lib/async";
 
 interface NavigationBarProps {
   onNavigate: (view: string) => void;
@@ -23,9 +24,11 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
   useEffect(() => {
     const fetchCommunities = async () => {
       if (!isSupabaseConfigured) return;
-      const { data, error } = await getAllCommunities();
-      if (!error && data) {
-        setCommunities(data);
+      try {
+        const { data, error } = await withTimeout(getAllCommunities(), 8_000);
+        if (!error && data) setCommunities(data);
+      } catch {
+        // The main Explore route still exposes a retryable error state.
       }
     };
     fetchCommunities();
@@ -176,7 +179,7 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
 
             {/* Admin */}
             <button
-              onClick={() => onNavigate("admin-login")}
+              onClick={() => onNavigate("admin")}
               className="px-5 py-2 rounded-full border border-ink/20 hover:bg-ink hover:text-paper transition-all"
               style={{ fontFamily: "'Space Mono', monospace" }}
             >
@@ -188,7 +191,7 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
         {isMobileMenuOpen && (
           <div className="border-t border-ink/10 bg-paper px-4 py-3 md:hidden">
             <div className="grid gap-1">
-              {["explore", "search", "about", "contact", "admin-login"].map((item) => (
+              {["explore", "search", "about", "contact", "admin"].map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -196,7 +199,7 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
                   className="px-3 py-3 text-left text-sm text-ink hover:bg-ink/5"
                   style={{ fontFamily: "'Space Mono', monospace" }}
                 >
-                  {item === "admin-login" ? "ADMIN" : item.toUpperCase()}
+                  {item.toUpperCase()}
                 </button>
               ))}
             </div>

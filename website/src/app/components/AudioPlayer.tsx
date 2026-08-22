@@ -7,6 +7,7 @@ import { getInterviewById, getRecentInterviews } from "../../services/interviews
 import { downloadRemoteFile } from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
 import { toast } from "sonner";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +100,6 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ── Audio state ────────────────────────────────────────────────────────────
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -122,7 +122,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
     setCurrentTime(0);
     setDuration(0);
 
-    getInterviewById(interviewId)
+    withTimeout(getInterviewById(interviewId), 8_000)
       .then(({ data, error: fetchError }) => {
         if (cancelled) return;
         if (fetchError || !data) {
@@ -139,12 +139,19 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ── Fetch recent stories ───────────────────────────────────────────────────
   useEffect(() => {
-    getRecentInterviews(3)
+    withTimeout(getRecentInterviews(4), 8_000)
       .then(({ data }) => {
-        if (data) setRecentStories((data as unknown as RawInterview[]).map(normaliseInterview));
+        if (data) {
+          setRecentStories(
+            (data as unknown as RawInterview[])
+              .map(normaliseInterview)
+              .filter((story) => String(story.id) !== interviewId)
+              .slice(0, 3),
+          );
+        }
       })
       .catch(() => { /* non-critical — silent fail */ });
-  }, []);
+  }, [interviewId]);
 
   // ── Wire audio element events ──────────────────────────────────────────────
   useEffect(() => {
@@ -195,11 +202,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
   }, [isPlaying]);
 
   // ── Scrub progress bar ─────────────────────────────────────────────────────
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressRef.current || !audioRef.current || !duration) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const newTime = pct * duration;
+  const handleSeek = (newTime: number) => {
+    if (!audioRef.current || !duration) return;
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
   };
@@ -219,11 +223,20 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
   };
 
   // ── Share ──────────────────────────────────────────────────────────────────
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: interview?.title ?? "Oral History", url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href).catch(() => {});
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: interview?.title ?? "Oral History",
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard.");
+      }
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === "AbortError") return;
+      toast.error("This link could not be shared.");
     }
   };
 
@@ -290,7 +303,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       />
 
       {/* ── Back ────────────────────────────────────────────────────────────── */}
-      <div className="fixed top-8 left-8 z-50">
+      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
         <button
           onClick={() => onNavigate("back")}
           className="text-graphite hover:text-umber transition-colors"
@@ -370,18 +383,16 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
               {/* Progress */}
               <div className="flex-1 min-w-0">
-                <div
-                  ref={progressRef}
-                  onClick={handleProgressClick}
-                  className="h-2 bg-muted rounded-full overflow-hidden cursor-pointer mb-2"
-                >
-                  <div
-                    className="h-full bg-umber transition-all duration-300"
-                    style={{
-                      width: duration ? `${(currentTime / duration) * 100}%` : "0%",
-                    }}
-                  />
-                </div>
+                <input
+                  type="range"
+                  aria-label="Seek in audio"
+                  min={0}
+                  max={duration || 0}
+                  step={0.1}
+                  value={Math.min(currentTime, duration || 0)}
+                  onChange={(event) => handleSeek(Number(event.target.value))}
+                  className="block h-2 w-full cursor-pointer mb-2 accent-umber"
+                />
                 <div
                   className="flex justify-between text-xs text-smoke"
                   style={{ fontFamily: "'Space Mono', monospace" }}
@@ -393,7 +404,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
               {/* Download */}
               <button
-                onClick={handleDownload}
+                type="button"
+                onClick={() => void handleDownload()}
                 aria-label="Download audio"
                 className="shrink-0 w-10 h-10 flex items-center justify-center text-smoke hover:text-umber transition-colors"
               >
@@ -402,7 +414,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
               {/* Share */}
               <button
-                onClick={handleShare}
+                type="button"
+                onClick={() => void handleShare()}
                 aria-label="Share"
                 className="shrink-0 w-10 h-10 flex items-center justify-center text-smoke hover:text-umber transition-colors"
               >
@@ -438,6 +451,8 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
         ).map(({ key, label }) => (
           <button
             key={key}
+            type="button"
+            aria-pressed={summaryLang === key}
             onClick={() => setSummaryLang(key)}
             className={`px-4 py-2 border text-sm transition-colors ${
               summaryLang === key
@@ -555,12 +570,13 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
               {recentStories.map((story, index) => (
-                <motion.div
+                <motion.button
+                  type="button"
                   key={story.id ?? index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
-                  className="group cursor-pointer"
+                  className="group w-full cursor-pointer text-left"
                   onClick={() => onNavigate(`audio:${story.id}`)}
                 >
                   <div className="mb-4 overflow-hidden bg-graphite">
@@ -587,7 +603,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                   <p className="text-smoke leading-relaxed italic text-sm">
                     {getSummaryExcerpt(story.summary_html)}
                   </p>
-                </motion.div>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -604,7 +620,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
             EthnoVerse · Preserving the Cultural Heritage of Sindh
           </p>
           <p className="text-xs opacity-50 mt-2">
-            © 2026 EthnoVerse Project · All oral histories recorded with informed consent
+            © 2026 EthnoVerse Project · Contact the project team about permissions or corrections
           </p>
         </div>
       </footer>

@@ -6,6 +6,7 @@ import { Box } from "lucide-react";
 import { getCommunityById } from "../../services/communities";
 import { getInterviewsByCommunity } from "../../services/interviews";
 import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,23 +109,16 @@ function InterviewCard({
     : null;
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       key={interview.id}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="bg-white border border-ink/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      className="w-full bg-white border border-ink/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group text-left"
       onClick={() => onNavigate(`audio:${interview.id}`)}
-      role="link"
-      tabIndex={0}
       aria-label={`Listen to interview: ${interview.title}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onNavigate(`audio:${interview.id}`);
-        }
-      }}
     >
       {/* Thumbnail */}
       <div className="aspect-[4/3] overflow-hidden">
@@ -178,7 +172,7 @@ function InterviewCard({
           Listen Now »
         </span>
       </div>
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -211,8 +205,8 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
       setCommunityError(null);
 
       const [communityResult, interviewsResult] = await Promise.allSettled([
-        getCommunityById(communityId),
-        getInterviewsByCommunity(communityId),
+        withTimeout(getCommunityById(communityId), 8_000),
+        withTimeout(getInterviewsByCommunity(communityId), 8_000),
       ]);
 
       if (cancelled) return;
@@ -272,7 +266,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
       {/* Back button — below global NavBar */}
       <div className="fixed top-[72px] left-6 z-40">
         <button
-          onClick={() => onNavigate("back")}
+          onClick={() => onNavigate("explore")}
           className="text-ink hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
@@ -328,7 +322,7 @@ onClick={() => onNavigate(`3d-tour:${communityId}`)}
               </button>
 
               <button
-  onClick={() => onNavigate(`community:${communityId}:visual`)}
+  onClick={() => onNavigate(`community:${communityId}:all`)}
   className="px-8 py-3 border border-ink text-ink rounded-sm hover:bg-ink/5 transition-colors w-full sm:w-auto"
   style={{ fontFamily: "'Space Mono', monospace" }}
 >

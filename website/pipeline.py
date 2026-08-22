@@ -4,11 +4,24 @@
 
 import hmac
 import os
+import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import modal
 from fastapi import HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
+from pipeline_security import (
+    model_path,
+    validate_object_name,
+    validate_source_url,
+    validate_uuid,
+    validated_image_members,
+)
+
+MAX_DOWNLOAD_BYTES = 300 * 1024 * 1024
+DEFAULT_SOURCE_HOSTS = {"res.cloudinary.com"}
 
 volume = modal.Volume.from_name("ethnoverse-ply-storage", create_if_missing=True)
 image = (
@@ -33,7 +46,7 @@ image = (
     .run_commands(
         "pip install setuptools==80.9.0 wheel==0.45.1 packaging==25.0",
         "pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118",
-        "pip install numpy==1.26.4 supabase==2.18.1 cloudinary==1.44.1 requests==2.32.5 pycolmap==3.13.0 plyfile==1.1.3 tqdm==4.67.1 Pillow==11.3.0 scipy==1.16.2 fastapi==0.116.1 opencv-python-headless==4.11.0.86",
+        "pip install numpy==1.26.4 supabase==2.18.1 requests==2.32.5 pycolmap==3.13.0 plyfile==1.1.3 tqdm==4.67.1 Pillow==11.3.0 scipy==1.16.2 fastapi==0.116.1 opencv-python-headless==4.11.0.86",
         "git clone https://github.com/graphdeco-inria/gaussian-splatting /opt/gaussian-splatting",
         "cd /opt/gaussian-splatting && git checkout 54c035f7834b564019656c3e3fcc3646292f727d && git submodule update --init --recursive submodules/diff-gaussian-rasterization submodules/simple-knn",
         "TORCH_CUDA_ARCH_LIST='7.5' pip install --no-build-isolation /opt/gaussian-splatting/submodules/diff-gaussian-rasterization",
@@ -49,6 +62,37 @@ def update_job(supabase, job_id: str, **kwargs):
     supabase.table("model_jobs").update(kwargs).eq("id", job_id).execute()
 
 
+def allowed_source_hosts() -> set[str]:
+    configured = os.environ.get("RECONSTRUCTION_SOURCE_HOSTS", "")
+    return {host.strip() for host in configured.split(",") if host.strip()} or DEFAULT_SOURCE_HOSTS
+
+
+def supabase_service_key() -> str:
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY")
+    if not key:
+        raise RuntimeError("Supabase worker credentials are not configured")
+    return key
+
+
+def validate_job_inputs(job_id: str, images_zip_url: str, object_name: str, community_id: str):
+    return (
+        validate_uuid(job_id, "Job"),
+        validate_source_url(images_zip_url, allowed_source_hosts()),
+        validate_object_name(object_name),
+        validate_uuid(community_id, "Community"),
+    )
+
+
+def valid_download_signature(object_name: str, expires: int, signature: str) -> bool:
+    secret = os.environ.get("MODEL_DOWNLOAD_SIGNING_SECRET", "")
+    if not secret or expires < int(time.time()) or expires > int(time.time()) + 600:
+        return False
+    expected = hmac.new(
+        secret.encode(), f"{object_name}:{expires}".encode(), "sha256"
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+
+
 @app.function(
     gpu="T4",
     timeout=60 * 120,           # bumped to 120 min — 30k iterations takes longer
@@ -57,35 +101,31 @@ def update_job(supabase, job_id: str, **kwargs):
     volumes={"/mnt/ply_storage": volume},
 )
 def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_id: str):
-    import shutil
     import zipfile
+    import warnings
     import requests
-    import cloudinary
-    import cloudinary.uploader
     import pycolmap
+    from PIL import Image
     from supabase import create_client
 
     supabase = create_client(
         os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_KEY"],
+        supabase_service_key(),
     )
-    cloudinary.config(
-        cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
-        api_key=os.environ["CLOUDINARY_API_KEY"],
-        api_secret=os.environ["CLOUDINARY_API_SECRET"],
+    job_id, images_zip_url, object_name, community_id = validate_job_inputs(
+        job_id, images_zip_url, object_name, community_id
     )
-
     GS_REPO = Path("/opt/gaussian-splatting")
+    BASE = Path("/tmp/ethnoverse") / job_id
+    MODEL_OUT = Path("/tmp/output") / job_id
 
     try:
         # ── Step 1: Setup folders (5%) ─────────────────────────────────────────
         update_job(supabase, job_id, status="processing", progress=5, message="Setting up folders")
 
-        BASE       = Path("/tmp/scene/pipeline")
         FRAMES     = BASE / "images"
         SPARSE_OUT = BASE / "sparse"
         DB_PATH    = BASE / f"colmap/{object_name}/database.db"
-        MODEL_OUT  = Path(f"/tmp/output/{object_name}")
         ZIP_PATH   = BASE / f"{object_name}.zip"
 
         for folder in [FRAMES, SPARSE_OUT, DB_PATH.parent, MODEL_OUT]:
@@ -96,31 +136,38 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
         # ── Step 2: Download zip (10%) ─────────────────────────────────────────
         update_job(supabase, job_id, progress=10, message="Downloading images zip")
 
-        r = requests.get(images_zip_url, stream=True)
+        r = requests.get(
+            images_zip_url,
+            stream=True,
+            timeout=(10, 120),
+            allow_redirects=False,
+        )
         r.raise_for_status()
+        content_length = int(r.headers.get("content-length", "0") or 0)
+        if content_length > MAX_DOWNLOAD_BYTES:
+            raise RuntimeError("Image ZIP exceeds the compressed-size limit")
+        downloaded = 0
         with open(ZIP_PATH, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                downloaded += len(chunk)
+                if downloaded > MAX_DOWNLOAD_BYTES:
+                    raise RuntimeError("Image ZIP exceeds the compressed-size limit")
                 f.write(chunk)
         print(f"Downloaded zip → {ZIP_PATH}")
 
         # ── Step 3: Extract images (15%) ───────────────────────────────────────
         update_job(supabase, job_id, progress=15, message="Extracting images")
 
-        with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
-            for member in zf.namelist():
-                # Skip macOS metadata and non-image files
-                if '__MACOSX' in member or member.startswith('.'):
-                    continue
-                lower = member.lower()
-                if not any(lower.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']):
-                    continue
-                # Flatten — strip any subdirectory, write directly into FRAMES
-                filename = Path(member).name
-                if not filename:
-                    continue
+        Image.MAX_IMAGE_PIXELS = 50_000_000
+        warnings.simplefilter("error", Image.DecompressionBombWarning)
+        with zipfile.ZipFile(ZIP_PATH, "r") as zf:
+            for info in validated_image_members(zf.infolist()):
+                filename = Path(info.filename).name
                 dest = FRAMES / filename
-                with zf.open(member) as src, open(dest, 'wb') as dst:
-                    dst.write(src.read())
+                with zf.open(info) as src, open(dest, "wb") as dst:
+                    shutil.copyfileobj(src, dst, length=1024 * 1024)
+                with Image.open(dest) as image_file:
+                    image_file.verify()
 
         frame_count = len(list(FRAMES.glob("*")))
         print(f"Extracted {frame_count} images")
@@ -179,6 +226,8 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
             "--output_path", str(UNDISTORTED_OUT),
             "--output_type", "COLMAP",
         ], capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"image_undistorter failed: {result.stderr[-500:]}")
         # ── Step 7b: Convert sparse model to text format ──────────────────────────────
         # Debug: print what image_undistorter actually created
         print("=== UNDISTORTED_OUT contents ===")
@@ -248,24 +297,29 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
             candidates = list((MODEL_OUT / "point_cloud").glob("iteration_*/*.ply"))
             if not candidates:
                 raise FileNotFoundError(f"No .ply found under {MODEL_OUT / 'point_cloud'}")
-            ply_path = sorted(candidates)[-1]   # take highest iteration
+            ply_path = max(
+                candidates,
+                key=lambda candidate: int(
+                    candidate.parent.name.removeprefix("iteration_")
+                ),
+            )
             print(f"Using fallback ply: {ply_path}")
 
-        dest_dir = Path(f"/mnt/ply_storage/{object_name}")
+        dest_dir = model_path(Path("/mnt/ply_storage"), object_name).parent
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_path = dest_dir / "point_cloud.ply"
         shutil.copy(str(ply_path), str(dest_path))
         volume.commit()
 
-        model_path = f"{object_name}/point_cloud.ply"
+        stored_model_path = f"{object_name}/point_cloud.ply"
 
         # ── Step 10: Mark done (100%) ──────────────────────────────────────────
         update_job(supabase, job_id,
                    status="done", progress=100,
-                   message="Complete", model_url=model_path)
+                   message="Complete", model_url=stored_model_path)
 
         supabase.table("communities").update({
-            "tour_url": model_path
+            "tour_url": stored_model_path
         }).eq("community_id", community_id).execute()
 
         print(f"✅ Done! tour_url written to community {community_id}")
@@ -275,6 +329,9 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
                    status="failed",
                    message=f"Error: {str(e)[:300]}")
         raise
+    finally:
+        shutil.rmtree(BASE, ignore_errors=True)
+        shutil.rmtree(MODEL_OUT, ignore_errors=True)
 
 
 @app.function(
@@ -282,17 +339,29 @@ def run_pipeline(job_id: str, images_zip_url: str, object_name: str, community_i
     secrets=secrets,
 )
 @modal.fastapi_endpoint(method="GET")
-def download_ply(object_name: str):
-    ply_path = Path(f"/mnt/ply_storage/{object_name}/point_cloud.ply")
+def download_ply(object_name: str, expires: int, signature: str):
+    try:
+        object_name = validate_object_name(object_name)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if not valid_download_signature(object_name, expires, signature):
+        raise HTTPException(status_code=401, detail="Invalid or expired download link")
+    ply_path = model_path(Path("/mnt/ply_storage"), object_name)
     if not ply_path.exists():
         return Response(content="Not found", status_code=404)
 
-    data = ply_path.read_bytes()
-    return Response(
-        content=data,
+    def iter_file():
+        with ply_path.open("rb") as model_file:
+            while chunk := model_file.read(1024 * 1024):
+                yield chunk
+
+    return StreamingResponse(
+        iter_file(),
         media_type="application/octet-stream",
         headers={
             "Content-Disposition": f'attachment; filename="{object_name}_point_cloud.ply"',
+            "Content-Length": str(ply_path.stat().st_size),
+            "Cache-Control": "private, no-store",
             "Access-Control-Allow-Origin": "*",
         }
     )
@@ -318,10 +387,10 @@ def webhook(request: Request, payload: dict):
     # rather than crashing while accessing `.get` below.
     record = payload.get("record") or {}
 
-    job_id          = record.get("id")
-    images_zip_url  = record.get("images_zip_url")
-    object_name     = record.get("object_name")
-    community_id    = record.get("community_id")
+    job_id = record.get("id")
+    images_zip_url = record.get("images_zip_url")
+    object_name = record.get("object_name")
+    community_id = record.get("community_id")
     status          = record.get("status")
 
     if status != "queued":
@@ -330,11 +399,35 @@ def webhook(request: Request, payload: dict):
     if not all([job_id, images_zip_url, object_name, community_id]):
         raise HTTPException(status_code=422, detail="Missing required record fields")
 
-    run_pipeline.spawn(
-        job_id=job_id,
-        images_zip_url=images_zip_url,
-        object_name=object_name,
-        community_id=community_id,
+    try:
+        job_id, images_zip_url, object_name, community_id = validate_job_inputs(
+            job_id, images_zip_url, object_name, community_id
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    from supabase import create_client
+
+    supabase = create_client(os.environ["SUPABASE_URL"], supabase_service_key())
+    claim = (
+        supabase.table("model_jobs")
+        .update({"status": "processing", "progress": 1, "message": "Worker starting"})
+        .eq("id", job_id)
+        .eq("status", "queued")
+        .execute()
     )
+    if not claim.data:
+        return {"ok": True, "skipped": True, "reason": "job already claimed"}
+
+    try:
+        run_pipeline.spawn(
+            job_id=job_id,
+            images_zip_url=images_zip_url,
+            object_name=object_name,
+            community_id=community_id,
+        )
+    except Exception as error:
+        update_job(supabase, job_id, status="failed", message="Worker could not be started")
+        raise HTTPException(status_code=503, detail="Worker could not be started") from error
 
     return {"ok": True, "job_id": job_id, "message": "Pipeline started on T4"}

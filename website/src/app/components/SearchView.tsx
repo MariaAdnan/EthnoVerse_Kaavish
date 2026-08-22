@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { searchArchive } from "../../services/search";
 import { getArchiveStats } from "../../services/archivestats";
+import { withTimeout } from "../../lib/async";
 
 interface SearchViewProps {
   onNavigate: (view: string) => void;
@@ -12,7 +13,7 @@ interface SearchViewProps {
 }
 interface SearchResult {
   id: string;
-  type: "Audio" | "Image";
+  type: "Audio" | "Image" | "Document";
   title: string;
   community: string;
   date: string;
@@ -94,8 +95,12 @@ const [stats, setStats] = useState({
 
 useEffect(() => {
   const fetchStats = async () => {
-    const data = await getArchiveStats();
-    setStats(data);
+    try {
+      const data = await withTimeout(getArchiveStats(), 8_000);
+      setStats(data);
+    } catch {
+      setStats({ totalItems: 0, totalCommunities: 0 });
+    }
   };
 
   fetchStats();
@@ -115,7 +120,7 @@ if (!normalizedQuery) {
       setIsSearching(true);
       setSearchError(null);
       try {
-const data = await searchArchive(normalizedQuery);
+const data = await withTimeout(searchArchive(normalizedQuery), 8_000);
 
       // interviews → AUDIO
       const audioResults: SearchResult[] = data.interviews.map((item) => {
@@ -125,7 +130,6 @@ const data = await searchArchive(normalizedQuery);
   const snippet =
 extractSnippet(summaryText, persistedQuery) ??
   summaryText.slice(0, 180);
-// console.log("SUMMARY:", item.id, item.summary_html);
 
 return {
   id: String(item.id),
@@ -159,11 +163,28 @@ const mediaResults: SearchResult[] = data.media.map((item) => {
   };
 });
 
+const documentResults: SearchResult[] = data.documents.map((item) => {
+  const description = item.description || "";
+  return {
+    id: String(item.id),
+    type: "Document",
+    title: item.title || "Untitled Document",
+    community: communityName(item.communities),
+    date: item.created_at ?? "",
+    summary: description,
+    snippet: extractSnippet(description, persistedQuery),
+  };
+});
 
 
 
-      if (!cancelled) setSearchResults([...audioResults, ...mediaResults]);
+
+      if (!cancelled) setSearchResults([...audioResults, ...mediaResults, ...documentResults]);
       } catch (error) {
+        console.error(
+          "[Search] Archive query failed",
+          error && typeof error === "object" ? JSON.stringify(error) : String(error),
+        );
         if (!cancelled) {
           setSearchResults([]);
           setSearchError(error instanceof Error ? error.message : "Search failed. Please try again.");
@@ -229,6 +250,8 @@ const mediaResults: SearchResult[] = data.media.map((item) => {
               type="text"
               value={persistedQuery}
               onChange={(e) => onQueryChange(e.target.value)}
+              maxLength={100}
+              aria-label="Search the archive"
               placeholder="SEARCH THE ARCHIVE..."
               className="w-full bg-transparent border-b-2 border-foreground focus:border-accent outline-none py-6 pr-12 transition-colors"
               style={{
@@ -243,7 +266,7 @@ const mediaResults: SearchResult[] = data.media.map((item) => {
             className="text-xs opacity-80 mt-4"
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
-            Search by keyword, community, type, or archive ID
+            Search titles, descriptions, tags, interview summaries, or an archive ID
           </p>
         </motion.div>
 
@@ -285,6 +308,8 @@ const mediaResults: SearchResult[] = data.media.map((item) => {
                       onNavigate(`audio:${result.id}`);
                     } else if (result.type === "Image") {
                       onNavigate(`image-detail:${result.id}`);
+                    } else if (result.type === "Document") {
+                      onNavigate(`pdf:${result.id}`);
                     }
                   }}
                   className="w-full text-left border-b border-border hover:bg-secondary/30 transition-colors py-6 group"

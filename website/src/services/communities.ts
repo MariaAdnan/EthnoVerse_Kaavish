@@ -9,14 +9,15 @@ import {
 export async function getAllCommunities() {
   return await supabase
     .from("communities")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("community_id, name, location, language, short_description, long_description, picture_cloudinary_url, terrain_type, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
 }
 export const getCommunityById = async (id: string) => {
   const communityId = requireUuid(id, "Community");
   return supabase
     .from("communities")
-    .select("*")
+    .select("community_id, name, location, language, short_description, long_description, picture_cloudinary_url, terrain_type, created_at")
     .eq("community_id", communityId)
     .single();
 };

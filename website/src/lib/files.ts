@@ -33,9 +33,9 @@ const FILE_RULES: Record<
 export function validateUploadFile(file: File, kind: UploadKind) {
   const rule = FILE_RULES[kind];
   const extension = `.${file.name.split(".").pop()?.toLocaleLowerCase() ?? ""}`;
-  const typeMatches = file.type ? rule.mimeTypes.includes(file.type) : false;
   const extensionMatches = rule.extensions.includes(extension);
-  if (!typeMatches && !extensionMatches) {
+  const typeMatches = !file.type || rule.mimeTypes.includes(file.type);
+  if (!extensionMatches || !typeMatches) {
     throw new Error(`Choose a ${rule.label}.`);
   }
   if (file.size === 0) throw new Error("The selected file is empty.");
@@ -43,6 +43,45 @@ export function validateUploadFile(file: File, kind: UploadKind) {
     throw new Error(
       `${rule.label} must be smaller than ${Math.round(rule.maxBytes / 1024 / 1024)} MB.`,
     );
+  }
+  return file;
+}
+
+function startsWith(bytes: Uint8Array, signature: number[], offset = 0) {
+  return signature.every((value, index) => bytes[offset + index] === value);
+}
+
+export function matchesUploadSignature(bytes: Uint8Array, kind: UploadKind) {
+  if (kind === "image") {
+    return (
+      startsWith(bytes, [0xff, 0xd8, 0xff]) ||
+      startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
+      (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+        startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8))
+    );
+  }
+  if (kind === "document") return startsWith(bytes, [0x25, 0x50, 0x44, 0x46]);
+  if (kind === "3d-tour") {
+    return (
+      startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]) ||
+      startsWith(bytes, [0x50, 0x4b, 0x05, 0x06]) ||
+      startsWith(bytes, [0x50, 0x4b, 0x07, 0x08])
+    );
+  }
+  return (
+    startsWith(bytes, [0x49, 0x44, 0x33]) ||
+    (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) ||
+    (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) &&
+      startsWith(bytes, [0x57, 0x41, 0x56, 0x45], 8)) ||
+    startsWith(bytes, [0x4f, 0x67, 0x67, 0x53]) ||
+    startsWith(bytes, [0x66, 0x74, 0x79, 0x70], 4)
+  );
+}
+
+export async function validateUploadFileContents(file: File, kind: UploadKind) {
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (!matchesUploadSignature(bytes, kind)) {
+    throw new Error("The file contents do not match the selected media type.");
   }
   return file;
 }

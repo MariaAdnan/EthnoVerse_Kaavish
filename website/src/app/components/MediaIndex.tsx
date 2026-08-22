@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { getMediaIndexItems } from "../../services/media";
+import { getCommunityById } from "../../services/communities";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,8 @@ interface MediaIndexProps {
 }
 
 type MediaType = "AUDIO" | "IMAGE" | "PDF";
+
+const PAGE_SIZE = 50;
 
 interface MediaItem {
   id: string;
@@ -38,6 +42,38 @@ const ICON_MAP: Record<MediaType, React.ElementType> = {
   PDF: FileText,
 };
 
+type MediaIndexData = Awaited<ReturnType<typeof getMediaIndexItems>>["data"];
+
+function mapMediaItems(data: MediaIndexData): MediaItem[] {
+  const audioItems: MediaItem[] = data.interviews.map((item) => ({
+    id: String(item.id),
+    type: "AUDIO",
+    title: item.title ?? "Untitled Interview",
+    date: item.date ?? undefined,
+    summaryText: item.summary_text ?? "",
+  }));
+
+  const imageItems: MediaItem[] = data.media.map((item) => ({
+    id: String(item.id),
+    type: "IMAGE",
+    title: item.title ?? "Untitled Image",
+    date: item.created_at,
+    imageUrl: item.picture_cloudinary_url ?? undefined,
+    tags: item.tags ?? [],
+  }));
+
+  const documentItems: MediaItem[] = data.documents.map((item) => ({
+    id: String(item.id),
+    type: "PDF",
+    title: item.title ?? "Untitled Document",
+    date: item.created_at,
+  }));
+
+  return [...audioItems, ...imageItems, ...documentItems].sort(
+    (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MediaIndex({
@@ -49,7 +85,12 @@ export function MediaIndex({
   const [searchQuery, setSearchQuery] = useState("");
   const [allItems, setAllItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState(PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const [communityName, setCommunityName] = useState<string | null>(null);
   
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -57,46 +98,64 @@ export function MediaIndex({
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setLoadMoreError(null);
 
-    getMediaIndexItems(communityId)
-      .then(({ data, error: fetchError }) => {
+    withTimeout(getMediaIndexItems(communityId, 0, PAGE_SIZE), 8_000)
+      .then(({ data, error: fetchError, hasMore: moreAvailable }) => {
         if (cancelled) return;
         if (fetchError) { setError(fetchError.message ?? "Failed to load archive."); return; }
-
-        const audioItems: MediaItem[] = (data.interviews ?? []).map((item) => ({
-          id: String(item.id),
-          type: "AUDIO" as MediaType,
-          title: item.title ?? "Untitled Interview",
-          date: item.date ?? undefined,
-          summaryText: item.summary_text ?? "",  
-        }));
-
-        const imageItems: MediaItem[] = (data.media ?? []).map((item) => ({
-  id: String(item.id),
-  type: "IMAGE" as MediaType,
-  title: item.title ?? "Untitled Image",
-  date: item.created_at,
-  imageUrl: item.picture_cloudinary_url ?? undefined,
-  tags: item.tags ?? [],   // ← add this
-}));
-const docItems: MediaItem[] = (data.documents ?? []).map((item) => ({
-  id: String(item.id),
-  type: "PDF" as MediaType,
-  title: item.title ?? "Untitled Document",
-  date: item.created_at,
-}));
-
-        // Newest first
-        const merged = [...audioItems, ...imageItems, ...docItems].sort(
-          (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
-        );
-        setAllItems(merged);
+        setAllItems(mapMediaItems(data));
+        setHasMore(moreAvailable);
+        setNextOffset(PAGE_SIZE);
       })
       .catch((err) => { if (!cancelled) setError(err?.message ?? "Unknown error."); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [communityId]);
+
+  useEffect(() => {
+    if (!communityId) {
+      setCommunityName(null);
+      return;
+    }
+    let cancelled = false;
+    withTimeout(getCommunityById(communityId), 8_000)
+      .then(({ data }) => {
+        if (!cancelled) setCommunityName(data?.name ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setCommunityName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [communityId]);
+
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    try {
+      const result = await withTimeout(
+        getMediaIndexItems(communityId, nextOffset, PAGE_SIZE),
+        8_000,
+      );
+      if (result.error) throw result.error;
+      const newItems = mapMediaItems(result.data);
+      setAllItems((current) =>
+        [...current, ...newItems].sort(
+          (a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime(),
+        ),
+      );
+      setNextOffset((current) => current + PAGE_SIZE);
+      setHasMore(result.hasMore);
+    } catch (loadError) {
+      setLoadMoreError(loadError instanceof Error ? loadError.message : "Failed to load more items.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   // ── Filter + Search ────────────────────────────────────────────────────────
 const filteredItems = useMemo(() => {
@@ -153,9 +212,10 @@ const filteredItems = useMemo(() => {
     <div className="min-h-screen bg-paper">
 
       {/* Back */}
-      <div className="fixed top-24 left-8 z-40">
+      <div className="fixed top-24 left-6 sm:left-12 z-40">
         <button
-          onClick={() => onNavigate("back")}
+          type="button"
+          onClick={() => onNavigate(communityId ? `community:${communityId}` : "home")}
           className="text-ink hover:text-accent transition-colors flex items-center gap-2"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
@@ -177,7 +237,7 @@ const filteredItems = useMemo(() => {
             style={{ fontFamily: "'Space Mono', monospace" }}
           >
             {communityId
-              ? `${communityId.toUpperCase()} COMMUNITY · ARCHIVE INDEX`
+              ? `${(communityName ?? "SELECTED").toUpperCase()} COMMUNITY · ARCHIVE INDEX`
               : "ALL COMMUNITIES · ARCHIVE INDEX"}
           </p>
           <h1
@@ -191,10 +251,11 @@ const filteredItems = useMemo(() => {
           <div className="mt-6 relative max-w-xl">
   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
   <input
+    aria-label="Search archive"
     type="text"
     value={searchQuery}
     onChange={(e) => setSearchQuery(e.target.value)}
-    placeholder="Search this community's archive..."
+    placeholder={communityId ? "Search this community's archive..." : "Search the archive..."}
     className="w-full bg-white/60 border border-ink/20 rounded-lg pl-10 pr-4 py-3 focus:border-accent outline-none transition-colors text-sm"
     style={{ fontFamily: "'Space Mono', monospace" }}
   />
@@ -213,6 +274,8 @@ const filteredItems = useMemo(() => {
             {["ALL", "AUDIO", "VISUAL", "TEXT"].map((type) => (
               <button
                 key={type}
+                type="button"
+                aria-pressed={filterType === type}
                 onClick={() => setFilterType(type)}
                 className={`px-4 py-2 rounded-lg text-xs transition-all ${
                   filterType === type
@@ -234,7 +297,7 @@ const filteredItems = useMemo(() => {
 
           {/* Loading */}
           {loading && (
-            <div className="flex flex-col items-center gap-4 py-24 text-ink/50">
+            <div className="flex flex-col items-center gap-4 py-24 text-ink/70">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />
               <p className="text-xs tracking-widest" style={{ fontFamily: "'Space Mono', monospace" }}>
                 LOADING ARCHIVE...
@@ -274,14 +337,15 @@ const filteredItems = useMemo(() => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               <AnimatePresence>
                 {filteredItems.map((item, index) => (
-                  <motion.div
+                  <motion.button
+                    type="button"
                     key={`${item.type}-${item.id}`}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3, delay: 0.04 * Math.min(index, 12) }}
                     onClick={() => handleRowClick(item)}
-                    className="cursor-pointer group"
+                    className="group text-left"
                   >
                     {/* Fixed-height container so images are always visible */}
                     <div className="relative w-full aspect-[4/3] overflow-hidden bg-ink/5">
@@ -317,7 +381,7 @@ const filteredItems = useMemo(() => {
                         })}
                       </p>
                     )}
-                  </motion.div>
+                  </motion.button>
                 ))}
               </AnimatePresence>
             </div>
@@ -383,6 +447,27 @@ const filteredItems = useMemo(() => {
                 </p>
               </div>
             </div>
+          )}
+
+          {!loading && !error && hasMore && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+                className="inline-flex items-center gap-2 border border-ink px-5 py-3 text-xs hover:bg-ink hover:text-paper disabled:cursor-wait disabled:opacity-60"
+                style={{ fontFamily: "'Space Mono', monospace" }}
+              >
+                {loadingMore && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                {loadingMore ? "LOADING…" : "LOAD MORE"}
+              </button>
+            </div>
+          )}
+
+          {loadMoreError && (
+            <p role="alert" className="mt-4 text-center text-sm text-destructive">
+              {loadMoreError} You can try loading more again.
+            </p>
           )}
 
         </div>

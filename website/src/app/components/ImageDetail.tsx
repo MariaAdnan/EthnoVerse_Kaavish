@@ -3,28 +3,13 @@ import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Download, ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
-import { getMediaById } from "../../services/media";
+import { getMediaById, type MediaDetail } from "../../services/media";
 import { downloadRemoteFile } from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
 import { toast } from "sonner";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Community {
-  community_id: string;
-  name: string;
-  location: string;
-}
-
-interface MediaItem {
-  id: number;
-  title: string;
-  description: string | null;
-  picture_cloudinary_url: string;
-  tags: string[] | null;
-  created_at: string;
-  communities: Community | null;
-}
 
 interface ImageDetailProps {
   onNavigate: (view: string) => void;
@@ -67,7 +52,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
   const { mediaId: initialId, siblingIds } = parseView(view);
 
   const [currentId, setCurrentId] = useState<number>(initialId);
-  const [item, setItem] = useState<MediaItem | null>(null);
+  const [item, setItem] = useState<MediaDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,8 +75,8 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
     setError(null);
     setItem(null);
 
-    getMediaById(currentId)
-      .then((data) => { if (!cancelled) setItem(data as MediaItem); })
+    withTimeout(getMediaById(currentId), 8_000)
+      .then((data) => { if (!cancelled) setItem(data); })
       .catch((err) => { if (!cancelled) setError(err?.message ?? "Failed to load media item."); })
       .finally(() => { if (!cancelled) setLoading(false); });
 

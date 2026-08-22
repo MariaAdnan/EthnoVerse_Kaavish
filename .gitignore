@@ -10,9 +10,23 @@ node_modules/
 dist/
 build/
 pipeline_output.zip
+/pipeline/
 
 __pycache__/
 *.py[cod]
+# LaTeX build products
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.toc
 # OS files
 .DS_Store
 Thumbs.db

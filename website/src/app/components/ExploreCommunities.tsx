@@ -4,6 +4,7 @@ import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { useEffect, useState, useCallback } from "react";
 import { getAllCommunities } from "../../services/communities";
 import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
+import { withTimeout } from "../../lib/async";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,7 +184,11 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
     setError(null);
 
     try {
-      const { data, error: sbError } = await getAllCommunities();
+      const { data, error: sbError } = await withTimeout(
+        getAllCommunities(),
+        8_000,
+        "The archive did not respond in time.",
+      );
 
       if (sbError) {
         console.error("[ExploreCommunities] Supabase error:", sbError.message);

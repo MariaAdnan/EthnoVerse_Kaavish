@@ -34,8 +34,8 @@ export function requireHttpUrl(value: string, label: string) {
   } catch {
     throw new Error(`${label} must be a valid URL.`);
   }
-  if (!["https:", "http:"].includes(url.protocol)) {
-    throw new Error(`${label} must use HTTP or HTTPS.`);
+  if (url.protocol !== "https:") {
+    throw new Error(`${label} must use HTTPS.`);
   }
   return url.toString();
 }

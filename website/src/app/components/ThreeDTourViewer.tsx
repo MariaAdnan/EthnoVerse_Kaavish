@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { BUILT_IN_TOUR_COMMUNITY_ID } from "../../config/archive";
+import { withTimeout } from "../../lib/async";
 
 interface ThreeDTourViewerProps {
   onNavigate: (view: string) => void;
@@ -20,6 +21,8 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
       supabaseKey:
         import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
         import.meta.env.VITE_SUPABASE_ANON_KEY,
+      cloudinaryFunction:
+        import.meta.env.VITE_CLOUDINARY_ADMIN_FUNCTION ?? "cloudinary-admin",
     });
 
     if (isAdmin) params.set("mode", "admin");
@@ -40,7 +43,7 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
         return;
       }
 
-      const { data } = await supabase.auth.getSession();
+      const { data } = await withTimeout(supabase.auth.getSession(), 8_000);
       iframeRef.current?.contentWindow?.postMessage(
         {
           type: "ethnoverse:admin-token",
@@ -66,16 +69,25 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
     }
 
     // New community: fetch terrain_type from DB
-    supabase
-      .from("communities")
-      .select("terrain_type")
-      .eq("community_id", communityId)
-      .single()
+    void withTimeout(
+      supabase
+        .from("communities")
+        .select("terrain_type")
+        .eq("community_id", communityId)
+        .single(),
+      8_000,
+    )
       .then(({ data }) => {
-        const terrain = data?.terrain_type || 'grass';
-        setIframeSrc(buildTourUrl(communityId, terrain));
+        setIframeSrc(buildTourUrl(communityId, data?.terrain_type || "grass"));
+      })
+      .catch(() => {
+        setIframeSrc(buildTourUrl(communityId, "grass"));
       });
   }, [view, buildTourUrl]);
+
+  const returnRoute = isAdmin
+    ? "admin"
+    : `community:${view?.split(":")[1] || BUILT_IN_TOUR_COMMUNITY_ID}`;
 
   return (
     <div className="min-h-screen bg-black relative">
@@ -88,10 +100,10 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
           allow="fullscreen"
         />
       )}
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 sm:bottom-auto sm:left-6 sm:top-6 sm:translate-x-0">
         <button
-          onClick={() => onNavigate("back")}
-          className="text-white bg-black/60 px-4 py-2 border border-white/30 hover:bg-black"
+          onClick={() => onNavigate(returnRoute)}
+          className="whitespace-nowrap text-white bg-black/75 px-4 py-2 border border-white/50 hover:bg-black"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           ← EXIT VIRTUAL SPACE

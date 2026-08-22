@@ -1,21 +1,25 @@
-// to maria and afifah: watch this: https://youtu.be/lGokKxJ8D2c?si=Ye0FsN33LdLfcbYM
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { SplatMesh } from "@sparkjsdev/spark";
+import { renderLabelContent } from "./label-content.js";
 // ── URL params — must be first, everything reads from these ──
 const urlParams = new URLSearchParams(window.location.search);
 const isAdmin = urlParams.get('mode') === 'admin';
-const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
+const COMMUNITY_ID = urlParams.get('community');
 const terrainParam = urlParams.get('terrain');
 const isKolhi = !terrainParam;
 const isCustomTerrain = terrainParam === 'custom';
 const SUPABASE_URL = urlParams.get('supabaseUrl');
 const SUPABASE_KEY = urlParams.get('supabaseKey');
+const CLOUDINARY_FUNCTION = urlParams.get('cloudinaryFunction') || 'cloudinary-admin';
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error('Supabase configuration is missing from the tour URL');
+if (!COMMUNITY_ID || !SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('Community or Supabase configuration is missing from the tour URL');
+}
+if (!/^[a-z0-9_-]+$/i.test(CLOUDINARY_FUNCTION)) {
+  throw new Error('Cloudinary function name is invalid');
 }
 
 const ASSET_URLS = Object.freeze({
@@ -39,6 +43,47 @@ function assetUrl(filename) {
   const url = ASSET_URLS[filename];
   if (!url) throw new Error(`Missing 3D asset URL for ${filename}`);
   return url;
+}
+
+const TERRAIN_DEFAULTS = Object.freeze({
+  scale: 1,
+  rotX: 0,
+  rotY: 0,
+  rotZ: 0,
+  posX: 0,
+  posY: -2,
+  posZ: 0,
+});
+
+function parseTerrainTransform(value) {
+  let parsed = value;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return { ...TERRAIN_DEFAULTS };
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { ...TERRAIN_DEFAULTS };
+  }
+  const limits = {
+    scale: [0.01, 5],
+    rotX: [-Math.PI, Math.PI],
+    rotY: [-Math.PI, Math.PI],
+    rotZ: [-Math.PI, Math.PI],
+    posX: [-30, 30],
+    posY: [-10, 10],
+    posZ: [-30, 30],
+  };
+  const result = { ...TERRAIN_DEFAULTS };
+  for (const [key, [minimum, maximum]] of Object.entries(limits)) {
+    const numericValue = Number(parsed[key]);
+    if (Number.isFinite(numericValue)) {
+      result[key] = Math.max(minimum, Math.min(maximum, numericValue));
+    }
+  }
+  return result;
 }
 
 const pendingAdminTokenRequests = new Map();
@@ -96,6 +141,79 @@ async function supabaseHeaders(requireAdmin = false) {
   };
 }
 
+async function uploadTourObject(file) {
+  const accessToken = await requestAdminAccessToken();
+  const signatureResponse = await fetch(
+    `${SUPABASE_URL}/functions/v1/${CLOUDINARY_FUNCTION}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'sign-upload', kind: 'tour-object' }),
+    },
+  );
+  if (!signatureResponse.ok) {
+    throw new Error(`Secure upload authorization failed: ${signatureResponse.status}`);
+  }
+  const signature = await signatureResponse.json();
+  if (
+    !signature.cloudName ||
+    !signature.apiKey ||
+    !signature.timestamp ||
+    !signature.signature ||
+    !signature.folder ||
+    signature.resourceType !== 'raw'
+  ) {
+    throw new Error('Secure upload authorization returned invalid data');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('api_key', signature.apiKey);
+  formData.append('timestamp', String(signature.timestamp));
+  formData.append('signature', signature.signature);
+  formData.append('folder', signature.folder);
+
+  const uploadResponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/raw/upload`,
+    { method: 'POST', body: formData },
+  );
+  const uploadResult = await uploadResponse.json();
+  if (!uploadResponse.ok || !uploadResult.secure_url) {
+    throw new Error(uploadResult.error?.message || 'Cloudinary upload failed');
+  }
+  if (!uploadResult.public_id) throw new Error('Cloudinary upload did not return an asset ID');
+  return {
+    url: uploadResult.secure_url,
+    publicId: uploadResult.public_id,
+    resourceType: 'raw',
+  };
+}
+
+async function deleteTourObject(asset) {
+  const accessToken = await requestAdminAccessToken();
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/${CLOUDINARY_FUNCTION}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'delete',
+        publicId: asset.publicId,
+        resourceType: asset.resourceType,
+      }),
+    },
+  );
+  if (!response.ok) throw new Error('Uploaded asset cleanup failed');
+}
+
 const raycaster = new THREE.Raycaster();
 const downVector = new THREE.Vector3(0, -1, 0);
 const scene = new THREE.Scene();
@@ -136,7 +254,7 @@ const terrainFile = isKolhi ? 'desert-v1.glb' : (TERRAIN_FILES[terrainParam] || 
 
 async function loadTerrain() {
   if (isCustomTerrain) {
-    let t = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
+    let t = { ...TERRAIN_DEFAULTS };
     try {
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/communities?community_id=eq.${COMMUNITY_ID}&select=terrain_transform`,
@@ -144,7 +262,7 @@ async function loadTerrain() {
       );
       const rows = await res.json();
       if (rows?.[0]?.terrain_transform) {
-        try { t = JSON.parse(rows[0].terrain_transform); } catch (_) {}
+        t = parseTerrainTransform(rows[0].terrain_transform);
       }
     } catch (e) { console.warn('Could not fetch terrain transform:', e); }
 
@@ -201,7 +319,7 @@ function makeLabel(title, description, worldX, worldY, worldZ, offsetX = 0, offs
   if (!title) return null;
   const div = document.createElement('div');
   div.className = 'label3d';
-  div.innerHTML = `<strong>${title}</strong>${description ? `<p>${description}</p>` : ''}`;
+  renderLabelContent(div, title, description);
   div.style.opacity = '0';
   const anchor = new THREE.Object3D();
   anchor.position.set(worldX + offsetX, worldY + offsetY, worldZ + offsetZ);
@@ -542,10 +660,6 @@ function animate() {
     camera.position.x = Math.max(-boundary, Math.min(boundary, camera.position.x));
     camera.position.z = Math.max(-boundary, Math.min(boundary, camera.position.z));
   }
-  if (moveW || moveS || moveA || moveD) {
-    console.log(`My Position - X: ${camera.position.x.toFixed(2)}, Z: ${camera.position.z.toFixed(2)}`);
-  }
-
   updateLabelHeights();
   const camPos = camera.position;
   for (const { obj, div, anchor, proximityPos } of allLabels) {
@@ -593,7 +707,7 @@ if (btn) {
 // ── Terrain Transform Panel (admin only, non-Kolhi) ─────────────────────────
 if (isAdmin && !isKolhi) {
   // Current slider values — initialised from DB on load
-  const terrainT = { scale: 1, rotX: 0, rotY: 0, rotZ: 0, posX: 0, posY: -2, posZ: 0 };
+  const terrainT = { ...TERRAIN_DEFAULTS };
 
   // ── Panel DOM ──────────────────────────────────────────────────────────────
   const tPanel = document.createElement('div');
@@ -763,11 +877,8 @@ if (isAdmin && !isKolhi) {
       const saved = rows?.[0]?.terrain_transform;
       if (saved) {
         isFirstTime = false;
-        try {
-          const t = JSON.parse(saved);
-          Object.assign(terrainT, t);
-          applyTerrainTransform();
-        } catch (_) {}
+        Object.assign(terrainT, parseTerrainTransform(saved));
+        applyTerrainTransform();
       }
     } catch (e) { console.warn('Could not fetch terrain_transform:', e); }
 
@@ -794,17 +905,8 @@ if (isAdmin && !isKolhi) {
   initTerrainPanel();
 }
 
-// const urlParams = new URLSearchParams(window.location.search);
-// const isAdmin = urlParams.get('mode') === 'admin';
-// const COMMUNITY_ID = urlParams.get('community') || 'YOUR_ACTUAL_UUID_HERE';
-
 // ── Load saved objects on startup ──────────────────────────────────────────
 async function loadSavedObjects() {
-  if (!COMMUNITY_ID || COMMUNITY_ID === 'YOUR_ACTUAL_UUID_HERE') {
-    console.warn('[loadSavedObjects] No community_id in URL — skipping.');
-    return;
-  }
-
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/tour_objects?community_id=eq.${COMMUNITY_ID}&select=*`,
     { headers: await supabaseHeaders() }
@@ -816,15 +918,12 @@ async function loadSavedObjects() {
   }
 
   const rows = await res.json();
-  console.log('[loadSavedObjects] community_id:', COMMUNITY_ID, '| rows:', rows.length);
-
   if (!Array.isArray(rows)) {
     console.error('[loadSavedObjects] Unexpected response:', rows);
     return;
   }
 
   for (const row of rows) {
-    console.log('[loadSavedObjects] loading:', row.object_name, row.object_url);
     if (row.type === 'ply') {
       const mesh = new SplatMesh({ url: row.object_url });
       mesh.position.set(row.offset_x ?? 0, row.offset_y ?? 0, row.offset_z ?? 0);
@@ -876,7 +975,6 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
     label_title: labelTitle || null,
     label_description: labelDescription || null,
   };
-  console.log('[saveObjectToSupabase] saving:', body);
   const res = await fetch(`${SUPABASE_URL}/rest/v1/tour_objects`, {
     method: 'POST',
     headers: {
@@ -887,7 +985,6 @@ async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scal
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Failed to save object: ${await res.text()}`);
-  console.log('[saveObjectToSupabase] saved OK');
 }
 
 // ── Admin UI (only shown when ?mode=admin) ─────────────────────────────────
@@ -926,10 +1023,10 @@ if (isAdmin) {
 
   async function computePlyCentroid(file) {
     const buffer = await file.arrayBuffer();
-    const text = new TextDecoder().decode(buffer.slice(0, 2048));
-    const headerEnd = text.indexOf('end_header');
-    if (headerEnd === -1) return { x: 0, y: 0, z: 0 };
-    const header = text.slice(0, headerEnd);
+    const text = new TextDecoder().decode(buffer.slice(0, 64 * 1024));
+    const headerMatch = /end_header\r?\n/.exec(text);
+    if (!headerMatch) return { x: 0, y: 0, z: 0 };
+    const header = text.slice(0, headerMatch.index);
     const isBinary = header.includes('binary_little_endian') || header.includes('binary_big_endian');
     const isBigEndian = header.includes('binary_big_endian');
     const vertexMatch = header.match(/element vertex (\d+)/);
@@ -951,7 +1048,7 @@ if (isAdmin) {
     }
     if (xOff === -1 || yOff === -1 || zOff === -1) return { x: 0, y: 0, z: 0 };
     if (isBinary) {
-      const dataStart = headerEnd + 'end_header'.length + 1;
+      const dataStart = headerMatch.index + headerMatch[0].length;
       const data = new DataView(buffer, dataStart);
       let sumX = 0, sumY = 0, sumZ = 0, count = 0;
       const step = Math.max(1, Math.floor(vertexCount / 5000));
@@ -1009,7 +1106,7 @@ if (isAdmin) {
       fileInput.value = '';
       return;
     }
-    const objectName = file.name.replace(/\.ply$/i, '');
+    const objectName = file.name.replace(/\.ply$/i, '').slice(0, 120);
     banner.innerText = '⏳ Reading file...';
     banner.style.display = 'block';
     insertBtn.style.opacity = '0.5';
@@ -1023,6 +1120,7 @@ if (isAdmin) {
       fileInput.value = '';
       return;
     }
+    if (pendingObject?.file) URL.revokeObjectURL(pendingObject.url);
     const localUrl = URL.createObjectURL(file);
     pendingObject = {
       type: 'ply',
@@ -1178,50 +1276,54 @@ if (isAdmin) {
       cancelBtn.disabled = true;
 
       let permanentUrl = pendingObject.url;
+      let uploadedAsset = null;
       if (pendingObject.file) {
-        const fileName = `${Date.now()}-${pendingObject.file.name}`;
-        const uploadRes = await fetch(
-          `${SUPABASE_URL}/storage/v1/object/tour-objects/${fileName}`,
-          {
-            method: 'POST',
-            headers: {
-              ...(await supabaseHeaders(true)),
-              'Content-Type': 'application/octet-stream',
-              'x-upsert': 'true',
-            },
-            body: pendingObject.file,
-          }
-        );
-        if (!uploadRes.ok) {
-          console.error('Upload failed:', await uploadRes.text());
+        try {
+          uploadedAsset = await uploadTourObject(pendingObject.file);
+          permanentUrl = uploadedAsset.url;
+        } catch (error) {
+          console.error('Upload failed:', error);
           confirmBtn.innerText = '❌ Upload failed';
           confirmBtn.disabled = false;
           cancelBtn.disabled = false;
           return;
         }
-        permanentUrl = `${SUPABASE_URL}/storage/v1/object/public/tour-objects/${fileName}`;
       }
 
       confirmBtn.innerText = 'Saving…';
-      await saveObjectToSupabase({
-        objectUrl:        permanentUrl,
-        objectName:       pendingObject.name,
-        type:             pendingObject.type,
-        x:                sliders.x,
-        y:                sliders.y,
-        z:                sliders.z,
-        scale:            sliders.scale,
-        rotationX:        sliders.rotX,
-        rotationY:        sliders.rotY,
-        rotationZ:        0,
-        offsetX:          pendingObject.autoOffset?.x ?? 0,
-        offsetY:          pendingObject.autoOffset?.y ?? 0,
-        offsetZ:          pendingObject.autoOffset?.z ?? 0,
-        labelTitle:       labelTitleInput?.value.trim().slice(0, 120) ?? '',
-        labelDescription: labelDescInput?.value.trim().slice(0, 1_000) ?? '',
-      });
+      try {
+        await saveObjectToSupabase({
+          objectUrl:        permanentUrl,
+          objectName:       pendingObject.name,
+          type:             pendingObject.type,
+          x:                sliders.x,
+          y:                sliders.y,
+          z:                sliders.z,
+          scale:            sliders.scale,
+          rotationX:        sliders.rotX,
+          rotationY:        sliders.rotY,
+          rotationZ:        0,
+          offsetX:          pendingObject.autoOffset?.x ?? 0,
+          offsetY:          pendingObject.autoOffset?.y ?? 0,
+          offsetZ:          pendingObject.autoOffset?.z ?? 0,
+          labelTitle:       labelTitleInput?.value.trim().slice(0, 120) ?? '',
+          labelDescription: labelDescInput?.value.trim().slice(0, 1_000) ?? '',
+        });
+      } catch (error) {
+        console.error('Object metadata save failed:', error);
+        if (uploadedAsset) {
+          try {
+            await deleteTourObject(uploadedAsset);
+          } catch (cleanupError) {
+            console.error('Orphaned Cloudinary asset:', uploadedAsset.publicId, cleanupError);
+          }
+        }
+        confirmBtn.innerText = '❌ Save failed — retry';
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        return;
+      }
 
-      if (pendingObject.file) URL.revokeObjectURL(pendingObject.url);
       resetAdminState();
     });
 
@@ -1245,6 +1347,7 @@ if (isAdmin) {
   }
 
   function resetAdminState() {
+    if (pendingObject?.file) URL.revokeObjectURL(pendingObject.url);
     activeMesh = null;
     activeGroup = null;
     pendingObject = null;
@@ -1299,6 +1402,7 @@ if (isAdmin) {
     if (e.key === 'Escape') {
       if (awaitingPlacement) {
         awaitingPlacement = false;
+        if (pendingObject?.file) URL.revokeObjectURL(pendingObject.url);
         pendingObject = null;
         banner.style.display = 'none';
         insertBtn.innerText = '+ Insert Object';

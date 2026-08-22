@@ -1,4 +1,3 @@
-// App.tsx
 import { useEffect, useState } from "react";
 import { Homepage } from "./components/Homepage";
 import { ExploreCommunities } from "./components/ExploreCommunities";
@@ -17,6 +16,7 @@ import {PDFViewer } from "./components/PDFviewer";
 import { MediaIndex } from "./components/MediaIndex";
 import { NavigationBar } from "./components/NavigationBar";
 import { AdminGuidelines } from "./components/AdminGuidelines";
+import { NotFoundPage } from "./components/NotFoundPage";
 import ModelProcessingDemo from "./components/ModelProcessing";
 import { AdminGuard } from "./components/AdminGuard";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -25,7 +25,7 @@ type View =
   | 'home' | 'explore' | 'community' | '3d-tour' | 'admin-3d-tour' | 'audio' | 'admin' | 'search'
   | 'admin-login' | 'media-upload' | 'about' | 'image-detail'
   | 'add-community' | 'contact' | 'pdf' | 'media-index'
-  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing' | 'admin-guidelines';
+  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing' | 'admin-guidelines' | 'not-found';
 
 type Route = View | `community:${string}` | `audio:${string}` | `image-detail:${string}` | `pdf:${string}` | `model-processing:${string}` | `3d-tour:${string}` | `admin-3d-tour:${string}`;
 
@@ -44,27 +44,52 @@ const STATIC_PATHS: Record<string, View> = {
   "/media/visual": "media-visual",
   "/media/audio": "media-audio",
   "/media/text": "media-text",
+  "/404": "not-found",
 };
 
 function routeFromPath(pathname = window.location.pathname): Route {
   const normalized = pathname.replace(/\/+$/, "") || "/";
   if (STATIC_PATHS[normalized]) return STATIC_PATHS[normalized];
 
-  const parts = normalized.split("/").filter(Boolean).map(decodeURIComponent);
-  if (parts[0] === "communities" && parts[1]) {
-    return parts[2]
-      ? (`community:${parts[1]}:${parts[2]}` as Route)
-      : (`community:${parts[1]}` as Route);
+  const parts: string[] = [];
+  for (const segment of normalized.split("/").filter(Boolean)) {
+    try {
+      parts.push(decodeURIComponent(segment));
+    } catch {
+      return "not-found";
+    }
   }
-  if (parts[0] === "audio" && parts[1]) return `audio:${parts.slice(1).join(":")}`;
-  if (parts[0] === "images" && parts[1]) return `image-detail:${parts.slice(1).join(":")}`;
-  if (parts[0] === "documents" && parts[1]) return `pdf:${parts.slice(1).join(":")}`;
-  if (parts[0] === "processing" && parts[1]) return `model-processing:${parts.slice(1).join(":")}`;
-  if (parts[0] === "tours" && parts[1]) return `3d-tour:${parts[1]}`;
-  if (parts[0] === "admin" && parts[1] === "tours" && parts[2]) {
+  if (parts[0] === "communities" && parts[1] && parts.length === 2) {
+    return `community:${parts[1]}`;
+  }
+  if (
+    parts[0] === "communities" &&
+    parts[1] &&
+    parts.length === 3 &&
+    ["all", "visual", "audio", "text"].includes(parts[2])
+  ) {
+    return `community:${parts[1]}:${parts[2]}` as Route;
+  }
+  if (parts[0] === "audio" && parts[1] && parts.length === 2) return `audio:${parts[1]}`;
+  if (parts[0] === "images" && parts[1] && parts.length === 2) {
+    return `image-detail:${parts[1]}`;
+  }
+  if (
+    parts[0] === "images" &&
+    parts[1] &&
+    parts[2] &&
+    parts.length === 3 &&
+    /^\d+(,\d+)*$/.test(parts[2])
+  ) {
+    return `image-detail:${parts[1]}:${parts[2]}`;
+  }
+  if (parts[0] === "documents" && parts[1] && parts.length === 2) return `pdf:${parts[1]}`;
+  if (parts[0] === "processing" && parts[1] && parts.length === 2) return `model-processing:${parts[1]}`;
+  if (parts[0] === "tours" && parts[1] && parts.length === 2) return `3d-tour:${parts[1]}`;
+  if (parts[0] === "admin" && parts[1] === "tours" && parts[2] && parts.length === 3) {
     return `admin-3d-tour:${parts[2]}`;
   }
-  return "home";
+  return "not-found";
 }
 
 function pathForRoute(route: Route): string {
@@ -80,7 +105,7 @@ function pathForRoute(route: Route): string {
   if (kind === "model-processing") return `/processing/${encoded.join("/")}`;
   if (kind === "3d-tour") return `/tours/${encoded.join("/")}`;
   if (kind === "admin-3d-tour") return `/admin/tours/${encoded.join("/")}`;
-  return "/";
+  return "/404";
 }
 
 export default function App() {
@@ -109,14 +134,17 @@ export default function App() {
 
   const handleNavigate = (view: string) => {
     if (view === 'back') {
-      if (window.history.length > 1) window.history.back();
+      const currentState = window.history.state as { view?: Route } | null;
+      if (currentState?.view && window.history.length > 1) window.history.back();
       else handleNavigate("home");
       return;
     }
 
-    const nextRoute = view as Route;
+    const requestedRoute = view as Route;
+    const nextPath = pathForRoute(requestedRoute);
+    const nextRoute: Route = nextPath === "/404" ? "not-found" : requestedRoute;
     if (nextRoute === currentView) return;
-    window.history.pushState({ view: nextRoute }, "", pathForRoute(nextRoute));
+    window.history.pushState({ view: nextRoute }, "", nextPath);
     setCurrentView(nextRoute);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -149,6 +177,13 @@ export default function App() {
   <MediaIndex
     onNavigate={handleNavigate}
     initialFilter="VISUAL"
+    communityId={currentView.split(':')[1]}
+  />
+)}
+{currentView.startsWith('community:') && currentView.endsWith(':all') && (
+  <MediaIndex
+    onNavigate={handleNavigate}
+    initialFilter="ALL"
     communityId={currentView.split(':')[1]}
   />
 )}
@@ -224,6 +259,7 @@ export default function App() {
             <AdminGuidelines onNavigate={handleNavigate} />
           </AdminGuard>
         )}
+        {currentView === 'not-found' && <NotFoundPage onNavigate={handleNavigate} />}
       </main>
     </div>
   );

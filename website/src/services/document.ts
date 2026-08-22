@@ -6,20 +6,10 @@ import {
   requireUuid,
 } from "../lib/validation";
 
-export async function getDocumentsByCommunity(communityId: string) {
-  const { data, error } = await supabase
-    .from("documents")
-    .select(`id, title, description, pdf_cloudinary_url, author, pages, file_size_kb, created_at, communities(name)`)
-    .eq("community_id", communityId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
-}
-
 export async function getDocumentById(id: string | number) {
   const { data, error } = await supabase
     .from("documents")
-    .select(`*, communities(community_id, name)`)
+    .select(`id, title, description, pdf_cloudinary_url, author, pages, file_size_kb, created_at, community_id, communities(community_id, name)`)
     .eq("id", Number(id))
     .single();
   if (error) throw error;
