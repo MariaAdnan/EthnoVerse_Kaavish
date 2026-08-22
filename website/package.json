@@ -12,6 +12,7 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
+    "@sparkjsdev/spark": "^0.1.10",
     "@supabase/supabase-js": "^2.87.3",
     "lucide-react": "0.487.0",
     "motion": "12.23.24",
@@ -19,7 +20,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-responsive-masonry": "2.7.1",
-    "sonner": "2.0.3"
+    "sonner": "2.0.3",
+    "three": "^0.178.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
