@@ -57,8 +57,20 @@ const LETTERBOXED_INTERVIEW_IMAGES = [
   "person6_Jainti_",
 ];
 
+const VIVID_INTERVIEW_IMAGES = ["person1_Champa_", "person3_Kids_"];
+
 function needsInterviewImageCorrection(src: string): boolean {
   return LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name));
+}
+
+function interviewImageStyle(src: string): React.CSSProperties | undefined {
+  if (needsInterviewImageCorrection(src)) {
+    return { filter: "brightness(1.18) contrast(1.12) saturate(1.35)" };
+  }
+  if (VIVID_INTERVIEW_IMAGES.some((name) => src.includes(name))) {
+    return { filter: "brightness(0.9) contrast(0.96) saturate(0.72)" };
+  }
+  return undefined;
 }
 
 // ─── Skeleton sub-components ──────────────────────────────────────────────────
@@ -115,7 +127,6 @@ function InterviewCard({
     interview.picture_cloudinary_url ||
     COMMUNITY_PLACEHOLDER_IMAGE;
   const correctLegacyImage = needsInterviewImageCorrection(imageSrc);
-
   const excerpt = interview.summary_text
     ? `"${interview.summary_text.slice(0, 120).trim()}${interview.summary_text.length > 120 ? "…" : ""}"`
     : null;
@@ -142,11 +153,7 @@ function InterviewCard({
               ? "scale-[1.2] group-hover:scale-[1.25]"
               : "group-hover:scale-105"
           }`}
-          style={
-            correctLegacyImage
-              ? { filter: "brightness(1.18) contrast(1.12) saturate(1.35)" }
-              : undefined
-          }
+          style={interviewImageStyle(imageSrc)}
           loading={index < 3 ? "eager" : "lazy"}
         />
       </div>

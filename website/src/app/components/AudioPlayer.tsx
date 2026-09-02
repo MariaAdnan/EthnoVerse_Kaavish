@@ -40,10 +40,22 @@ const LETTERBOXED_INTERVIEW_IMAGES = [
   "person6_Jainti_",
 ];
 
+const VIVID_INTERVIEW_IMAGES = ["person1_Champa_", "person3_Kids_"];
+
 function needsInterviewImageCorrection(src?: string | null): boolean {
   return Boolean(
     src && LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name)),
   );
+}
+
+function interviewImageStyle(src?: string | null): React.CSSProperties | undefined {
+  if (needsInterviewImageCorrection(src)) {
+    return { filter: "brightness(1.16) contrast(1.1) saturate(1.3)" };
+  }
+  if (src && VIVID_INTERVIEW_IMAGES.some((name) => src.includes(name))) {
+    return { filter: "brightness(0.9) contrast(0.96) saturate(0.72)" };
+  }
+  return undefined;
 }
 
 // Raw shape as Supabase actually returns it (communities is an array)
@@ -337,11 +349,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
           src={interview.picture_cloudinary_url ?? ""}
           alt={interview.title}
           className="h-full w-full object-cover"
-          style={
-            needsInterviewImageCorrection(interview.picture_cloudinary_url)
-              ? { filter: "brightness(1.16) contrast(1.1) saturate(1.3)" }
-              : undefined
-          }
+          style={interviewImageStyle(interview.picture_cloudinary_url)}
         />
       </motion.div>
 
@@ -606,11 +614,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                           ? "scale-[1.2] group-hover:scale-[1.25]"
                           : "group-hover:scale-105"
                       }`}
-                      style={
-                        needsInterviewImageCorrection(story.picture_cloudinary_url)
-                          ? { filter: "brightness(1.18) contrast(1.12) saturate(1.35)" }
-                          : undefined
-                      }
+                      style={interviewImageStyle(story.picture_cloudinary_url)}
                     />
                   </div>
                   <h3
