@@ -41,10 +41,21 @@ const LETTERBOXED_INTERVIEW_IMAGES = [
 ];
 
 const VIVID_INTERVIEW_IMAGES = ["person1_Champa_", "person3_Kids_"];
+const EXTRA_CROP_INTERVIEW_IMAGES = [
+  "person2_Momal_",
+  "person5_Nanoo_",
+  "person6_Jainti_",
+];
 
 function needsInterviewImageCorrection(src?: string | null): boolean {
   return Boolean(
     src && LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name)),
+  );
+}
+
+function needsExtraInterviewCrop(src?: string | null): boolean {
+  return Boolean(
+    src && EXTRA_CROP_INTERVIEW_IMAGES.some((name) => src.includes(name)),
   );
 }
 
@@ -348,7 +359,11 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
         <ImageWithFallback
           src={interview.picture_cloudinary_url ?? ""}
           alt={interview.title}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover ${
+            needsExtraInterviewCrop(interview.picture_cloudinary_url)
+              ? "scale-[1.18]"
+              : ""
+          }`}
           style={interviewImageStyle(interview.picture_cloudinary_url)}
         />
       </motion.div>
@@ -610,7 +625,9 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                       src={story.picture_cloudinary_url ?? ""}
                       alt={`Portrait of ${story.interviewee ?? story.title}`}
                       className={`aspect-[3/4] w-full object-cover transition-transform duration-500 ${
-                        needsInterviewImageCorrection(story.picture_cloudinary_url)
+                        needsExtraInterviewCrop(story.picture_cloudinary_url)
+                          ? "scale-[1.28] group-hover:scale-[1.32]"
+                          : needsInterviewImageCorrection(story.picture_cloudinary_url)
                           ? "scale-[1.2] group-hover:scale-[1.25]"
                           : "group-hover:scale-105"
                       }`}
