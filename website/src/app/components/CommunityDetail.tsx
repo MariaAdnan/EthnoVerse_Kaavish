@@ -58,18 +58,9 @@ const LETTERBOXED_INTERVIEW_IMAGES = [
 ];
 
 const VIVID_INTERVIEW_IMAGES = ["person1_Champa_", "person3_Kids_"];
-const EXTRA_CROP_INTERVIEW_IMAGES = [
-  "person2_Momal_",
-  "person5_Nanoo_",
-  "person6_Jainti_",
-];
 
 function needsInterviewImageCorrection(src: string): boolean {
   return LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name));
-}
-
-function needsExtraInterviewCrop(src: string): boolean {
-  return EXTRA_CROP_INTERVIEW_IMAGES.some((name) => src.includes(name));
 }
 
 function interviewImageStyle(src: string): React.CSSProperties | undefined {
@@ -148,7 +139,7 @@ function InterviewCard({
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="w-full bg-white border border-ink/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group text-left"
+      className="w-full self-start bg-white border border-ink/10 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group text-left"
       onClick={() => onNavigate(`audio:${interview.id}`)}
       aria-label={`Listen to interview: ${interview.title}`}
     >
@@ -158,9 +149,7 @@ function InterviewCard({
           src={imageSrc}
           alt={interview.interviewee || interview.title}
           className={`h-full w-full object-cover transition-transform duration-700 ${
-            needsExtraInterviewCrop(imageSrc)
-              ? "scale-[1.28] group-hover:scale-[1.32]"
-              : correctLegacyImage
+            correctLegacyImage
               ? "scale-[1.2] group-hover:scale-[1.25]"
               : "group-hover:scale-105"
           }`}
