@@ -25,7 +25,7 @@ type View =
   | 'home' | 'explore' | 'community' | '3d-tour' | 'admin-3d-tour' | 'audio' | 'admin' | 'search'
   | 'admin-login' | 'media-upload' | 'about' | 'image-detail'
   | 'add-community' | 'contact' | 'pdf' | 'media-index'
-  | 'media-visual' | 'media-audio' | 'media-text' | 'model-processing' | 'admin-guidelines' | 'not-found';
+  | 'media-visual' | 'media-audio' | 'model-processing' | 'admin-guidelines' | 'not-found';
 
 type Route = View | `community:${string}` | `audio:${string}` | `image-detail:${string}` | `pdf:${string}` | `model-processing:${string}` | `3d-tour:${string}` | `admin-3d-tour:${string}`;
 
@@ -43,7 +43,6 @@ const STATIC_PATHS: Record<string, View> = {
   "/media": "media-index",
   "/media/visual": "media-visual",
   "/media/audio": "media-audio",
-  "/media/text": "media-text",
   "/404": "not-found",
 };
 
@@ -66,7 +65,7 @@ function routeFromPath(pathname = window.location.pathname): Route {
     parts[0] === "communities" &&
     parts[1] &&
     parts.length === 3 &&
-    ["all", "visual", "audio", "text"].includes(parts[2])
+    ["all", "visual", "audio"].includes(parts[2])
   ) {
     return `community:${parts[1]}:${parts[2]}` as Route;
   }
@@ -194,13 +193,6 @@ export default function App() {
     communityId={currentView.split(':')[1]}
   />
 )}
-{currentView.startsWith('community:') && currentView.endsWith(':text') && (
-  <MediaIndex
-    onNavigate={handleNavigate}
-    initialFilter="TEXT"
-    communityId={currentView.split(':')[1]}
-  />
-)}
 {currentView.startsWith('3d-tour') && (
   <ThreeDTourViewer onNavigate={handleNavigate} view={currentView} />
 )}
@@ -248,7 +240,6 @@ export default function App() {
         {currentView === 'media-index' && <MediaIndex onNavigate={handleNavigate} initialFilter="ALL" />}
         {currentView === 'media-visual' && <MediaIndex onNavigate={handleNavigate} initialFilter="VISUAL" />}
         {currentView === 'media-audio' && <MediaIndex onNavigate={handleNavigate} initialFilter="AUDIO" />}
-        {currentView === 'media-text' && <MediaIndex onNavigate={handleNavigate} initialFilter="TEXT" />}
         {currentView.startsWith('model-processing') && (
           <AdminGuard onNavigate={handleNavigate}>
             <ModelProcessingDemo onNavigate={handleNavigate} view={currentView} />

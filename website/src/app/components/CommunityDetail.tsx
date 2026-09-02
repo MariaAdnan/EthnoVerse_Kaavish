@@ -50,6 +50,17 @@ function formatDate(raw?: string | null): string {
   }
 }
 
+const LETTERBOXED_INTERVIEW_IMAGES = [
+  "person2_Momal_",
+  "person4_Khatu_",
+  "person5_Nanoo_",
+  "person6_Jainti_",
+];
+
+function needsInterviewImageCorrection(src: string): boolean {
+  return LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name));
+}
+
 // ─── Skeleton sub-components ──────────────────────────────────────────────────
 
 function HeroSkeleton() {
@@ -103,6 +114,7 @@ function InterviewCard({
   const imageSrc =
     interview.picture_cloudinary_url ||
     COMMUNITY_PLACEHOLDER_IMAGE;
+  const correctLegacyImage = needsInterviewImageCorrection(imageSrc);
 
   const excerpt = interview.summary_text
     ? `"${interview.summary_text.slice(0, 120).trim()}${interview.summary_text.length > 120 ? "…" : ""}"`
@@ -125,7 +137,16 @@ function InterviewCard({
         <img
           src={imageSrc}
           alt={interview.interviewee || interview.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          className={`h-full w-full object-cover transition-transform duration-700 ${
+            correctLegacyImage
+              ? "scale-[1.2] group-hover:scale-[1.25]"
+              : "group-hover:scale-105"
+          }`}
+          style={
+            correctLegacyImage
+              ? { filter: "brightness(1.18) contrast(1.12) saturate(1.35)" }
+              : undefined
+          }
           loading={index < 3 ? "eager" : "lazy"}
         />
       </div>
@@ -262,11 +283,11 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-16">
+    <div className="min-h-screen pb-16 pt-40">
       {/* Back button — below global NavBar */}
-      <div className="fixed top-[72px] left-6 z-40">
+      <div className="fixed left-6 top-24 z-40 md:top-28">
         <button
-          onClick={() => onNavigate("explore")}
+          onClick={() => onNavigate("back")}
           className="text-ink hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >

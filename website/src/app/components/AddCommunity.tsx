@@ -333,7 +333,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       </motion.div>
 
       {/* Back Navigation */}
-      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate('admin')}
           className="text-paper hover:text-accent transition-colors"

@@ -41,11 +41,11 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
             </h2>
 
             <a
-              href="mailto:ma08439@st.habib.edu.pk"
+              href="mailto:sara.baloch@icloud.com"
               className="block break-all text-xl hover:text-accent transition-colors sm:text-3xl"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              ma08439@st.habib.edu.pk
+              sara.baloch@icloud.com
             </a>
           </div>
 
@@ -59,7 +59,7 @@ export function ContactPage({ onNavigate }: ContactPageProps) {
             </h2>
 
             <a
-              href="mailto:ma08439@st.habib.edu.pk?subject=EthnoVerse%20research%20contribution"
+              href="mailto:sara.baloch@icloud.com?subject=EthnoVerse%20research%20contribution"
               className="block break-all text-xl hover:text-accent transition-colors sm:text-3xl"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >

@@ -114,7 +114,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   if (isProcessing || isFailed) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-        <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+        <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
           <button
             onClick={() => onNavigate('admin')}
             className="text-ink hover:text-umber transition-colors"
@@ -217,7 +217,7 @@ const handleDownload = async () => {
 };
   return (
     <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate('admin')}
           className="text-ink hover:text-umber transition-colors"

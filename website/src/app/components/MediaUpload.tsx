@@ -211,7 +211,7 @@ if (mediaType === "document") {
     return (
       
       <div className="min-h-screen">
-<div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+<div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           type="button"
           onClick={() => onNavigate("admin")}

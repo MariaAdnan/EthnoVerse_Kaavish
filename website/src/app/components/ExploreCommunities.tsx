@@ -217,9 +217,9 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
   return (
     <div className="min-h-screen">
       {/* Back button — sits below the fixed global NavBar (NavBar is ~64px tall) */}
-      <div className="fixed top-[72px] left-6 z-40">
+      <div className="fixed left-6 top-24 z-40 md:top-28">
         <button
-          onClick={() => onNavigate("home")}
+          onClick={() => onNavigate("back")}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
@@ -232,7 +232,7 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="pt-28 pb-12 px-4 sm:px-12 text-center"
+        className="px-4 pb-12 pt-40 text-center sm:px-12"
       >
         <h1
           className="text-[clamp(3rem,10vw,6rem)] mb-4 leading-tight"

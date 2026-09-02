@@ -202,11 +202,11 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
   }, [persistedQuery]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start px-4 pb-8 pt-32 md:justify-center md:p-8 md:pt-24">
+    <div className="min-h-screen flex flex-col items-center justify-start px-4 pb-8 pt-40 md:justify-center md:p-8 md:pt-32">
       {/* Back Navigation */}
-      <div className="fixed left-4 top-20 z-40 md:left-8">
+      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
-          onClick={() => onNavigate("home")}
+          onClick={() => onNavigate("back")}
           className="text-foreground hover:text-accent transition-colors"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >

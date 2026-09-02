@@ -33,6 +33,19 @@ interface Interview {
   communities: { name: string; language: string } | null;
 }
 
+const LETTERBOXED_INTERVIEW_IMAGES = [
+  "person2_Momal_",
+  "person4_Khatu_",
+  "person5_Nanoo_",
+  "person6_Jainti_",
+];
+
+function needsInterviewImageCorrection(src?: string | null): boolean {
+  return Boolean(
+    src && LETTERBOXED_INTERVIEW_IMAGES.some((name) => src.includes(name)),
+  );
+}
+
 // Raw shape as Supabase actually returns it (communities is an array)
 interface RawInterview extends Omit<Interview, "communities"> {
   communities: { name: string; language: string }[] | { name: string; language: string } | null;
@@ -303,10 +316,10 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       />
 
       {/* ── Back ────────────────────────────────────────────────────────────── */}
-      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate("back")}
-          className="text-graphite hover:text-umber transition-colors"
+          className="rounded-sm bg-paper/90 px-3 py-2 text-graphite shadow-sm backdrop-blur-sm transition-colors hover:bg-paper hover:text-umber"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
           <span className="text-sm">← BACK</span>
@@ -323,7 +336,12 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
         <ImageWithFallback
           src={interview.picture_cloudinary_url ?? ""}
           alt={interview.title}
-          className="w-full h-full object-cover grayscale opacity-90"
+          className="h-full w-full object-cover"
+          style={
+            needsInterviewImageCorrection(interview.picture_cloudinary_url)
+              ? { filter: "brightness(1.16) contrast(1.1) saturate(1.3)" }
+              : undefined
+          }
         />
       </motion.div>
 
@@ -583,7 +601,16 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                     <ImageWithFallback
                       src={story.picture_cloudinary_url ?? ""}
                       alt={`Portrait of ${story.interviewee ?? story.title}`}
-                      className="w-full aspect-[3/4] object-cover grayscale group-hover:scale-105 transition-transform duration-500"
+                      className={`aspect-[3/4] w-full object-cover transition-transform duration-500 ${
+                        needsInterviewImageCorrection(story.picture_cloudinary_url)
+                          ? "scale-[1.2] group-hover:scale-[1.25]"
+                          : "group-hover:scale-105"
+                      }`}
+                      style={
+                        needsInterviewImageCorrection(story.picture_cloudinary_url)
+                          ? { filter: "brightness(1.18) contrast(1.12) saturate(1.35)" }
+                          : undefined
+                      }
                     />
                   </div>
                   <h3

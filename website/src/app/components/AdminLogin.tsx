@@ -37,7 +37,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
   return (
     <div className="min-h-screen bg-ink flex items-center justify-center px-6 pb-10 pt-28 md:p-6 md:pt-28">
       {/* Back to Home */}
-      <div className="fixed left-4 top-20 z-40 md:left-8 md:top-24">
+      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate('home')}
           className="text-paper hover:text-accent transition-colors"

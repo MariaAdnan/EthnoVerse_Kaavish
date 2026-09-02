@@ -250,15 +250,16 @@ export function Homepage({ onNavigate }: HomepageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.6 }}
-            className="max-w-3xl mx-auto"
+            className="max-w-6xl mx-auto"
           >
             <p
-              className="text-[clamp(1rem,2.5vw,2rem)] leading-relaxed tracking-wide"
+              className="text-[clamp(1rem,2vw,1.75rem)] leading-relaxed tracking-wide"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
-              Documenting Sindh's Indigenous communities through
-              <br className="hidden sm:block" />{" "}
-              multimedia and immersive 3D experiences
+              <span className="block">
+                Documenting Sindh&apos;s Indigenous communities through multimedia
+              </span>
+              <span className="block">and immersive 3D experiences</span>
             </p>
           </motion.div>
         </div>

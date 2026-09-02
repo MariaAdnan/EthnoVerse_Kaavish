@@ -1,38 +1,13 @@
 // src/app/components/NavigationBar.tsx
-import { useEffect, useState } from "react";
-import { getAllCommunities } from "../../services/communities";
+import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { isSupabaseConfigured } from "../../lib/supabase";
-import { withTimeout } from "../../lib/async";
 
 interface NavigationBarProps {
   onNavigate: (view: string) => void;
 }
 
-interface Community {
-  community_id: string;
-  name: string;
-  slug?: string;
-}
-
 export function NavigationBar({ onNavigate }: NavigationBarProps) {
-  const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [hoveredCommunity, setHoveredCommunity] = useState<Community | null>(null);
-  const [communities, setCommunities] = useState<Community[]>([]);
-
-  useEffect(() => {
-    const fetchCommunities = async () => {
-      if (!isSupabaseConfigured) return;
-      try {
-        const { data, error } = await withTimeout(getAllCommunities(), 8_000);
-        if (!error && data) setCommunities(data);
-      } catch {
-        // The main Explore route still exposes a retryable error state.
-      }
-    };
-    fetchCommunities();
-  }, []);
 
   const navigateAndClose = (view: string) => {
     setIsMobileMenuOpen(false);
@@ -67,14 +42,7 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
           <div className="hidden flex-1 items-center justify-between md:flex">
             <div className="flex items-center gap-8 md:gap-12">
               {/* EXPLORE */}
-              <div
-                className="relative group h-full flex items-center"
-                onMouseEnter={() => setIsExploreOpen(true)}
-                onMouseLeave={() => {
-                  setIsExploreOpen(false);
-                  setHoveredCommunity(null);
-                }}
-              >
+              <div className="relative flex h-full items-center">
                 <button
                   onClick={() => onNavigate("explore")} 
                   className="group relative py-2"
@@ -84,82 +52,6 @@ export function NavigationBar({ onNavigate }: NavigationBarProps) {
                     EXPLORE
                   </span>
                 </button>
-
-                {isExploreOpen && (
-                  <div className="absolute top-full left-0 pt-4">
-                    <div className="bg-paper border border-ink/10 rounded-sm shadow-xl py-2 min-w-[240px]">
-                      {communities.map((community) => (
-                        <div
-                          key={community.community_id}
-                          className="relative"
-                          onMouseEnter={() => setHoveredCommunity(community)}
-                        >
-                          {/* Community */}
-                          <button
-                            onClick={() =>
-                              onNavigate(`community:${community.community_id}`)
-                            }
-                            className="w-full text-left px-5 py-3 text-xs flex justify-between items-center hover:bg-ink/5"
-                            style={{ fontFamily: "'Space Mono', monospace" }}
-                          >
-                            <span>{community.name.toUpperCase()}</span>
-                            <span>›</span>
-                          </button>
-
-                          {/* Level 2 */}
-                          {hoveredCommunity?.community_id ===
-                            community.community_id && (
-                            <div className="absolute left-full top-0 -ml-1 pl-4">
-                              <div className="bg-paper border border-ink/10 rounded-sm shadow-xl py-2 min-w-[280px]">
-                                <button
-                                  onClick={() =>
-                                    onNavigate(
-                                      `community:${community.community_id}:visual`
-                                    )
-                                  }
-                                  className="w-full text-left px-5 py-3 text-xs hover:bg-ink/5 hover:text-accent"
-                                  style={{
-                                    fontFamily: "'Space Mono', monospace",
-                                  }}
-                                >
-                                  VISUAL MEDIA (Photos)
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    onNavigate(
-                                      `community:${community.community_id}:audio`
-                                    )
-                                  }
-                                  className="w-full text-left px-5 py-3 text-xs hover:bg-ink/5 hover:text-accent"
-                                  style={{
-                                    fontFamily: "'Space Mono', monospace",
-                                  }}
-                                >
-                                  INTERVIEWS (Oral Histories)
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    onNavigate(
-                                      `community:${community.community_id}:text`
-                                    )
-                                  }
-                                  className="w-full text-left px-5 py-3 text-xs hover:bg-ink/5 hover:text-accent"
-                                  style={{
-                                    fontFamily: "'Space Mono', monospace",
-                                  }}
-                                >
-                                  TEXT / DOCUMENTS
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Other Links */}

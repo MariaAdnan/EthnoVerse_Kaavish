@@ -166,7 +166,6 @@ const filteredItems = useMemo(() => {
     const matchesFilter =
       filterType === "ALL" ||
       (filterType === "VISUAL" && item.type === "IMAGE") ||
-      (filterType === "TEXT" && item.type === "PDF") ||
       item.type === filterType;
 
     if (!hasQuery) return matchesFilter;
@@ -203,7 +202,6 @@ const filteredItems = useMemo(() => {
   const getTitle = () => {
     if (filterType === "VISUAL") return "Visual Media Collection";
     if (filterType === "AUDIO") return "Oral Histories & Audio";
-    if (filterType === "TEXT") return "Manuscripts & Documents";
     return "Complete Collection";
   };
 
@@ -212,10 +210,10 @@ const filteredItems = useMemo(() => {
     <div className="min-h-screen bg-paper">
 
       {/* Back */}
-      <div className="fixed top-24 left-6 sm:left-12 z-40">
+      <div className="fixed left-6 top-24 z-40 sm:left-12 md:top-28">
         <button
           type="button"
-          onClick={() => onNavigate(communityId ? `community:${communityId}` : "home")}
+          onClick={() => onNavigate("back")}
           className="text-ink hover:text-accent transition-colors flex items-center gap-2"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >
@@ -225,7 +223,7 @@ const filteredItems = useMemo(() => {
       </div>
 
       {/* Header */}
-      <div className="pt-32 pb-12 px-6 sm:px-12 border-b border-ink/10">
+      <div className="px-6 pb-12 pt-40 sm:px-12 border-b border-ink/10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -271,7 +269,7 @@ const filteredItems = useMemo(() => {
 
           {/* Filter tabs */}
           <div className="flex gap-2 flex-wrap justify-center">
-            {["ALL", "AUDIO", "VISUAL", "TEXT"].map((type) => (
+            {["ALL", "AUDIO", "VISUAL"].map((type) => (
               <button
                 key={type}
                 type="button"
@@ -387,7 +385,7 @@ const filteredItems = useMemo(() => {
             </div>
           )}
 
-          {/* ── ALL / AUDIO / TEXT → Table list ── */}
+          {/* ── ALL / AUDIO → Table list ── */}
           {!loading && !error && filteredItems.length > 0 && filterType !== "VISUAL" && (
             <div className="border border-ink/10 rounded-lg overflow-hidden bg-white">
               <AnimatePresence>
