@@ -36,3 +36,17 @@ export const supabase = createClient(
   supabaseAnonKey || "missing-local-publishable-key",
   { global: { fetch: fetchWithTimeout } },
 );
+
+// One lightweight read to tell whether the archive database is answering. Free
+// Supabase projects pause after a week without activity (a scheduled GitHub
+// Action keeps it awake); this lets the site explain an outage instead of
+// showing empty pages.
+export async function isArchiveReachable(): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+  try {
+    const { error } = await supabase.from("communities").select("community_id").limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+}

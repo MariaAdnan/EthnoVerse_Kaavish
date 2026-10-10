@@ -70,7 +70,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center p-6">
         <div className="max-w-2xl w-full bg-white/80 backdrop-blur-sm border border-ink/10 rounded-lg p-12 shadow-lg text-center">
-          <p className="text-red-600 mb-6" style={{ fontFamily: 'Space Mono, monospace' }}>
+          <p className="text-red-700 mb-6" style={{ fontFamily: 'Space Mono, monospace' }}>
             {error ?? 'Job not found.'}
           </p>
           <button
@@ -114,7 +114,7 @@ export default function ModelProcessing({ onNavigate, view }: ModelProcessingPro
   if (isProcessing || isFailed) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-        <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
+        <div className="absolute left-4 top-24 z-40 md:left-8 md:top-28">
           <button
             onClick={() => onNavigate('admin')}
             className="text-ink hover:text-umber transition-colors"
@@ -217,7 +217,7 @@ const handleDownload = async () => {
 };
   return (
     <div className="min-h-screen bg-paper flex items-center justify-center p-6">
-      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
+      <div className="absolute left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate('admin')}
           className="text-ink hover:text-umber transition-colors"

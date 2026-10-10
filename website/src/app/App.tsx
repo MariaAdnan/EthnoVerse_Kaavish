@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MotionConfig } from "motion/react";
 import { Homepage } from "./components/Homepage";
 import { ExploreCommunities } from "./components/ExploreCommunities";
 import { CommunityDetail } from "./components/CommunityDetail";
@@ -19,6 +20,7 @@ import { AdminGuidelines } from "./components/AdminGuidelines";
 import { NotFoundPage } from "./components/NotFoundPage";
 import ModelProcessingDemo from "./components/ModelProcessing";
 import { AdminGuard } from "./components/AdminGuard";
+import { ArchiveStatusNotice } from "./components/ArchiveStatusNotice";
 import { isSupabaseConfigured } from "../lib/supabase";
 
 type View = 
@@ -107,8 +109,46 @@ function pathForRoute(route: Route): string {
   return "/404";
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  home: "Indigenous Cultural Archive",
+  explore: "Explore Communities",
+  community: "Community",
+  "3d-tour": "3D Virtual Space",
+  "admin-3d-tour": "3D Tour Editor",
+  audio: "Oral History",
+  admin: "Admin Dashboard",
+  search: "Search",
+  "admin-login": "Admin Login",
+  "media-upload": "Upload Media",
+  about: "About",
+  "image-detail": "Image",
+  "add-community": "Add Community",
+  contact: "Contact",
+  pdf: "Document",
+  "media-index": "Media Archive",
+  "media-visual": "Visual Archive",
+  "media-audio": "Audio Archive",
+  "model-processing": "Model Processing",
+  "admin-guidelines": "Admin Guidelines",
+  "not-found": "Page Not Found",
+};
+
+function titleForRoute(route: Route): string {
+  const [kind, , subview] = route.split(":");
+  if (kind === "home") return "EthnoVerse — Indigenous Cultural Archive";
+  if (kind === "community" && subview) return `${PAGE_TITLES["media-index"]} — EthnoVerse`;
+  return `${PAGE_TITLES[kind] ?? PAGE_TITLES.home} — EthnoVerse`;
+}
+
+function scrollToTop() {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<Route>(routeFromPath);
+  const mainRef = useRef<HTMLElement>(null);
+  const isFirstRender = useRef(true);
   const [searchQuery, setSearchQuery] = useState(
     () => new URLSearchParams(window.location.search).get("q") ?? "",
   );
@@ -117,11 +157,30 @@ export default function App() {
     const handlePopState = () => {
       setCurrentView(routeFromPath());
       setSearchQuery(new URLSearchParams(window.location.search).get("q") ?? "");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToTop();
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  // Announce client-side page changes: update the tab title and move focus to the new
+  // page's heading so screen-reader and keyboard users land at the start of it.
+  useEffect(() => {
+    document.title = titleForRoute(currentView);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const focusHeading = window.setTimeout(() => {
+      const main = mainRef.current;
+      if (!main) return;
+      const heading = main.querySelector<HTMLElement>("h1");
+      const target = heading ?? main;
+      if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+    }, 100);
+    return () => window.clearTimeout(focusHeading);
+  }, [currentView]);
 
   useEffect(() => {
     if (currentView !== "search") return;
@@ -131,7 +190,7 @@ export default function App() {
     window.history.replaceState({ view: currentView }, "", url);
   }, [currentView, searchQuery]);
 
-  const handleNavigate = (view: string) => {
+  const handleNavigate = (view: string, options: { replace?: boolean } = {}) => {
     if (view === 'back') {
       const currentState = window.history.state as { view?: Route } | null;
       if (currentState?.view && window.history.length > 1) window.history.back();
@@ -143,13 +202,32 @@ export default function App() {
     const nextPath = pathForRoute(requestedRoute);
     const nextRoute: Route = nextPath === "/404" ? "not-found" : requestedRoute;
     if (nextRoute === currentView) return;
-    window.history.pushState({ view: nextRoute }, "", nextPath);
+
+    if (options.replace) {
+      // Leaving a page that should not stay in history (e.g. exiting the 3D tour).
+      // If we arrived from the destination, step back to it; otherwise swap this entry.
+      const currentState = window.history.state as { view?: Route; from?: Route } | null;
+      if (currentState?.from === nextRoute) {
+        window.history.back();
+        return;
+      }
+      window.history.replaceState({ view: nextRoute, from: currentState?.from }, "", nextPath);
+    } else {
+      window.history.pushState({ view: nextRoute, from: currentView }, "", nextPath);
+    }
     setCurrentView(nextRoute);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"
+      >
+        Skip to content
+      </a>
 {!isSupabaseConfigured && (
   <div
     role="status"
@@ -160,10 +238,11 @@ export default function App() {
     <code>.env.local</code> and add the project&apos;s current public browser key.
   </div>
 )}
+<ArchiveStatusNotice />
 {!currentView.startsWith('3d-tour') && !currentView.startsWith('admin-3d-tour') && (
-  <NavigationBar onNavigate={handleNavigate} />
+  <NavigationBar onNavigate={handleNavigate} currentView={currentView} />
 )}
-      <main>
+      <main id="main-content" ref={mainRef} tabIndex={-1} className="outline-none">
         {currentView === 'home' && <Homepage onNavigate={handleNavigate} />}
         {currentView === 'explore' && <ExploreCommunities onNavigate={handleNavigate} />}
 {currentView.startsWith('community:') && currentView.split(':').length === 2 && (
@@ -253,5 +332,6 @@ export default function App() {
         {currentView === 'not-found' && <NotFoundPage onNavigate={handleNavigate} />}
       </main>
     </div>
+    </MotionConfig>
   );
 }

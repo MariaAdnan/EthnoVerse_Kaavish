@@ -8,6 +8,7 @@ import { downloadRemoteFile } from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
 import { toast } from "sonner";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,11 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const [interview, setInterview] = useState<Interview | null>(null);
+
+  // Name the browser tab after what is on screen once it has loaded.
+  useEffect(() => {
+    if (interview?.title) document.title = `${interview?.title} — EthnoVerse`;
+  }, [interview?.title]);
   const [recentStories, setRecentStories] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -328,7 +334,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
       />
 
       {/* ── Back ────────────────────────────────────────────────────────────── */}
-      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
+      <div className="absolute left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate("back")}
           className="rounded-sm bg-paper/90 px-3 py-2 text-graphite shadow-sm backdrop-blur-sm transition-colors hover:bg-paper hover:text-umber"
@@ -346,7 +352,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
         className="w-full h-[60vh] bg-graphite overflow-hidden"
       >
         <ImageWithFallback
-          src={interview.picture_cloudinary_url ?? ""}
+          {...responsiveImage(interview.picture_cloudinary_url ?? "", "100vw", 1600)}
           alt={interview.title}
           className="h-full w-full object-cover"
           style={interviewImageStyle(interview.picture_cloudinary_url)}
@@ -607,7 +613,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
                 >
                   <div className="mb-4 overflow-hidden bg-graphite">
                     <ImageWithFallback
-                      src={story.picture_cloudinary_url ?? ""}
+                      {...responsiveImage(story.picture_cloudinary_url ?? "", "(min-width: 768px) 33vw, 100vw", 400)}
                       alt={`Portrait of ${story.interviewee ?? story.title}`}
                       className={`aspect-[3/4] w-full object-cover transition-transform duration-500 ${
                         needsInterviewImageCorrection(story.picture_cloudinary_url)
@@ -650,7 +656,7 @@ export function AudioPlayer({ view, onNavigate }: AudioPlayerProps) {
           >
             EthnoVerse · Preserving the Cultural Heritage of Sindh
           </p>
-          <p className="text-xs opacity-50 mt-2">
+          <p className="text-xs opacity-75 mt-2">
             © 2026 EthnoVerse Project · Contact the project team about permissions or corrections
           </p>
         </div>

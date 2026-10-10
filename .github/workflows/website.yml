@@ -23,6 +23,8 @@ jobs:
           cache-dependency-path: website/package-lock.json
       - run: npm ci
       - run: npm run check
+      - name: Accessibility scan (axe, public pages)
+        run: npm run test:a11y
       - run: npm audit --audit-level=high
 
   pipeline-security:

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { searchArchive } from "../../services/search";
 import { getArchiveStats } from "../../services/archivestats";
 import { withTimeout } from "../../lib/async";
+import { cloudinaryImage } from "../../lib/images";
 
 interface SearchViewProps {
   onNavigate: (view: string) => void;
@@ -19,6 +20,7 @@ interface SearchResult {
   date: string;
   summary?: string;   // raw searchable text
   snippet?: string;   // extracted preview
+  thumbnail?: string | null;
 }
 
 function communityName(
@@ -88,6 +90,7 @@ export function SearchView({ onNavigate, persistedQuery, onQueryChange }: Search
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [completedQuery, setCompletedQuery] = useState("");
 const [stats, setStats] = useState({
   totalItems: 0,
   totalCommunities: 0,
@@ -114,6 +117,7 @@ if (!normalizedQuery) {
         setSearchResults([]);
         setSearchError(null);
         setIsSearching(false);
+        setCompletedQuery("");
         return;
       }
 
@@ -139,6 +143,7 @@ return {
   date: item.date ?? "",
   summary: summaryText,
   snippet,
+  thumbnail: item.picture_cloudinary_url,
 };
 
 });
@@ -160,6 +165,7 @@ const mediaResults: SearchResult[] = data.media.map((item) => {
     date: "",
     summary: description || tagsText,       // ⭐ FIX
     snippet: extractSnippet(description || tagsText, persistedQuery),
+    thumbnail: item.picture_cloudinary_url,
   };
 });
 
@@ -179,7 +185,10 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
 
 
 
-      if (!cancelled) setSearchResults([...audioResults, ...mediaResults, ...documentResults]);
+      if (!cancelled) {
+        setSearchResults([...audioResults, ...mediaResults, ...documentResults]);
+        setCompletedQuery(normalizedQuery);
+      }
       } catch (error) {
         console.error(
           "[Search] Archive query failed",
@@ -187,6 +196,7 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
         );
         if (!cancelled) {
           setSearchResults([]);
+          setCompletedQuery("");
           setSearchError(error instanceof Error ? error.message : "Search failed. Please try again.");
         }
       } finally {
@@ -204,7 +214,7 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-start px-4 pb-8 pt-40 md:justify-center md:p-8 md:pt-32">
       {/* Back Navigation */}
-      <div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
+      <div className="absolute left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           onClick={() => onNavigate("back")}
           className="text-foreground hover:text-accent transition-colors"
@@ -277,7 +287,7 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
           </p>
         )}
         {searchError && (
-          <p className="text-sm text-red-600" role="alert" style={{ fontFamily: "'Space Mono', monospace" }}>
+          <p className="text-sm text-red-700" role="alert" style={{ fontFamily: "'Space Mono', monospace" }}>
             {searchError}
           </p>
         )}
@@ -321,7 +331,15 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
                     >
                       {result.id}
                     </div>
-                    <div className="md:col-span-1">
+                    <div className="flex items-center gap-3 md:col-span-1 md:block">
+                      {result.thumbnail && (
+                        <img
+                          src={cloudinaryImage(result.thumbnail, 120)}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded object-cover md:mb-2 md:h-12 md:w-12"
+                          loading="lazy"
+                        />
+                      )}
                       <span className="inline-block px-2 py-1 bg-secondary text-ink text-xs rounded">
                         {result.type}
                       </span>
@@ -340,7 +358,7 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
     className="mt-3 text-xs opacity-80 md:hidden"
     style={{ fontFamily: "'Space Mono', monospace" }}
   >
-    {result.community}
+    {result.id} · {result.community}
     {result.date ? ` · ${result.date}` : ""}
   </p>
 </div>
@@ -363,6 +381,29 @@ const documentResults: SearchResult[] = data.documents.map((item) => {
             </div>
           </motion.div>
         )}
+
+        {!isSearching &&
+          !searchError &&
+          completedQuery &&
+          completedQuery === persistedQuery.trim() &&
+          searchResults.length === 0 && (
+            <div role="status" className="border-t border-border py-12 text-center">
+              <p className="mb-3 text-lg">
+                No results found for “{completedQuery}”
+              </p>
+              <p className="mb-6 text-sm opacity-80">
+                Try a person’s name, a tag such as “tattoo” or “temple”, or an archive ID.
+              </p>
+              <button
+                type="button"
+                onClick={() => onQueryChange("")}
+                className="border-b border-foreground pb-1 text-xs font-bold uppercase tracking-wide hover:border-accent hover:text-accent"
+                style={{ fontFamily: "'Space Mono', monospace" }}
+              >
+                Clear search
+              </button>
+            </div>
+          )}
 
         {/* Empty State */}
         {persistedQuery.length === 0 && (

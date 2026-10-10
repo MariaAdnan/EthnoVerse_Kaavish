@@ -8,6 +8,7 @@ import { downloadRemoteFile } from "../../lib/files";
 import { errorMessage } from "../../lib/validation";
 import { toast } from "sonner";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,11 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
 
   const [currentId, setCurrentId] = useState<number>(initialId);
   const [item, setItem] = useState<MediaDetail | null>(null);
+
+  // Name the browser tab after what is on screen once it has loaded.
+  useEffect(() => {
+    if (item?.title) document.title = `${item?.title} — EthnoVerse`;
+  }, [item?.title]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +67,21 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
     const { mediaId } = parseView(view);
     setCurrentId(mediaId);
   }, [view]);
+
+  // Keep the address bar on the visible image so refreshing or sharing opens the same
+  // item. replaceState keeps Back returning to the page the visitor came from.
+  useEffect(() => {
+    if (!currentId || Number.isNaN(currentId)) return;
+    const siblings = siblingIds.join(",");
+    const path = `/images/${currentId}${siblings ? `/${siblings}` : ""}`;
+    if (window.location.pathname === path) return;
+    const state = (window.history.state ?? {}) as Record<string, unknown>;
+    window.history.replaceState(
+      { ...state, view: `image-detail:${currentId}${siblings ? `:${siblings}` : ""}` },
+      "",
+      path,
+    );
+  }, [currentId, siblingIds]);
 
   // Fetch whenever currentId changes
   useEffect(() => {
@@ -123,7 +144,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-ink/95 z-50 flex items-center justify-center p-4 sm:p-8">
+    <div className="fixed inset-0 bg-ink z-[60] flex items-center justify-center p-4 sm:p-8">
 
       {/* Close */}
       <motion.button
@@ -139,7 +160,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
 
       {/* Reference tag — top left */}
       <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-10 pointer-events-none">
-        <p className="text-xs text-paper/40" style={{ fontFamily: "'Space Mono', monospace" }}>
+        <p className="text-xs text-paper/70" style={{ fontFamily: "'Space Mono', monospace" }}>
           {item ? archiveId(item.id) : "···"}
         </p>
       </div>
@@ -147,7 +168,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
       {/* Sibling counter — top centre */}
       {siblingIds.length > 1 && currentIndex >= 0 && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <p className="text-xs text-paper/40" style={{ fontFamily: "'Space Mono', monospace" }}>
+          <p className="text-xs text-paper/70" style={{ fontFamily: "'Space Mono', monospace" }}>
             {currentIndex + 1} / {siblingIds.length}
           </p>
         </div>
@@ -238,7 +259,7 @@ export function ImageDetail({ onNavigate, view }: ImageDetailProps) {
               style={{ maxHeight: "calc(100vh - 2rem)" }}
             >
               <ImageWithFallback
-                src={item.picture_cloudinary_url}
+                {...responsiveImage(item.picture_cloudinary_url, "(min-width: 1152px) 1152px, 100vw", 1600)}
                 alt={item.title}
                 className="max-w-full object-contain"
                 style={{ maxHeight: "calc(100vh - 16rem)" }}

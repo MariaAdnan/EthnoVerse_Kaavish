@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getMediaIndexItems } from "../../services/media";
 import { getCommunityById } from "../../services/communities";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -210,7 +211,7 @@ const filteredItems = useMemo(() => {
     <div className="min-h-screen bg-paper">
 
       {/* Back */}
-      <div className="fixed left-6 top-24 z-40 sm:left-12 md:top-28">
+      <div className="absolute left-6 top-24 z-40 sm:left-12 md:top-28">
         <button
           type="button"
           onClick={() => onNavigate("back")}
@@ -349,7 +350,7 @@ const filteredItems = useMemo(() => {
                     <div className="relative w-full aspect-[4/3] overflow-hidden bg-ink/5">
                       {item.imageUrl ? (
                         <img
-                          src={item.imageUrl}
+                          {...responsiveImage(item.imageUrl, "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw", 400)}
                           alt={item.title}
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy"

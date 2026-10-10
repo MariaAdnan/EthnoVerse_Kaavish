@@ -4,10 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "vendor:3d": "node scripts/vendor-3d-tour.mjs",
+    "prebuild": "npm run vendor:3d",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "predev": "npm run vendor:3d",
     "dev": "vite",
     "lint": "eslint src --max-warnings=0",
     "test": "node --test tests/*.test.mjs",
+    "test:a11y": "node tests/a11y.mjs",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
@@ -24,6 +28,7 @@
     "three": "^0.178.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@openai/sites-vite-plugin": "^0.2.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -33,6 +38,7 @@
     "axe-core": "^4.10.3",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "playwright-core": "^1.64.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.65.0",

@@ -7,6 +7,7 @@ import { getCommunityById } from "../../services/communities";
 import { getInterviewsByCommunity } from "../../services/interviews";
 import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,8 +128,10 @@ function InterviewCard({
     interview.picture_cloudinary_url ||
     COMMUNITY_PLACEHOLDER_IMAGE;
   const correctLegacyImage = needsInterviewImageCorrection(imageSrc);
-  const excerpt = interview.summary_text
-    ? `"${interview.summary_text.slice(0, 120).trim()}${interview.summary_text.length > 120 ? "…" : ""}"`
+  // Some summaries already open with a quotation mark; strip it so it isn't doubled.
+  const summary = interview.summary_text?.trim().replace(/^["“”]+/, "") ?? "";
+  const excerpt = summary
+    ? `"${summary.slice(0, 120).trim()}${summary.length > 120 ? "…" : ""}"`
     : null;
 
   return (
@@ -146,7 +149,7 @@ function InterviewCard({
       {/* Thumbnail */}
       <div className="aspect-[4/3] overflow-hidden">
         <img
-          src={imageSrc}
+          {...responsiveImage(imageSrc, "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw")}
           alt={interview.interviewee || interview.title}
           className={`h-full w-full object-cover transition-transform duration-700 ${
             correctLegacyImage
@@ -154,7 +157,8 @@ function InterviewCard({
               : "group-hover:scale-105"
           }`}
           style={interviewImageStyle(imageSrc)}
-          loading={index < 3 ? "eager" : "lazy"}
+          loading="lazy"
+          decoding="async"
         />
       </div>
 
@@ -211,6 +215,11 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
   const communityId = view.split(":")[1];
 
   const [community, setCommunity] = useState<Community | null>(null);
+
+  // Name the browser tab after what is on screen once it has loaded.
+  useEffect(() => {
+    if (community?.name) document.title = `${community?.name} — EthnoVerse`;
+  }, [community?.name]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loadingCommunity, setLoadingCommunity] = useState(true);
   const [loadingInterviews, setLoadingInterviews] = useState(true);
@@ -292,7 +301,7 @@ export function CommunityDetail({ onNavigate, view }: CommunityDetailProps) {
   return (
     <div className="min-h-screen pb-16 pt-40">
       {/* Back button — below global NavBar */}
-      <div className="fixed left-6 top-24 z-40 md:top-28">
+      <div className="absolute left-6 top-24 z-40 md:top-28">
         <button
           onClick={() => onNavigate("back")}
           className="text-ink hover:text-accent transition-colors"

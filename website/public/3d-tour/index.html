@@ -2,35 +2,132 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" href="data:,">
         <title>EthnoVerse 3D Tour</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             html, body { width: 100%; height: 100%; overflow: hidden; background: #e8d4b0; }
             #container3D { width: 100%; height: 100%; }
             canvas { display: block; }
-            #performancePanel {
+            .tour-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+                background: rgba(232, 212, 176, 0.94);
+                color: #1a1a1a;
+                font-family: sans-serif;
+            }
+            .tour-overlay[hidden], .tour-actions[hidden] { display: none; }
+            .tour-overlay.failed .tour-progress, .tour-overlay.failed #loadingPercent, .tour-overlay.failed #loadingNote { display: none; }
+            .tour-card {
+                width: 100%;
+                max-width: 420px;
+                padding: 24px;
+                border: 1px solid rgba(26, 26, 26, 0.2);
+                border-radius: 12px;
+                background: #f5f1e8;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            }
+            .tour-card h1 { margin-bottom: 8px; font-size: 18px; font-weight: 600; }
+            .tour-card p { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
+            .tour-card .tour-note { font-size: 12px; opacity: 0.7; }
+            .tour-progress {
+                height: 6px;
+                margin: 16px 0 8px;
+                overflow: hidden;
+                border-radius: 3px;
+                background: rgba(26, 26, 26, 0.12);
+            }
+            .tour-progress span {
+                display: block;
+                width: 0;
+                height: 100%;
+                background: #8b4a12;
+                transition: width 0.3s ease;
+            }
+            .tour-controls-list { margin: 12px 0 16px; padding: 0; list-style: none; font-size: 14px; }
+            .tour-controls-list li { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(26, 26, 26, 0.1); }
+            .tour-controls-list li:last-child { border-bottom: none; }
+            .tour-controls-list kbd, .tour-controls-list b {
+                flex: 0 0 110px;
+                font: 600 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+            }
+            .tour-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+            .tour-button {
+                flex: 1 1 auto;
+                min-height: 44px;
+                padding: 10px 16px;
+                border: 1px solid #1a1a1a;
+                border-radius: 8px;
+                background: #1a1a1a;
+                color: #f5f1e8;
+                font: 600 14px sans-serif;
+                cursor: pointer;
+            }
+            .tour-button.secondary { background: transparent; color: #1a1a1a; }
+            a.tour-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+            .tour-note a { color: inherit; }
+            #controlsHelp {
+                position: absolute;
+                top: 70px;
+                right: 20px;
+                z-index: 100;
+                padding: 8px 14px;
+                border: none;
+                border-radius: 20px;
+                background: #333;
+                color: white;
+                font-family: sans-serif;
+                cursor: pointer;
+            }
+            #objectsLoading {
                 position: absolute;
                 right: 20px;
                 bottom: 20px;
                 z-index: 100;
-                min-width: 132px;
-                padding: 8px 12px;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 6px;
-                background: rgba(0, 0, 0, 0.72);
+                padding: 8px 14px;
+                border-radius: 20px;
+                background: rgba(0, 0, 0, 0.6);
                 color: white;
-                font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+                font: 12px sans-serif;
                 pointer-events: none;
             }
-
             @media (max-width: 640px) {
-                #performancePanel {
-                    right: 12px;
-                    bottom: 84px;
-                    min-width: 0;
-                    font-size: 10px;
-                }
+                #objectsLoading { bottom: 96px; }
             }
+            #objectsLoading[hidden] { display: none; }
+            #joystick {
+                position: absolute;
+                left: 24px;
+                bottom: 96px;
+                z-index: 100;
+                width: 120px;
+                height: 120px;
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                border-radius: 50%;
+                background: rgba(0, 0, 0, 0.3);
+                touch-action: none;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+            #joystick[hidden] { display: none; }
+            #joystickKnob {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 52px;
+                height: 52px;
+                margin: -26px 0 0 -26px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.85);
+                pointer-events: none;
+            }
+            canvas { touch-action: none; }
 
             /* CSS2D label styles */
             .label3d {
@@ -67,21 +164,51 @@
                 <button id="timeSwitch" style="position: absolute; top: 20px; right: 20px; z-index: 100; padding: 10px 20px; cursor: pointer; border-radius: 20px; border: none; background: #333; color: white; font-family: sans-serif;">
                     Switch to Night
                 </button>
-                <output id="performancePanel" aria-live="polite">MEASURING FPS…</output>
+                <button id="controlsHelp" type="button">Controls</button>
+                <div id="objectsLoading" role="status" hidden>Loading objects…</div>
+                <div id="joystick" role="img" aria-label="Movement joystick: drag to walk" hidden>
+                    <div id="joystickKnob"></div>
+                </div>
             </div>
         </main>
+
+        <div id="loadingOverlay" class="tour-overlay" role="status" aria-live="polite">
+            <div class="tour-card">
+                <h1 id="loadingTitle">Preparing the virtual space…</h1>
+                <p id="loadingMessage">Loading the village, objects and scans.</p>
+                <div class="tour-progress" aria-hidden="true"><span id="loadingBar"></span></div>
+                <p id="loadingPercent" class="tour-note">0%</p>
+                <p id="loadingNote" class="tour-note">This can take longer on mobile data.</p>
+                <div id="loadingActions" class="tour-actions" hidden>
+                    <button id="retryButton" class="tour-button" type="button">Retry</button>
+                    <a class="tour-button secondary archive-fallback" href="#" target="_top">View the archive without 3D</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="controlsOverlay" class="tour-overlay" role="dialog" aria-modal="true" aria-labelledby="controlsTitle" hidden>
+            <div class="tour-card">
+                <h1 id="controlsTitle">How to move around</h1>
+                <ul id="controlsList" class="tour-controls-list"></ul>
+                <p class="tour-note">Use “Controls” at the top right to see this again. Prefer not to use 3D? <a class="archive-fallback" href="#" target="_top">Browse the archive instead</a>.</p>
+                <div class="tour-actions">
+                    <button id="controlsStart" class="tour-button" type="button">Start exploring</button>
+                </div>
+            </div>
+        </div>
 
         <script type="importmap">
         {
             "imports": {
-                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.178.0/three.module.js",
-                "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/loaders/GLTFLoader.js",
-                "three/examples/jsm/loaders/DRACOLoader.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/loaders/DRACOLoader.js",
-                "three/examples/jsm/renderers/CSS2DRenderer.js": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/renderers/CSS2DRenderer.js",
-                "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js"
+                "three": "./vendor/three/build/three.module.js",
+                "three/examples/jsm/loaders/GLTFLoader.js": "./vendor/three/examples/jsm/loaders/GLTFLoader.js",
+                "three/examples/jsm/loaders/DRACOLoader.js": "./vendor/three/examples/jsm/loaders/DRACOLoader.js",
+                "three/examples/jsm/renderers/CSS2DRenderer.js": "./vendor/three/examples/jsm/renderers/CSS2DRenderer.js",
+                "@sparkjsdev/spark": "./vendor/spark/spark.module.js"
             }
         }
         </script>
+        <script src="loading-guard.js"></script>
         <script type="module" src="index.js"></script>
     </body>
 </html>

@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getAllCommunities } from "../../services/communities";
 import { COMMUNITY_PLACEHOLDER_IMAGE } from "../../config/archive";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,11 +90,11 @@ function CommunityCard({
       >
         {/* Image */}
         <img
-          src={imageSrc}
+          {...responsiveImage(imageSrc, "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw")}
           alt={community.name}
           className="w-full object-cover transition-transform duration-700 group-hover:scale-105"
           style={{ height: `${height}px` }}
-          loading={index < 3 ? "eager" : "lazy"}
+          loading={index === 0 ? "eager" : "lazy"}
         />
 
         {/* Dark overlay on hover */}
@@ -156,7 +157,7 @@ function ErrorState({
   return (
     <div className="flex flex-col items-center justify-center py-32 gap-6">
       <p
-        className="text-sm opacity-50"
+        className="text-sm opacity-75"
         style={{ fontFamily: "'Space Mono', monospace" }}
       >
         {message}
@@ -217,7 +218,7 @@ export function ExploreCommunities({ onNavigate }: ExploreCommunitiesProps) {
   return (
     <div className="min-h-screen">
       {/* Back button — sits below the fixed global NavBar (NavBar is ~64px tall) */}
-      <div className="fixed left-6 top-24 z-40 md:top-28">
+      <div className="absolute left-6 top-24 z-40 md:top-28">
         <button
           onClick={() => onNavigate("back")}
           className="text-foreground hover:text-accent transition-colors"

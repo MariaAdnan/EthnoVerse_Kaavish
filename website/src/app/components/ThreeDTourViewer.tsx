@@ -5,7 +5,7 @@ import { BUILT_IN_TOUR_COMMUNITY_ID } from "../../config/archive";
 import { withTimeout } from "../../lib/async";
 
 interface ThreeDTourViewerProps {
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, options?: { replace?: boolean }) => void;
   isAdmin?: boolean;
   view?: string;
 }
@@ -23,9 +23,14 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
         import.meta.env.VITE_SUPABASE_ANON_KEY,
       cloudinaryFunction:
         import.meta.env.VITE_CLOUDINARY_ADMIN_FUNCTION ?? "cloudinary-admin",
+      // Where the tour's "View the archive without 3D" link points.
+      archiveUrl: `/communities/${encodeURIComponent(communityId)}/all`,
     });
 
     if (isAdmin) params.set("mode", "admin");
+    // Pass ?preview=fallback / ?preview=error through so the tour's fallback screens can be checked.
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview === "fallback" || preview === "error") params.set("preview", preview);
     if (terrain) params.set("terrain", terrain);
 
     return `/3d-tour/index.html?${params.toString()}`;
@@ -102,7 +107,7 @@ export function ThreeDTourViewer({ onNavigate, isAdmin = false, view }: ThreeDTo
       )}
       <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 sm:bottom-auto sm:left-6 sm:top-6 sm:translate-x-0">
         <button
-          onClick={() => onNavigate(returnRoute)}
+          onClick={() => onNavigate(returnRoute, { replace: true })}
           className="whitespace-nowrap text-white bg-black/75 px-4 py-2 border border-white/50 hover:bg-black"
           style={{ fontFamily: "'Space Mono', monospace" }}
         >

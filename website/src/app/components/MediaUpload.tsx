@@ -68,6 +68,8 @@ import { withTimeout } from "../../lib/async";
     const [summaryText, setSummaryText] = useState("");
     const [summaryUrdu, setSummaryUrdu] = useState("");
     const [summarySindhi, setSummarySindhi] = useState("");
+    const [recordedDate, setRecordedDate] = useState("");
+    const [portraitFile, setPortraitFile] = useState<File | null>(null);
 
     // Image Fields
     const [description, setDescription] = useState("");
@@ -125,27 +127,30 @@ import { withTimeout } from "../../lib/async";
   const handlePublish = async () => {
     if (isPublishing) return;
     let uploadedAsset: CloudinaryAsset | null = null;
+    let uploadedPortrait: CloudinaryAsset | null = null;
     let databaseRecordCreated = false;
     try {
       if (!mediaType) return toast.error("Select a media type.");
       if (!uploadedFile) return toast.error("Upload a file.");
       if (!title.trim() || !community) return toast.error("Fill all required fields.");
       validateUploadFile(uploadedFile, mediaType);
+      if (mediaType === "audio" && !recordedDate) return toast.error("Add the recording date.");
       setIsPublishing(true);
 
       if (mediaType === "audio") {
         uploadedAsset = await uploadToCloudinary(uploadedFile, "audio");
+        if (portraitFile) uploadedPortrait = await uploadToCloudinary(portraitFile, "image");
         const { error } = await createInterview({
           title,
           community_id: community,
           audio_cloudinary_url: uploadedAsset.url,
-          date: null,
+          date: recordedDate,
           interviewer: interviewer || null,
           interviewee: interviewee || null,
           summary_text: summaryText || null,
           summary_urdu: summaryUrdu || null,
           summary_sindhi: summarySindhi || null,
-          picture_cloudinary_url: null,
+          picture_cloudinary_url: uploadedPortrait?.url ?? null,
         });
 
         if (error) throw error;
@@ -195,11 +200,14 @@ if (mediaType === "document") {
 
     } catch (err: unknown) {
       console.error(err);
-      if (uploadedAsset && !databaseRecordCreated) {
-        try {
-          await deleteCloudinaryAsset(uploadedAsset);
-        } catch (cleanupError) {
-          console.error("ORPHANED CLOUDINARY ASSET:", uploadedAsset.publicId, cleanupError);
+      if (!databaseRecordCreated) {
+        for (const asset of [uploadedAsset, uploadedPortrait]) {
+          if (!asset) continue;
+          try {
+            await deleteCloudinaryAsset(asset);
+          } catch (cleanupError) {
+            console.error("ORPHANED CLOUDINARY ASSET:", asset.publicId, cleanupError);
+          }
         }
       }
       toast.error(errorMessage(err, "Upload failed."));
@@ -211,7 +219,7 @@ if (mediaType === "document") {
     return (
       
       <div className="min-h-screen">
-<div className="fixed left-4 top-24 z-40 md:left-8 md:top-28">
+<div className="absolute left-4 top-24 z-40 md:left-8 md:top-28">
         <button
           type="button"
           onClick={() => onNavigate("admin")}
@@ -433,6 +441,50 @@ if (mediaType === "document") {
                 {/* AUDIO FIELDS */}
                 {mediaType === "audio" && (
                   <>
+                    <label
+                  htmlFor="media-recorded-date"
+                  className="block text-xs mb-3 opacity-80"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  RECORDING DATE *
+                </label>
+                    <input
+                      id="media-recorded-date"
+                      type="date"
+                      value={recordedDate}
+                      required
+                      onChange={(e) => setRecordedDate(e.target.value)}
+                      className="w-full bg-transparent border-b-2 border-border focus:border-accent outline-none pb-3 transition-colors"
+                    />
+                    <label
+                  htmlFor="media-portrait"
+                  className="block text-xs mb-3 opacity-80"
+                  style={{ fontFamily: "'Space Mono', monospace" }}
+                >
+                  PORTRAIT (JPG, PNG OR WEBP, SHOWN ON THE INTERVIEW CARD)
+                </label>
+                    <input
+                      id="media-portrait"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) {
+                          setPortraitFile(null);
+                          return;
+                        }
+                        try {
+                          validateUploadFile(file, "image");
+                          await validateUploadFileContents(file, "image");
+                          setPortraitFile(await resizeImage(file));
+                        } catch (error) {
+                          setPortraitFile(null);
+                          e.target.value = "";
+                          toast.error(errorMessage(error, "The selected portrait is not valid."));
+                        }
+                      }}
+                      className="w-full text-sm"
+                    />
                     <label
                   htmlFor="media-interviewer"
                   className="block text-xs mb-3 opacity-80"

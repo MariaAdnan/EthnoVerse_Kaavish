@@ -4,6 +4,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { SplatMesh } from "@sparkjsdev/spark";
 import { renderLabelContent } from "./label-content.js";
+window.ethnoverseTourStarted = true;
 // ── URL params — must be first, everything reads from these ──
 const urlParams = new URLSearchParams(window.location.search);
 const isAdmin = urlParams.get('mode') === 'admin';
@@ -14,6 +15,22 @@ const isCustomTerrain = terrainParam === 'custom';
 const SUPABASE_URL = urlParams.get('supabaseUrl');
 const SUPABASE_KEY = urlParams.get('supabaseKey');
 const CLOUDINARY_FUNCTION = urlParams.get('cloudinaryFunction') || 'cloudinary-admin';
+
+if (window.ethnoverseStopTour) {
+  // loading-guard.js has already shown the "view the archive without 3D" screen
+  // (no WebGL on this device, or a ?preview=fallback / ?preview=error check).
+  throw new Error('3D tour stopped by loading-guard.js');
+}
+
+// Lite mode skips decorative scenery (trees and bushes, about 5 MB) on phones and on
+// connections that ask to save data. ?quality=full or ?quality=lite overrides it.
+const qualityParam = urlParams.get('quality');
+const connection = navigator.connection;
+const isLiteMode = qualityParam
+  ? qualityParam === 'lite'
+  : window.matchMedia('(pointer: coarse)').matches ||
+    connection?.saveData === true ||
+    /(^|-)2g$|^3g$/.test(connection?.effectiveType ?? '');
 
 if (!COMMUNITY_ID || !SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error('Community or Supabase configuration is missing from the tour URL');
@@ -34,7 +51,8 @@ const ASSET_URLS = Object.freeze({
   'matka.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415725/ethnoverse/3d-tour/matka.spz',
   'mountains.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415730/ethnoverse/3d-tour/mountains.glb',
   'oak_trees.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415732/ethnoverse/3d-tour/oak_trees.glb',
-  'outfit-2.spz': 'https://res.cloudinary.com/dve5xqucs/raw/upload/v1785415734/ethnoverse/3d-tour/outfit-2.spz',
+  // Cleaned scan (stray floater splats that showed as dark smudges in the sky removed).
+  'outfit-2.spz': new URL('./assets/outfit-2.spz', import.meta.url).href,
   'realistic_bush.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415737/ethnoverse/3d-tour/realistic_bush.glb',
   'rocky.glb': 'https://res.cloudinary.com/dve5xqucs/image/upload/v1785415740/ethnoverse/3d-tour/rocky.glb',
 });
@@ -214,6 +232,89 @@ async function deleteTourObject(asset) {
   if (!response.ok) throw new Error('Uploaded asset cleanup failed');
 }
 
+// ── Loading screen ──────────────────────────────────────────────────────────
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingTitle = document.getElementById('loadingTitle');
+const loadingMessage = document.getElementById('loadingMessage');
+const loadingBar = document.getElementById('loadingBar');
+const loadingPercent = document.getElementById('loadingPercent');
+const loadingActions = document.getElementById('loadingActions');
+let loadsStarted = 0;
+let loadsFinished = 0;
+let loadingFailed = false;
+let loadingComplete = false;
+let loadingSettleTimer = null;
+let shownPercent = 0;
+const objectsPill = document.getElementById('objectsLoading');
+if (loadingMessage) {
+  loadingMessage.textContent = isLiteMode
+    ? 'Loading the village, objects and scans (about 8 MB, lighter version for this device).'
+    : 'Loading the village, objects and scans (about 13 MB).';
+}
+
+function updateLoadingProgress() {
+  // Objects start loading in waves (terrain, then the village), so the raw ratio can
+  // drop as new downloads begin. Never show the bar going backwards.
+  const percent = loadsStarted ? Math.round((loadsFinished / loadsStarted) * 100) : 0;
+  shownPercent = Math.max(shownPercent, Math.min(percent, 99));
+  if (loadingBar) loadingBar.style.width = `${shownPercent}%`;
+  if (loadingPercent) loadingPercent.textContent = `${shownPercent}%`;
+  window.clearTimeout(loadingSettleTimer);
+  if (!loadingFailed && loadsStarted > 0 && loadsFinished === loadsStarted) {
+    loadingSettleTimer = window.setTimeout(() => {
+      if (objectsPill) objectsPill.hidden = true;
+      finishLoading();
+    }, 400);
+  } else if (objectsPill && loadingComplete) {
+    objectsPill.hidden = false;
+  }
+}
+
+function trackLoad() {
+  loadsStarted += 1;
+  updateLoadingProgress();
+  let settled = false;
+  return () => {
+    if (settled) return;
+    settled = true;
+    loadsFinished += 1;
+    updateLoadingProgress();
+  };
+}
+
+function trackSplat(mesh) {
+  const done = trackLoad();
+  Promise.resolve(mesh.initialized).catch((error) => console.warn('Splat failed to load:', error)).finally(done);
+  return mesh;
+}
+
+function showLoadingError(message) {
+  loadingFailed = true;
+  window.clearTimeout(loadingSettleTimer);
+  if (loadingOverlay) {
+    loadingOverlay.hidden = false;
+    loadingOverlay.classList.add('failed');
+  }
+  if (loadingTitle) loadingTitle.textContent = 'The virtual space could not load';
+  if (loadingMessage) loadingMessage.textContent = message;
+  if (loadingActions) loadingActions.hidden = false;
+}
+
+// The ground is enough to start exploring; huts, trees and scans keep loading in the
+// background with a small notice in the corner instead of blocking the whole view.
+function revealScene() {
+  if (loadingComplete || loadingFailed) return;
+  if (objectsPill) objectsPill.hidden = loadsFinished === loadsStarted;
+  finishLoading();
+}
+
+function finishLoading() {
+  if (loadingComplete || loadingFailed) return;
+  loadingComplete = true;
+  if (loadingOverlay) loadingOverlay.hidden = true;
+  showControlsOnFirstVisit();
+}
+
 const raycaster = new THREE.Raycaster();
 const downVector = new THREE.Vector3(0, -1, 0);
 const scene = new THREE.Scene();
@@ -222,11 +323,26 @@ scene.fog = new THREE.Fog(0xe8d4b0, 30, 50);
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 let object;
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/libs/draco/gltf/');
+dracoLoader.setDecoderPath(new URL('./vendor/three/examples/jsm/libs/draco/gltf/', import.meta.url).href);
 
 function createGLTFLoader() {
   const gltfLoader = new GLTFLoader();
   gltfLoader.setDRACOLoader(dracoLoader);
+  // Wrap load() so every model counts towards the loading screen.
+  const originalLoad = gltfLoader.load.bind(gltfLoader);
+  gltfLoader.load = (url, onLoad, onProgress, onError) => {
+    const done = trackLoad();
+    return originalLoad(
+      url,
+      (gltf) => { try { onLoad?.(gltf); } finally { done(); } },
+      onProgress,
+      (error) => {
+        if (onError) onError(error);
+        else console.error('Model failed to load:', url, error);
+        done();
+      },
+    );
+  };
   return gltfLoader;
 }
 
@@ -277,6 +393,7 @@ async function loadTerrain() {
         if (child.isMesh) { child.material.roughness = 1.0; child.material.metalness = 0.0; }
       });
       scene.add(object);
+      revealScene();
     }, undefined, (err) => {
       console.error('Custom terrain GLB failed:', err);
       loader.load(assetUrl('grass.glb'), (gltf) => {
@@ -284,6 +401,9 @@ async function loadTerrain() {
         object.position.set(0, -2, 0);
         object.scale.set(1, 1, 1);
         scene.add(object);
+        revealScene();
+      }, undefined, () => {
+        showLoadingError('The ground for this space did not download. Check your connection and try again, or browse the archive without 3D.');
       });
     });
     return;
@@ -304,6 +424,7 @@ async function loadTerrain() {
       });
       scene.add(object);
       loadKolhiObjects();
+      revealScene();
     } else {
       object.position.set(0, -2, 0);
       object.scale.set(1, 1, 1);
@@ -311,7 +432,11 @@ async function loadTerrain() {
         if (child.isMesh) { child.material.roughness = 1.0; child.material.metalness = 0.0; }
       });
       scene.add(object);
+      revealScene();
     }
+  }, undefined, (error) => {
+    console.error('Terrain failed to load:', error);
+    showLoadingError('The ground for this space did not download. Check your connection and try again, or browse the archive without 3D.');
   });
 }
 loadTerrain();
@@ -342,7 +467,7 @@ function loadKolhiObjects() {
 
 
   const matkaRotation = [Math.PI, 0, 0];
-  const matka = new SplatMesh({ url: assetUrl("matka.spz") });
+  const matka = trackSplat(new SplatMesh({ url: assetUrl("matka.spz") }));
   matka.position.set(1.5, -3.7, -2.8);
   matka.scale.set(2, 2, 2);
   matka.rotation.set(...matkaRotation, 'XYZ');
@@ -353,13 +478,13 @@ function loadKolhiObjects() {
     1.2, -3.3, -2.5
   );
 
-  const matka2 = new SplatMesh({ url: assetUrl("matka.spz") });
+  const matka2 = trackSplat(new SplatMesh({ url: assetUrl("matka.spz") }));
   matka2.position.set(1, -3.3, -2.5);
   matka2.scale.set(1.5, 1.5, 1.5);
   matka2.rotation.set(...matkaRotation, 'XYZ');
   scene.add(matka2);
 
-  const matka3 = new SplatMesh({ url: assetUrl("matka.spz") });
+  const matka3 = trackSplat(new SplatMesh({ url: assetUrl("matka.spz") }));
   matka3.position.set(1.2, -3.3, -2.0);
   matka3.scale.set(1.5, 1.5, 1.5);
   matka3.rotation.set(...matkaRotation, 'XYZ');
@@ -438,7 +563,7 @@ loader.load(assetUrl('hut.glb'), function (gltf) {
   });
 
   // Outfit centered in hut 1
-  const outfit = new SplatMesh({ url: assetUrl("outfit-2.spz") });
+  const outfit = trackSplat(new SplatMesh({ url: assetUrl("outfit-2.spz") }));
   outfit.position.set(5.5, -0.4, -5);
   outfit.scale.set(0.3, 0.3, 0.3);
   outfit.rotation.set(0.354, -0.4, 0, 'ZYX');
@@ -471,6 +596,9 @@ loader.load(assetUrl('hut.glb'), function (gltf) {
       0, -1.5, -8.5
     );
   });
+
+  // Decorative scenery below is skipped in lite mode to keep phone downloads small.
+  if (isLiteMode) return;
 
   // Oak trees
   const treeLoader = createGLTFLoader();
@@ -576,8 +704,145 @@ function handleKeyUp(event) {
 }
 window.addEventListener('keydown', handleKeyDown);
 window.addEventListener('keyup', handleKeyUp);
+window.addEventListener('blur', () => {
+  moveW = moveS = moveA = moveD = false;
+  lookUp = lookDown = lookLeft = lookRight = false;
+});
 
-const performancePanel = document.getElementById('performancePanel');
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+// ── Drag to look around (mouse on desktop, finger on phones) ────────────────
+const DRAG_LOOK_SPEED = 0.004;
+const lookPointers = new Map();
+let pointerDragDistance = 0;
+
+renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  lookPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  pointerDragDistance = 0;
+  renderer.domElement.setPointerCapture?.(event.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', (event) => {
+  const last = lookPointers.get(event.pointerId);
+  if (!last) return;
+  const dx = event.clientX - last.x;
+  const dy = event.clientY - last.y;
+  lookPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  pointerDragDistance += Math.abs(dx) + Math.abs(dy);
+  cameraYaw += dx * DRAG_LOOK_SPEED;
+  cameraPitch += dy * DRAG_LOOK_SPEED;
+});
+function endLookDrag(event) {
+  lookPointers.delete(event.pointerId);
+}
+renderer.domElement.addEventListener('pointerup', endLookDrag);
+renderer.domElement.addEventListener('pointercancel', endLookDrag);
+// A drag to look around should not count as a click (admin uses clicks to place objects).
+window.addEventListener('click', (event) => {
+  if (event.target === renderer.domElement && pointerDragDistance > 6) {
+    event.stopImmediatePropagation();
+  }
+}, true);
+
+// ── On-screen joystick for walking on touch devices ─────────────────────────
+const joystick = document.getElementById('joystick');
+const joystickKnob = document.getElementById('joystickKnob');
+let joystickX = 0; // -1 (left) … 1 (right)
+let joystickY = 0; // -1 (forward) … 1 (back)
+let joystickPointerId = null;
+
+function updateJoystick(event) {
+  const rect = joystick.getBoundingClientRect();
+  const radius = rect.width / 2;
+  let dx = event.clientX - (rect.left + radius);
+  let dy = event.clientY - (rect.top + radius);
+  const distance = Math.hypot(dx, dy);
+  if (distance > radius) {
+    dx = (dx / distance) * radius;
+    dy = (dy / distance) * radius;
+  }
+  joystickX = dx / radius;
+  joystickY = dy / radius;
+  joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+}
+function resetJoystick() {
+  joystickPointerId = null;
+  joystickX = 0;
+  joystickY = 0;
+  joystickKnob.style.transform = '';
+}
+if (joystick && joystickKnob) {
+  joystick.hidden = !isTouchDevice;
+  joystick.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    joystickPointerId = event.pointerId;
+    joystick.setPointerCapture?.(event.pointerId);
+    updateJoystick(event);
+  });
+  joystick.addEventListener('pointermove', (event) => {
+    if (event.pointerId === joystickPointerId) updateJoystick(event);
+  });
+  joystick.addEventListener('pointerup', resetJoystick);
+  joystick.addEventListener('pointercancel', resetJoystick);
+}
+
+// ── Controls instructions ───────────────────────────────────────────────────
+const CONTROLS_SEEN_KEY = 'ethnoverse-tour-controls-seen';
+const controlsOverlay = document.getElementById('controlsOverlay');
+const controlsList = document.getElementById('controlsList');
+const controlsStart = document.getElementById('controlsStart');
+const controlsHelp = document.getElementById('controlsHelp');
+
+const CONTROL_INSTRUCTIONS = isTouchDevice
+  ? [
+      ['Joystick', 'Drag the circle at the bottom left to walk.'],
+      ['Swipe', 'Drag anywhere else on the screen to look around.'],
+      ['Get close', 'Walk up to an object to read about it.'],
+    ]
+  : [
+      ['W A S D', 'Walk forward, left, back and right.'],
+      ['Mouse drag', 'Click and drag on the scene to look around.'],
+      ['Arrow keys', 'Look around without the mouse.'],
+      ['Get close', 'Walk up to an object to read about it.'],
+    ];
+
+if (controlsList) {
+  for (const [control, description] of CONTROL_INSTRUCTIONS) {
+    const item = document.createElement('li');
+    const key = document.createElement(isTouchDevice ? 'b' : 'kbd');
+    key.textContent = control;
+    const text = document.createElement('span');
+    text.textContent = description;
+    item.append(key, text);
+    controlsList.append(item);
+  }
+}
+
+function showControls() {
+  if (!controlsOverlay) return;
+  controlsOverlay.hidden = false;
+  controlsStart?.focus();
+}
+function hideControls() {
+  if (!controlsOverlay) return;
+  controlsOverlay.hidden = true;
+  try { window.localStorage.setItem(CONTROLS_SEEN_KEY, '1'); } catch { /* storage unavailable */ }
+  // Keyboard controls only reach the tour once the frame has focus.
+  renderer.domElement.tabIndex = -1;
+  renderer.domElement.focus({ preventScroll: true });
+}
+function showControlsOnFirstVisit() {
+  let seen = false;
+  try { seen = window.localStorage.getItem(CONTROLS_SEEN_KEY) === '1'; } catch { /* storage unavailable */ }
+  if (!seen) showControls();
+}
+controlsStart?.addEventListener('click', hideControls);
+controlsHelp?.addEventListener('click', showControls);
+controlsOverlay?.addEventListener('keydown', (event) => {
+  event.stopPropagation();
+  if (event.key === 'Escape') hideControls();
+});
+
 const deviceClass = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 768
   ? 'mobile/touch'
   : 'desktop';
@@ -604,11 +869,6 @@ function recordFrame(timestamp) {
 
   window.ethnoversePerformance.currentFps = currentFps;
   window.ethnoversePerformance.averageFps = averageFps;
-  if (performancePanel) {
-    performancePanel.textContent =
-      `${currentFps.toFixed(1)} FPS\n${averageFps.toFixed(1)} AVG · ${deviceClass.toUpperCase()}`;
-  }
-
   if (window.parent !== window) {
     window.parent.postMessage(
       {
@@ -637,17 +897,17 @@ function animate() {
   const quaternion = new THREE.Quaternion();
   quaternion.setFromEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
   camera.quaternion.copy(quaternion);
-  if (moveW || moveS || moveA || moveD) {
+  const forwardAmount = (moveW ? 1 : 0) - (moveS ? 1 : 0) - joystickY;
+  const leftAmount = (moveA ? 1 : 0) - (moveD ? 1 : 0) - joystickX;
+  if (Math.abs(forwardAmount) > 0.05 || Math.abs(leftAmount) > 0.05) {
     const forwardVector = new THREE.Vector3();
-    const rightVector = new THREE.Vector3();
+    const leftVector = new THREE.Vector3();
     camera.getWorldDirection(forwardVector);
     forwardVector.y = 0;
     forwardVector.normalize();
-    rightVector.crossVectors(camera.up, forwardVector).normalize();
-    if (moveW) camera.position.addScaledVector(forwardVector, moveSpeed);
-    if (moveS) camera.position.addScaledVector(forwardVector, -moveSpeed);
-    if (moveA) camera.position.addScaledVector(rightVector, moveSpeed);
-    if (moveD) camera.position.addScaledVector(rightVector, -moveSpeed);
+    leftVector.crossVectors(camera.up, forwardVector).normalize();
+    camera.position.addScaledVector(forwardVector, Math.max(-1, Math.min(1, forwardAmount)) * moveSpeed);
+    camera.position.addScaledVector(leftVector, Math.max(-1, Math.min(1, leftAmount)) * moveSpeed);
     if (object) {
       raycaster.set(new THREE.Vector3(camera.position.x, 10, camera.position.z), downVector);
       const intersects = raycaster.intersectObject(object, true);
@@ -925,7 +1185,7 @@ async function loadSavedObjects() {
 
   for (const row of rows) {
     if (row.type === 'ply') {
-      const mesh = new SplatMesh({ url: row.object_url });
+      const mesh = trackSplat(new SplatMesh({ url: row.object_url }));
       mesh.position.set(row.offset_x ?? 0, row.offset_y ?? 0, row.offset_z ?? 0);
       const group = new THREE.Group();
       group.position.set(row.position_x, row.position_y, row.position_z);
@@ -953,7 +1213,12 @@ async function loadSavedObjects() {
     }
   }
 }
-loadSavedObjects();
+{
+  const done = trackLoad();
+  loadSavedObjects()
+    .catch((error) => console.error('[loadSavedObjects] Failed:', error))
+    .finally(done);
+}
 
 // ── Save a placed object to Supabase ──────────────────────────────────────
 async function saveObjectToSupabase({ objectUrl, objectName, type, x, y, z, scale = 1, rotationX = 0, rotationY = 0, rotationZ = 0, offsetX = 0, offsetY = 0, offsetZ = 0, labelTitle = '', labelDescription = '' }) {
