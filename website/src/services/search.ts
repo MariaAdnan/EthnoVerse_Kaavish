@@ -12,6 +12,7 @@ export interface SearchInterview {
   title: string | null;
   date: string | null;
   summary_text: string | null;
+  picture_cloudinary_url: string | null;
   community_id: string;
   communities: { name: string }[] | { name: string } | null;
 }
@@ -54,7 +55,7 @@ export async function searchArchive(
 
   let interviewQuery = supabase
     .from("interviews")
-    .select(`id, title, date, summary_text, community_id, communities ( name )`)
+    .select(`id, title, date, summary_text, picture_cloudinary_url, community_id, communities ( name )`)
     .or(`${idFilter}title.ilike.%${escapedQuery}%,summary_text.ilike.%${escapedQuery}%`)
     .limit(100);
 

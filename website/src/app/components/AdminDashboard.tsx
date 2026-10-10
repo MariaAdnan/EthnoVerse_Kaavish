@@ -444,7 +444,7 @@ const handleTerrainChange = async (communityId: string, terrainType: string) => 
           {/* Status badge */}
           <span className={`text-xs px-2 py-1 rounded font-mono shrink-0 ${
             job.status === "done"      ? "bg-green-500/10 text-green-600" :
-            job.status === "failed"    ? "bg-red-500/10 text-red-600" :
+            job.status === "failed"    ? "bg-red-500/10 text-red-700" :
             job.status === "processing"? "bg-blue-500/10 text-blue-600" :
                                          "bg-accent/10 text-accent"
           }`}>

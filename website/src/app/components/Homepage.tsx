@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { getAllCommunities } from "../../services/communities";
 import {
+  BUILT_IN_TOUR_COMMUNITY_ID,
   COMMUNITY_PLACEHOLDER_IMAGE,
   OFFLINE_COMMUNITY,
 } from "../../config/archive";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { withTimeout } from "../../lib/async";
+import { responsiveImage } from "../../lib/images";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,10 +96,10 @@ function FeaturedCard({
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
-            src={imageSrc}
+            {...responsiveImage(imageSrc, "(min-width: 768px) 50vw, 100vw")}
             alt={community.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            loading="eager"
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors duration-500" />
         </div>
@@ -230,8 +232,8 @@ export function Homepage({ onNavigate }: HomepageProps) {
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 sm:px-6 max-w-7xl mx-auto w-full">
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 30 }}
+            animate={{ y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
             className="mb-8"
             style={{ fontFamily: "'Playfair Display', serif" }}
@@ -247,8 +249,8 @@ export function Homepage({ onNavigate }: HomepageProps) {
           </motion.h1>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
             transition={{ duration: 1, delay: 0.6 }}
             className="max-w-6xl mx-auto"
           >
@@ -261,6 +263,36 @@ export function Homepage({ onNavigate }: HomepageProps) {
               </span>
               <span className="block">and immersive 3D experiences</span>
             </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 1, delay: 0.9 }}
+            className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4"
+          >
+            <a
+              href="/explore"
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigate("explore");
+              }}
+              className="w-full max-w-xs bg-ink px-6 py-4 text-sm tracking-wide text-paper transition-colors hover:bg-accent sm:w-auto"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              EXPLORE THE ARCHIVE
+            </a>
+            <a
+              href={`/tours/${BUILT_IN_TOUR_COMMUNITY_ID}`}
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigate(`3d-tour:${BUILT_IN_TOUR_COMMUNITY_ID}`);
+              }}
+              className="w-full max-w-xs border border-ink bg-paper/70 px-6 py-4 text-sm tracking-wide text-ink transition-colors hover:bg-ink hover:text-paper sm:w-auto"
+              style={{ fontFamily: "'Space Mono', monospace" }}
+            >
+              ENTER THE 3D VILLAGE
+            </a>
           </motion.div>
         </div>
       </section>

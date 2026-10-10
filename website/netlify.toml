@@ -1,0 +1,3 @@
+# Only declares where Netlify Functions live; build settings stay in the Netlify UI.
+[functions]
+  directory = "netlify/functions"

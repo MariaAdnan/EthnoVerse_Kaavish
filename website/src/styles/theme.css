@@ -15,7 +15,7 @@
   --secondary: #E5DFD3; /* Lighter earth tone */
   --muted: #D4CEC0;
   --muted-foreground: #6B6B6B;
-  --accent: #CC7722; /* Burnt Ochre */
+  --accent: #A0581A; /* Burnt Ochre, darkened to meet WCAG AA (4.7:1) on paper */
   --accent-foreground: #F5F1E8;
   --sage: #A8B5A0; /* Faded Sage */
   --destructive: #d4183d;

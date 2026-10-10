@@ -30,3 +30,9 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# 3D tour libraries copied from node_modules by scripts/vendor-3d-tour.mjs
+website/public/3d-tour/vendor/
+
+# Netlify CLI local state
+website/.netlify/

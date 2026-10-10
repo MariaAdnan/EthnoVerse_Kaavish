@@ -2,6 +2,10 @@
 
 EthnoVerse is a React/Vite archive for documenting Sindh's Indigenous communities through images, oral histories, documents, and interactive 3D tours.
 
+The live archive currently holds one community (Kolhi) with oral histories,
+photographs and a 3D tour. Document (PDF) records are supported by the upload,
+search and viewer code, but none have been published yet.
+
 ## Stack
 
 - React + Vite frontend (`website/`)
@@ -24,7 +28,8 @@ Never put a Supabase `sb_secret_` key in the frontend. The Modal worker receives
 
 ## Database and worker
 
-Run `supabase/rls_policies.sql` in the Supabase SQL Editor for a new project.
+For a new project, run `supabase/schema.sql` and then
+`supabase/rls_policies.sql` in the Supabase SQL Editor.
 Deploy the authenticated Cloudinary/signing function using
 [`supabase/functions/cloudinary-admin/README.md`](supabase/functions/cloudinary-admin/README.md).
 Database-webhook configuration is documented in `supabase/WEBHOOK.md`. Deploy
@@ -51,13 +56,16 @@ signup or role-promotion interface.
 
 ## Deployment status
 
-The frontend is deliberately not deployed publicly while the project reviews
-the non-commercial restriction on its 3D reconstruction dependency. Local
-development and private research use remain supported. Do not make the
-frontend or worker public without reviewing the licensing and webhook controls
-documented here and completing the item-level publication checklist. A private
-recorded demo or local demonstration is the recommended portfolio format until
-those reviews are complete.
+EthnoVerse is live at **[ethnoverse.netlify.app](https://ethnoverse.netlify.app/)**,
+deployed on Netlify from this repository (`npm run build` in `website/`). The
+publication review is complete, and the site is shared publicly as a
+non-commercial research project. Search engines are asked not to index it
+(`noindex`), so it is reached by direct link.
+
+Public visitors can browse the archive, listen to oral histories and explore
+the 3D tour. Admin tools stay limited to provisioned accounts. The 3D
+reconstruction worker is not exposed publicly; see [Licensing](#licensing) for
+the non-commercial terms that apply to it.
 
 ## Licensing
 
@@ -74,6 +82,19 @@ before using, distributing, or deploying the reconstruction pipeline.
 Third-party acknowledgements are recorded in
 [`website/ATTRIBUTIONS.md`](website/ATTRIBUTIONS.md).
 
-## Waking the project up
+## Keeping the database awake
 
-Supabase free-tier projects can pause after inactivity. In Supabase Dashboard, open EthnoVerse and select **Resume project**, wait until the status is **Healthy**, then restart or redeploy the website with its current publishable key.
+Supabase free-tier projects pause after 7 days without database activity. Two
+scheduled jobs read one row so that does not happen, without needing commits:
+
+- **Netlify Scheduled Function** (`website/netlify/functions/keep-supabase-awake.mjs`),
+  every 2 days, for as long as the site is deployed. Its runs and logs are under
+  **Logs → Functions** in the Netlify dashboard.
+- **GitHub Action** (`.github/workflows/supabase-keepalive.yml`), every 3 days, as
+  a backup. It re-enables its own schedule on each run, so GitHub's 60-day
+  inactivity rule does not switch it off. Run it by hand from the **Actions** tab.
+
+If the project does pause, the website shows visitors an "archive isn't
+responding" notice. A paused project can only be resumed by a project owner: in
+Supabase Dashboard, open EthnoVerse, select **Resume project** and wait until the
+status is **Healthy**.
